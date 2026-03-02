@@ -1,0 +1,39 @@
+/* src/index.css */
+* {
+  margin: 0;
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+  background-color: #fff;
+  font-family: "Lato", sans-serif;
+  color: #20294C;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow: auto;
+  padding: 0px;
+}
+
+#root {
+  height: 100%;
+}
+
+body::-webkit-scrollbar {
+  display: none;
+}
+
+body {
+  scrollbar-width: none;
+}
+
+body {
+  -ms-overflow-style: none;
+}
+
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
