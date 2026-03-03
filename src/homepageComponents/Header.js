@@ -262,8 +262,8 @@ const DeclareButton = styled.button`
   gap: 6px;
   color: #fff;
   border-radius: 38px;
-  border: 1px solid #23863A;
-  background: #23863A;
+  border: 1px solid #436C4D;
+  background: #436C4D;
   white-space: nowrap;
   font-size: 14px;
   width: 100%;

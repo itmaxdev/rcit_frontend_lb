@@ -229,13 +229,13 @@ const Header = styled.div`
 const Name = styled.h1`
   font-size: 20px;
   font-weight: 800;
-  color: #23863A;
+  color: #436C4D;
 `;
 
 const AccountType = styled.h1`
   font-size: 20px;
   font-weight: 400;
-  color: #23863A;
+  color: #436C4D;
 `;
 
 const StatusBadge = styled.span`

@@ -36,7 +36,7 @@ const DeclareFooterContainer = styled.div`
   padding: 60px 100px;
   justify-content: space-between;
   align-items: center;
-  background-color: #23863A;
+  background-color: #436C4D;
 
   @media (max-width: 768px) {
     flex-direction: column;
@@ -90,7 +90,7 @@ const DeclareButton = styled.div`
   cursor: pointer;
   padding: 12px 18px 12px 28px;
   gap: 6px;
-  color: #23863A;
+  color: #436C4D;
   border-radius: 38px;
   border: 1px solid #fff;
   background: #fff;

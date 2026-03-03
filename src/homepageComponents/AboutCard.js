@@ -14,7 +14,7 @@ const AboutCard = () => {
         <Header>{t("AboutCard_Header")}</Header>
         <SubText>{t("AboutCard_Summary")}</SubText>
         <SubHeader
-          style={{ color: "#23863A", fontWeight: 800, marginTop: "10px" }}
+          style={{ color: "#436C4D", fontWeight: 800, marginTop: "10px" }}
         >
           {t("AboutCard_DeclareNow")}
         </SubHeader>
@@ -74,7 +74,7 @@ const TextSection = styled.div`
 `;
 
 const Header = styled.h1`
-  color: #23863A;
+  color: #436C4D;
   font-weight: 800;
   font-size: 40px;
 `;

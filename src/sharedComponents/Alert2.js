@@ -101,7 +101,7 @@ const ButtonPrimary = styled.button`
   padding: 12px;
   border: none;
   border-radius: 50px;
-  background: #23863A;
+  background: #436C4D;
   color: white;
   font-size: 15px;
   cursor: pointer;

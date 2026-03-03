@@ -10,11 +10,14 @@ import {
 } from "../../functions/impDeclare";
 import DevicesTable from "../DevicesTableImporters";
 import Popup from "../Popup";
+import PaymentSummary from "../paymentSummary"
 
 import chevronSVG from "../../assets/chevron-down.svg";
 import downloadSVG from "../../assets/download.svg";
 import fileSVG from "../../assets/file.svg";
 import replaceSVG from "../../assets/replace.svg";
+
+const currencyData = {}
 
 const DeclareDevicesImp = () => {
   const { t } = useTranslation();
@@ -31,6 +34,15 @@ const DeclareDevicesImp = () => {
   const [fileUploaded, setFileUploaded] = useState(false);
   const [summaryData, setSummaryData] = useState(null);
   const [popupOpen, setPopupOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [paymentData, setPaymentData] = useState({
+    totalCIFValue: 10,
+    totalCustomsDuty: 20,
+    usdToLbpRate: 89500,
+    vatPercentage: 11
+  });
+  const [showPayment, setShowPayment] = useState(false);
+
 
   const handleDownload = () => {
     const link = document.createElement("a");
@@ -44,12 +56,12 @@ const DeclareDevicesImp = () => {
     if (fileUploaded) {
       fetchDevices(currentPage, pageSize);
     }
-  }, [currentPage, pageSize, fileUploaded]); // Depend on fileUploaded
+  }, [currentPage, pageSize]); // Depend on fileUploaded
 
   const fetchDevices = async (page, size) => {
     const response = await fetchUploadResults(uploadID, page + 1, size);
     if (response) {
-      setUploadedData(response.data);
+      setUploadedData(response.content);
       setTotalElements(response.totalElements);
     }
   };
@@ -74,9 +86,12 @@ const DeclareDevicesImp = () => {
       try {
         const ret = await bulkUpload(file);
         if (ret.uploadedData) {
+          currencyData.usdToLbpRate = ret.uploadedData.usdToLbpRate
+          currencyData.vatPercentage = ret.uploadedData.vatPercentage
           setUploadID(ret.uploadId);
           setSummaryData(ret.summaryData);
-          setUploadedData(ret.uploadedData);
+          setUploadedData(ret.uploadedData.content);
+          setTotalElements(ret.uploadedData.totalElements);
           setFileUploaded(true);
         }
       } catch (error) {
@@ -100,6 +115,11 @@ const DeclareDevicesImp = () => {
     );
     newSummary.totalCIFValue = sums.totalCif
     newSummary.totalCustomsDuty = sums.totalDuty
+    setPaymentData({
+      ...currencyData,
+      totalCIFValue: newSummary.totalCIFValue,
+      totalCustomsDuty: newSummary.totalCustomsDuty,
+    })
     setSummaryData(newSummary)
   }, [uploadedData])
 
@@ -126,14 +146,20 @@ const DeclareDevicesImp = () => {
       summaryData?.validRecordsCount > 0 &&
       summaryData?.invalidRecordsCount === 0
     ) {
+      setBusy(true)
       try {
         await declareInformation(uploadID);
         global.alert2(t("Declaration successful!"));
       } catch (error) {
         console.error("Error declaring information:", error);
       }
+      setBusy(false)
     }
   };
+
+  const openPayment = () => {
+    setShowPayment(true)
+  }
 
   const handlePopupClose = () => {
     navigate("/profile/role_importer/dashboard");
@@ -144,6 +170,12 @@ const DeclareDevicesImp = () => {
     navigate("/profile/role_importer/DeclareDevices");
     setPopupOpen(false);
   };
+
+  if (showPayment) {
+    return (
+      <PaymentSummary busy={busy} onPay={handleDeclare} data={paymentData} />
+    )
+  }
 
   return (
     <DeclareDevicesImpContainer>
@@ -281,7 +313,7 @@ const DeclareDevicesImp = () => {
                   {summaryData?.invalidRecordsCount || "-"}
                 </Stat>
                 <Stat>
-                  <StatText>{t("Total CIF Value")}</StatText>
+                  <StatText>{t("Total Value")}</StatText>
                   <strong>{summaryData?.totalCIFValue || "-"}</strong>
                 </Stat>
                 <Stat style={{ borderRight: 0 }}>
@@ -299,7 +331,7 @@ const DeclareDevicesImp = () => {
                   {t("Download report")}
                 </UploadButton>
                 <DownloadButton
-                  onClick={handleDeclare}
+                  onClick={openPayment}
                   disabled={
                     !(
                       summaryData?.status === "PROCESSED_OK" &&
@@ -349,7 +381,7 @@ const DeclareDevicesImpContainer = styled.div`
 const Title = styled.h1`
   font-size: 20px;
   font-weight: 700;
-  color: #23863A;
+  color: #436C4D;
   margin-bottom: 10px;
 `;
 
@@ -422,8 +454,8 @@ const DownloadButton = styled.button`
   font-size: 14px;
   cursor: pointer;
   border-radius: 38px;
-  border: 1px solid #23863A;
-  background: #23863A;
+  border: 1px solid #436C4D;
+  background: #436C4D;
   transition: all 0.3s ease;
 
   &:hover {
@@ -462,7 +494,7 @@ const ProgressBar = styled.div`
 
 const Progress = styled.div`
   height: 100%;
-  background: #23863A;
+  background: #436C4D;
   transition: width 0.3s ease;
 `;
 
@@ -490,7 +522,7 @@ const ReplaceButton = styled.div`
   display: flex;
   align-items: center;
   gap: 8px;
-  color: #23863A;
+  color: #436C4D;
   font-size: 16px;
   font-weight: 700;
   text-decoration-line: underline;
