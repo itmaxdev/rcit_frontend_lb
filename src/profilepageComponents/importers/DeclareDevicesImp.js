@@ -8,7 +8,7 @@ import {
   downloadFullFile,
   declareInformation,
 } from "../../functions/impDeclare";
-import DevicesTable from "../DevicesTable";
+import DevicesTable from "../DevicesTableImporters";
 import Popup from "../Popup";
 
 import chevronSVG from "../../assets/chevron-down.svg";
@@ -72,8 +72,11 @@ const DeclareDevicesImp = () => {
       setFileUploaded(false);
 
       try {
-        const ret = await bulkUpload(file, setUploadID, setUploadedData, setSummaryData);
+        const ret = await bulkUpload(file);
         if (ret.uploadedData) {
+          setUploadID(ret.uploadId);
+          setSummaryData(ret.summaryData);
+          setUploadedData(ret.uploadedData);
           setFileUploaded(true);
         }
       } catch (error) {
@@ -83,6 +86,22 @@ const DeclareDevicesImp = () => {
       }
     }
   };
+
+  useEffect(() => {
+    if (!uploadedData || !Array.isArray(uploadedData)) return
+    const newSummary = JSON.parse(JSON.stringify(summaryData))
+    const sums = uploadedData.reduce(
+      (acc, item) => {
+        acc.totalCif += Number(item.cfi || 0);
+        acc.totalDuty += Number(item.dutyFee || 0);
+        return acc;
+      },
+      { totalCif: 0, totalDuty: 0 }
+    );
+    newSummary.totalCIFValue = sums.totalCif
+    newSummary.totalCustomsDuty = sums.totalDuty
+    setSummaryData(newSummary)
+  }, [uploadedData])
 
   const handleDragOver = (e) => {
     e.preventDefault();
@@ -252,9 +271,22 @@ const DeclareDevicesImp = () => {
                   {summaryData?.validRecordsCount || "-"}
                 </Stat>
                 <Stat>
+                  <StatText>{t("Total missing information devices")}</StatText>
+                  <span style={{ color: "orange", marginRight: "8px" }}>●</span>
+                  {summaryData?.missingRecordsCount || "-"}
+                </Stat>
+                <Stat>
                   <StatText>{t("Total invalid devices")}</StatText>
                   <span style={{ color: "red", marginRight: "8px" }}>●</span>
                   {summaryData?.invalidRecordsCount || "-"}
+                </Stat>
+                <Stat>
+                  <StatText>{t("Total CIF Value")}</StatText>
+                  <strong>{summaryData?.totalCIFValue || "-"}</strong>
+                </Stat>
+                <Stat style={{ borderRight: 0 }}>
+                  <StatText>{t("Total Customs Duty")}</StatText>
+                  <strong>{summaryData?.totalCustomsDuty || "-"}</strong>
                 </Stat>
               </Stats>
               <ButtonContainer>
@@ -317,7 +349,7 @@ const DeclareDevicesImpContainer = styled.div`
 const Title = styled.h1`
   font-size: 20px;
   font-weight: 700;
-  color: #1672c0;
+  color: #23863A;
   margin-bottom: 10px;
 `;
 
@@ -390,8 +422,8 @@ const DownloadButton = styled.button`
   font-size: 14px;
   cursor: pointer;
   border-radius: 38px;
-  border: 1px solid #1672c0;
-  background: #1672c0;
+  border: 1px solid #23863A;
+  background: #23863A;
   transition: all 0.3s ease;
 
   &:hover {
@@ -430,7 +462,7 @@ const ProgressBar = styled.div`
 
 const Progress = styled.div`
   height: 100%;
-  background: #1672c0;
+  background: #23863A;
   transition: width 0.3s ease;
 `;
 
@@ -458,7 +490,7 @@ const ReplaceButton = styled.div`
   display: flex;
   align-items: center;
   gap: 8px;
-  color: #1672c0;
+  color: #23863A;
   font-size: 16px;
   font-weight: 700;
   text-decoration-line: underline;
@@ -511,10 +543,13 @@ const Footer = styled.div`
 
 const Stats = styled.div`
   display: flex;
-  gap: 10px;
+  gap: 6px;
 `;
 
-const Stat = styled.div``;
+const Stat = styled.div`
+  border-right: 1px solid #D4D6DF;
+  padding-right: 6px;
+`;
 
 const StatText = styled.p`
   color: #797f94;

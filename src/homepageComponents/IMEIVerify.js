@@ -116,7 +116,7 @@ const SearchSVG = styled.img`
 `;
 
 const Header = styled.h1`
-  color: #1672c0;
+  color: #23863A;
   font-size: 40px;
   font-weight: 800;
   margin-bottom: 10px;
@@ -140,7 +140,7 @@ const InputSection = styled.div`
   transition: border-color 0.3s;
   border: 2px solid
     ${(props) =>
-      props.isInvalid ? "#EC011A" : props.isTyping ? "#1672C0" : "#fff"};
+      props.isInvalid ? "#EC011A" : props.isTyping ? "#23863A" : "#fff"};
 
   @media (max-width: 768px) {
     padding: 5px 10px;
@@ -154,7 +154,7 @@ const InputField = styled.input`
   outline: none;
   color: #000;
   cursor: text;
-  caret-color: #1672c0;
+  caret-color: #23863A;
 
   &::placeholder {
     opacity: 0.2;
@@ -162,7 +162,7 @@ const InputField = styled.input`
 `;
 
 const VerifyButton = styled.button`
-  background-color: ${(props) => (props.isTextPresent ? "#1672C0" : "#D4D6DF")};
+  background-color: ${(props) => (props.isTextPresent ? "#23863A" : "#D4D6DF")};
   color: ${(props) => (props.isTextPresent ? "#FFFFFF" : "#FFF")};
   border: none;
   padding: 10px 20px;

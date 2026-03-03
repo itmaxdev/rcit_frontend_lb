@@ -181,7 +181,7 @@ const FileName = styled.span`
   font-weight: 700;
   text-decoration-line: underline;
   cursor: pointer;
-  color: #1672c0;
+  color: #23863A;
 `;
 
 const FileSize = styled.span`

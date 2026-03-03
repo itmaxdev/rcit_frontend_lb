@@ -137,7 +137,7 @@ const SVG = styled.img`
 const Title = styled.h1`
   font-size: 35px;
   font-weight: 700;
-  color: #1672c0;
+  color: #23863A;
   margin-bottom: 10px;
 `;
 
@@ -156,8 +156,8 @@ const Button = styled.button`
   gap: 6px;
   color: #fff;
   border-radius: 38px;
-  border: 1px solid #1672c0;
-  background: #1672c0;
+  border: 1px solid #23863A;
+  background: #23863A;
   white-space: nowrap;
   font-size: 14px;
 

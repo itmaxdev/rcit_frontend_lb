@@ -279,7 +279,7 @@ const OTPVerifyPage = () => {
               borderBottomColor:
                 isValid === null
                   ? digit
-                    ? "#1672C0"
+                    ? "#23863A"
                     : "#20294C"
                   : isValid
                   ? "green"
@@ -377,12 +377,12 @@ const LanguageButton = styled.div`
 const Title = styled.h1`
   font-size: 40px;
   font-weight: 800;
-  color: #1672c0;
+  color: #23863A;
   margin-bottom: 20px;
 `;
 
 const Method = styled.p`
-  color: #1672c0;
+  color: #23863A;
   font-size: 18px;
   font-weight: 700;
   margin-bottom: 5px;
@@ -410,7 +410,7 @@ const DigitInput = styled.input`
   border: none;
   border-bottom: 2px solid;
   outline: none;
-  caret-color: #1672c0;
+  caret-color: #23863A;
 
   &:disabled {
     background-color: #f5f5f5;
@@ -443,7 +443,7 @@ const ResendContainer = styled.div`
 `;
 
 const Resend = styled.div`
-  color: #1672c0;
+  color: #23863A;
   cursor: pointer;
   font-weight: 700;
   text-decoration-line: underline;
@@ -452,7 +452,7 @@ const Resend = styled.div`
 const ChangeButton = styled.button`
   padding: 15px 30px;
   border-radius: 38px;
-  background: ${({ disabled }) => (disabled ? "#d3d3d3" : "#1672c0")};
+  background: ${({ disabled }) => (disabled ? "#d3d3d3" : "#23863A")};
   color: white;
   font-size: 14px;
   font-weight: 600;

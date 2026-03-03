@@ -256,7 +256,7 @@ const CenterContainer = styled.div`
 const Header = styled.h1`
   font-size: 40px;
   font-weight: 800;
-  color: #1672c0;
+  color: #23863A;
 `;
 
 const Subtext = styled.p`
@@ -275,7 +275,7 @@ const Forgot = styled.div`
 const LoginButton = styled.button`
   padding: 15px 20px;
   border-radius: 38px;
-  background: ${({ disabled }) => (disabled ? "#d3d3d3" : "#1672c0")};
+  background: ${({ disabled }) => (disabled ? "#d3d3d3" : "#23863A")};
   color: white;
   font-size: 14px;
   font-weight: 600;
@@ -304,7 +304,7 @@ const BottomRow = styled.div`
 `;
 
 const CreateAcc = styled.div`
-  color: #1672c0;
+  color: #23863A;
   cursor: pointer;
   font-weight: 700;
   text-decoration-line: underline;

@@ -156,7 +156,7 @@ const InputWrapper = styled.div`
   align-items: center;
   border-bottom: 1.5px solid
     ${(props) => {
-      if (props.isFocused) return "#1672C0";
+      if (props.isFocused) return "#23863A";
       if (props.isValid === null) return "#20294C";
       return props.isValid ? "#00953F" : "#EC011A";
     }};
@@ -171,7 +171,7 @@ const Input = styled.input`
   padding: 4px 0px;
   background: none;
   color: #20294c;
-  caret-color: #1672c0;
+  caret-color: #23863A;
   font-family: "Lato", sans-serif;
 
   &::placeholder {
