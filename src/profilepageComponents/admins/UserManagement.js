@@ -132,7 +132,7 @@ const UserManagementContainer = styled.div`
 const Title = styled.h1`
   font-size: 20px;
   font-weight: 700;
-  color: #1672c0;
+  color: #23863A;
   margin-bottom: 10px;
 `;
 
@@ -184,8 +184,8 @@ const Button = styled.button`
   background: #f5f6fa;
 
   border: ${({ selected }) =>
-    selected ? "1px solid #1672C0" : "1px solid #f5f6fa"};
-  color: ${({ selected }) => (selected ? "#1672C0" : "#20294C")};
+    selected ? "1px solid #23863A" : "1px solid #f5f6fa"};
+  color: ${({ selected }) => (selected ? "#23863A" : "#20294C")};
   transition: all 0.3s ease;
 
   &:hover {

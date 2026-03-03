@@ -123,7 +123,7 @@ const ButtonsContainer = styled.div`
 const ActionButton = styled.button`
   padding: 10px 20px;
   border-radius: 38px;
-  background: ${({ isRed }) => (isRed ? "#EC011A" : "#1672c0")};
+  background: ${({ isRed }) => (isRed ? "#EC011A" : "#23863A")};
   color: white;
   font-size: 14px;
   font-weight: 400;

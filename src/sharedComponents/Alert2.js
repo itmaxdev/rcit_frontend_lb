@@ -94,9 +94,6 @@ const ButtonNormal = styled.button`
   background: white;
   font-size: 15px;
   cursor: pointer;
-  &:hover {
-    background: #f5f5f5;
-  }
 `;
 
 const ButtonPrimary = styled.button`
@@ -104,13 +101,10 @@ const ButtonPrimary = styled.button`
   padding: 12px;
   border: none;
   border-radius: 50px;
-  background: #1672c0;
+  background: #23863A;
   color: white;
   font-size: 15px;
   cursor: pointer;
-  &:hover {
-    background: #1061a9;
-  }
 `;
 
 const ButtonDanger = styled.button`
@@ -122,7 +116,4 @@ const ButtonDanger = styled.button`
   color: white;
   font-size: 15px;
   cursor: pointer;
-  &:hover {
-    background: #d32f2f;
-  }
 `;

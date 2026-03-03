@@ -27,7 +27,7 @@ const pollUploadResults = async (uploadID, interval = 1000) => {
 };
 
 // Updated bulkUpload function
-export const bulkUpload = async (file, setUploadID, setUploadedData, setSummaryData) => {
+export const bulkUpload = async (file) => {
   const token = getToken();
   const ret = {}
   try {
@@ -49,7 +49,6 @@ export const bulkUpload = async (file, setUploadID, setUploadedData, setSummaryD
     }
 
     const data = await response.json();
-    setUploadID(data.uploadId);
     ret.uploadId = data.uploadId
     console.log("Upload successful. Upload ID:", data.uploadId);
 
@@ -59,8 +58,6 @@ export const bulkUpload = async (file, setUploadID, setUploadedData, setSummaryD
     if (summary.status === "PROCESSED_OK" || summary.status === "PROCESSED_INVALID") {
       // Fetch final results once the upload process is completed
       const results = await fetchUploadResults(data.uploadId, 1, 10); // Adjust page & pageSize as needed
-      setUploadedData(results);
-      setSummaryData(summary);
       ret.uploadedData = results
       ret.summaryData = summary
     } else {

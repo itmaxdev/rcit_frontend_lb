@@ -62,7 +62,7 @@ const DeclareCardContainer = styled.div`
   justify-content: center;
   align-items: center;
   padding-top: 50px;
-  background: linear-gradient(152deg, #1e4270 -1.84%, #1672c0 108%);
+  background: linear-gradient(152deg, #1e4270 -1.84%, #23863A 108%);
   color: white;
 `;
 
