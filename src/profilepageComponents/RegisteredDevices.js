@@ -197,7 +197,7 @@ const TextContainer = styled.div`
 const Title = styled.h1`
   font-size: 20px;
   font-weight: 700;
-  color: #23863A;
+  color: #436C4D;
   margin-bottom: 10px;
 `;
 
@@ -211,7 +211,7 @@ const Button = styled.button`
   gap: 10px;
   padding: 15px 25px;
   border-radius: 38px;
-  background: #23863A;
+  background: #436C4D;
   color: white;
   font-size: 14px;
   font-weight: 600;

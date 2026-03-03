@@ -10,7 +10,6 @@ const pollUploadResults = async (uploadID, interval = 1000) => {
     const poll = async () => {
       try {
         const summary = await getSummaryData(uploadID);
-        console.log("Polling summary:", summary);
 
         if (summary.status !== "PROCESSING") {
           resolve(summary);
@@ -50,7 +49,6 @@ export const bulkUpload = async (file) => {
 
     const data = await response.json();
     ret.uploadId = data.uploadId
-    console.log("Upload successful. Upload ID:", data.uploadId);
 
     // Start polling for summary status
     const summary = await pollUploadResults(data.uploadId);
@@ -95,8 +93,6 @@ export const fetchUploadResults = async (uploadID, page, pageSize) => {
 
     const data = await response.json();
 
-    console.log("Fetch results successful:", data);
-
     return data;
   } catch (error) {
     console.error("Error fetching upload results:", error);
@@ -130,7 +126,6 @@ export const getSummaryData = async (uploadID) => {
       status: data.status,
     };
 
-    console.log("Summary Data:", summary);
     return summary;
   } catch (error) {
     console.error("Error fetching summary data:", error);
@@ -163,7 +158,6 @@ export const downloadFullFile = async (uploadID) => {
     link.download = fileName;
     link.click();
 
-    console.log("File download initiated.");
   } catch (error) {
     console.error("Error downloading full file:", error);
     global.alert2("Failed to download full file. Please try again.");
@@ -189,7 +183,6 @@ export const declareInformation = async (uploadID) => {
     }
 
     const data = await response;
-    console.log("Declaration status:", data.status);
 
     return data.status;
   } catch (error) {

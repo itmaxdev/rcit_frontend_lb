@@ -347,13 +347,13 @@ const Header = styled.div`
 const Name = styled.h1`
   font-size: 20px;
   font-weight: 800;
-  color: #23863A;
+  color: #436C4D;
 `;
 
 const AccountType = styled.h1`
   font-size: 20px;
   font-weight: 400;
-  color: #23863A;
+  color: #436C4D;
 `;
 
 const StatusBadge = styled.span`
@@ -391,7 +391,7 @@ const ApproveButton = styled.button`
   display: ${({ active }) => (active ? "block" : "none")};
   padding: 15px 25px;
   border-radius: 38px;
-  background: #23863A;
+  background: #436C4D;
   color: white;
   font-size: 14px;
   font-weight: 600;
@@ -425,7 +425,7 @@ const SaveButton = styled.button`
   display: ${({ active }) => (active ? "block" : "none")};
   padding: 15px 25px;
   border-radius: 38px;
-  background: #23863A;
+  background: #436C4D;
   color: white;
   font-size: 14px;
   font-weight: 600;

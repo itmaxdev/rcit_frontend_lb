@@ -66,7 +66,7 @@ const TextSection = styled.div`
 `;
 
 const Header = styled.h1`
-  color: #23863A;
+  color: #436C4D;
   font-weight: 800;
   font-size: 40px;
   margin-bottom: 10px;
@@ -91,7 +91,7 @@ const Circle = styled.div`
   flex-shrink: 0;
   justify-content: center;
   align-items: center;
-  background-color: #23863A;
+  background-color: #436C4D;
   color: white;
   font-size: 18px;
   font-weight: 700;

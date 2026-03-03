@@ -244,7 +244,7 @@ const DeclareDevicesIndContainer = styled.div`
 const Title = styled.h1`
   font-size: 20px;
   font-weight: 700;
-  color: #23863A;
+  color: #436C4D;
   margin-bottom: 10px;
 `;
 
@@ -293,7 +293,7 @@ const CheckButton = styled.button`
   margin-bottom: auto;
   padding: 15px 50px;
   border-radius: 38px;
-  background: ${({ disabled }) => (disabled ? "#d3d3d3" : "#23863A")};
+  background: ${({ disabled }) => (disabled ? "#d3d3d3" : "#436C4D")};
   color: white;
   font-size: 14px;
   font-weight: 600;

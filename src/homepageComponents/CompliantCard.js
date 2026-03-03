@@ -94,7 +94,7 @@ const TextSection = styled.div`
 `;
 
 const Header = styled.h1`
-  color: #23863A;
+  color: #436C4D;
   font-weight: 800;
   font-size: 40px;
   margin-bottom: 20px;

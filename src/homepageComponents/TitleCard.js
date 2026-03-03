@@ -51,7 +51,7 @@ export default TitleCard;
 const TitleCardContainer = styled.div`
   width: 100%;
   height: 450px;
-  background-color: #23863A;
+  background-color: #436C4D;
   overflow: hidden;
 
   @media (max-width: 768px) {
@@ -152,7 +152,7 @@ const DeclareButton = styled.div`
   cursor: pointer;
   padding: 12px 18px 12px 28px;
   gap: 6px;
-  color: #23863A;
+  color: #436C4D;
   border-radius: 38px;
   border: 1px solid #fff;
   background: #fff;

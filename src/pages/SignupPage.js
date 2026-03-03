@@ -369,7 +369,7 @@ const LanguageButton = styled.div`
 const Title = styled.h1`
   font-size: 40px;
   font-weight: 800;
-  color: #23863A;
+  color: #436C4D;
   margin-bottom: 10px;
 `;
 
@@ -402,8 +402,8 @@ const Button = styled.button`
   background: #f5f6fa;
 
   border: ${({ selected }) =>
-    selected ? "1px solid #23863A" : "1px solid #f5f6fa"};
-  color: ${({ selected }) => (selected ? "#23863A" : "#20294C")};
+    selected ? "1px solid #436C4D" : "1px solid #f5f6fa"};
+  color: ${({ selected }) => (selected ? "#436C4D" : "#20294C")};
   transition: all 0.3s ease;
 
   &:hover {
@@ -460,7 +460,7 @@ const FooterContent = styled.div`
 const SignupButton = styled.button`
   padding: 15px 50px;
   border-radius: 38px;
-  background: ${({ disabled }) => (disabled ? "#ccc" : "#23863A")};
+  background: ${({ disabled }) => (disabled ? "#ccc" : "#436C4D")};
   color: white;
   font-size: 14px;
   font-weight: 600;
@@ -484,7 +484,7 @@ const LoginContainer = styled.div`
 `;
 
 const Login = styled.div`
-  color: #23863A;
+  color: #436C4D;
   cursor: pointer;
   font-weight: 700;
   text-decoration-line: underline;

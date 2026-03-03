@@ -204,7 +204,7 @@ const InputRow = styled.div`
 const SendButton = styled.button`
   padding: 15px 20px;
   border-radius: 38px;
-  background: ${({ disabled }) => (disabled ? "#d3d3d3" : "#23863A")};
+  background: ${({ disabled }) => (disabled ? "#d3d3d3" : "#436C4D")};
   color: white;
   font-size: 14px;
   font-weight: 600;
