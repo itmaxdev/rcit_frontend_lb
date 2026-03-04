@@ -7,7 +7,7 @@ import { Context } from "../Context";
 import InputField from "../sharedComponents/InputField";
 import DocumentUpload from "../sharedComponents/DocumentUpload";
 
-import logoSvg from "../assets/logo.svg";
+import logoDark from "../assets/logoDark.svg";
 import globeSvg from "../assets/globe.svg";
 import chevron from "../assets/chevron-down.svg";
 
@@ -113,8 +113,7 @@ const SignupPage = () => {
             </BackButton>
           </Link>
           <LogoSection>
-            <LogoImage src={logoSvg} alt="Logo" />
-            <LogoText>RCIT</LogoText>
+            <LogoImage src={logoDark} alt="Logo" />
           </LogoSection>
           <LanguageButton
             onClick={() =>
@@ -348,7 +347,7 @@ const LogoSection = styled.div`
 `;
 
 const LogoImage = styled.img`
-  height: 22px;
+  height: 28px;
 `;
 
 const LogoText = styled.h1`

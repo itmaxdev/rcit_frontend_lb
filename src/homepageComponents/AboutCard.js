@@ -4,6 +4,7 @@ import styled from "styled-components";
 import { useTranslation } from "react-i18next";
 
 import img from "../assets/aboutcard.png";
+import logoDark from "../assets/logoDark.svg";
 
 const AboutCard = () => {
   const { t } = useTranslation();
@@ -29,7 +30,11 @@ const AboutCard = () => {
           </Subsection>
         ))}
       </TextSection>
-      <ImageSection src={img} alt="About" />
+      <div style={{ position: "relative" }}>
+        <ImageSection src={img} alt="About" />
+        <img src={logoDark} style={{ position: "absolute", left: 62, top: 85, width: 90,background:"#F5F6FA" }} />
+        <div style={{position: "absolute",left:0,top:0,right:0,bottom:0}}></div>
+      </div>
     </AboutCardContainer>
   );
 };

@@ -5,7 +5,7 @@ import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Context } from "../Context";
 
-import logoSvg from "../assets/logo.svg";
+import logoDark from "../assets/logoDark.svg";
 import globeSvg from "../assets/globe.svg";
 import approvedSvg from "../assets/approved.svg";
 import pendingSvg from "../assets/pending.svg";
@@ -42,8 +42,7 @@ const StatusPage = () => {
     <StatusPageContainer>
       <TopBar>
         <LogoSection>
-          <LogoImage src={logoSvg} alt="Logo" />
-          <LogoText>RCIT</LogoText>
+          <LogoImage src={logoDark} alt="Logo" />
         </LogoSection>
 
         <LanguageButton
@@ -99,7 +98,7 @@ const LogoSection = styled.div`
 `;
 
 const LogoImage = styled.img`
-  height: 22px;
+  height: 28px;
 `;
 
 const LogoText = styled.h1`

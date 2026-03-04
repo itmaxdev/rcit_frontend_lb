@@ -3,6 +3,8 @@ import React from "react";
 import styled from "styled-components";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
+import { statusColors } from "../functions/badgesColors"
+
 
 const DevicesTable = ({ data, isAdmin = false }) => {
   const { t } = useTranslation();
@@ -116,28 +118,6 @@ const StatusBadge = styled.span`
   border-radius: 40px;
   font-size: 14px;
   white-space: nowrap;
-  background-color: ${(props) =>
-    props.status === "Approved" ||
-    props.status === "Registered" ||
-    props.status === "READY_TO_PROCESS"
-      ? "rgba(0, 149, 63, 0.07)"
-      : props.status === "Waiting Approval"
-      ? "rgba(252, 116, 19, 0.07)"
-      : props.status === "Rejected" || props.status === "ALREADY_REGISTERED"
-      ? "rgba(236, 1, 26, 0.07)"
-      : props.status === "Disabled"
-      ? "#F7F7F7"
-      : "transparent"};
-  color: ${(props) =>
-    props.status === "Approved" ||
-    props.status === "Registered" ||
-    props.status === "READY_TO_PROCESS"
-      ? "#00953F"
-      : props.status === "Waiting Approval"
-      ? "#FC7413"
-      : props.status === "Rejected" || props.status === "ALREADY_REGISTERED"
-      ? "#EC011A"
-      : props.status === "Disabled"
-      ? "#9098A0"
-      : "black"};
+  background-color: ${(props) => statusColors[props.status]?.bg ?? "transparent"};
+  color: ${(props) => statusColors[props.status]?.color ?? "black"};
 `;

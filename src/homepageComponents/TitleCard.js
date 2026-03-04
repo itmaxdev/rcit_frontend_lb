@@ -28,10 +28,10 @@ const TitleCard = ({ scrollToSection, refs }) => {
               {t("TitleCard_VerifyIMEI")}
             </VerifyIMEIButton>
             <Link to={isLoggedIn ? `/profile/${accountType}/DeclareDevices` : "/signup"}>
-              <DeclareButton>
+              {/* <DeclareButton>
                 {t("Header_DeclareNow")}
                 <img src={arrowSvg} alt="Arrow" />
-              </DeclareButton>
+              </DeclareButton> */}
             </Link>
           </ButtonRow>
         </TextContainer>
@@ -117,6 +117,7 @@ const Subtext = styled.p`
 const ButtonRow = styled.div`
   display: flex;
   gap: 20px;
+  width: 500px;
 
   @media (max-width: 768px) {
     gap: 10px;

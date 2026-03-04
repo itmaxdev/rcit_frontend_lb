@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { Context } from "../Context";
 
-import logoSvg from "../assets/logo.svg";
+import logoWhite from "../assets/logoWhite.svg";
 import closeSidebarSvg from "../assets/closeSidebar.svg";
 import dashboardSvg from "../assets/dashboard.svg";
 import verifyIMEISvg from "../assets/verifyIMEI.svg";
@@ -79,8 +79,7 @@ const Sidebar = ({ basePath }) => {
     <SidebarContainer>
       <Header closed={closed}>
         <LogoSection closed={closed}>
-          <LogoImage src={logoSvg} alt="Logo" />
-          <LogoText>RCIT</LogoText>
+          <LogoImage src={logoWhite} alt="Logo" />
         </LogoSection>
         <CloseSidebar
           src={closeSidebarSvg}
@@ -153,7 +152,7 @@ const LogoSection = styled.div`
 `;
 
 const LogoImage = styled.img`
-  height: 16px;
+  height: 25px;
 `;
 
 const LogoText = styled.h1`
