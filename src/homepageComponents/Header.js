@@ -11,6 +11,7 @@ import globeWhiteSvg from "../assets/globeWhite.svg";
 import arrowSvg from "../assets/arrow-long-right.svg";
 import menuSvg from "../assets/menu.svg";
 import userSvg from "../assets/user.svg";
+import userWhiteSvg from "../assets/userWhite.svg";
 
 const Header = ({ scrollToSection, refs }) => {
   const { t, i18n } = useTranslation();
@@ -60,7 +61,7 @@ const Header = ({ scrollToSection, refs }) => {
             <LoginButton isLoggedIn={isLoggedIn}>
               {isLoggedIn ? (
                 <img
-                  src={userSvg}
+                  src={userWhiteSvg}
                   alt="User Profile"
                   style={{ width: "30px" }}
                 />

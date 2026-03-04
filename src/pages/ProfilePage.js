@@ -41,7 +41,7 @@ const ProfilePage = () => {
 
           {accountType === "ROLE_USER" && (
             <Route path="role_user/*">
-              <Route path="" element={<Navigate to="Dashboard" />} />
+              <Route path="" element={<Navigate to="DeclareDevices" />} />
               <Route
                 path="Dashboard"
                 element={<Placeholder title="Dashboard" />}
@@ -61,7 +61,7 @@ const ProfilePage = () => {
 
           {accountType === "ROLE_IMPORTER" && (
             <Route path="role_importer/*">
-              <Route path="" element={<Navigate to="Dashboard" />} />
+              <Route path="" element={<Navigate to="DeclareDevices" />} />
               <Route
                 path="Dashboard"
                 element={<Placeholder title="Dashboard" />}
@@ -81,7 +81,7 @@ const ProfilePage = () => {
 
           {accountType === "ROLE_ADMIN" && (
             <Route path="role_admin/*">
-              <Route path="" element={<Navigate to="Dashboard" />} />
+              <Route path="" element={<Navigate to="RegisteredDevices" />} />
               <Route
                 path="Dashboard"
                 element={<Placeholder title="Dashboard" />}

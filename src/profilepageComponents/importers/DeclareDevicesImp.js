@@ -355,7 +355,7 @@ const DeclareDevicesImp = () => {
         )}
       </MainContainer>
 
-      {!popupOpen && (
+      {popupOpen && (
         <Popup
           purpose="userDeclare"
           onClose={() => handlePopupClose()}
