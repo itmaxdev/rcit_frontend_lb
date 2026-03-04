@@ -7,9 +7,9 @@ import cardsImg from "../assets/cards.png";
 import libanPostImg from "../assets/libanpost.png";
 import paymentMethodsImg from "../assets/paymentmethods.png";
 import lockImg from "../assets/lock.png";
+import arrowSvg from "../assets/arrow-long-right-blue.svg";
 
-
-const PaymentSummary = ({ data, busy, onPay }) => {
+const PaymentSummary = ({ data, busy, onClose, onPay }) => {
   const { t } = useTranslation();
   const [currency, setCurrency] = useState("USD");
   const [method, setMethod] = useState("card");
@@ -27,7 +27,10 @@ const PaymentSummary = ({ data, busy, onPay }) => {
   return (
     <Wrapper>
       <Card>
-        <SectionTitle>{t("PAYMENT SUMMARY")}</SectionTitle>
+        <SectionTitle>
+          <img onClick={onClose} src={arrowSvg} style={{ transform: "rotate(180deg", padding: 10, cursor: "pointer" }} />
+          {t("PAYMENT SUMMARY")}
+        </SectionTitle>
 
         <SummaryBox>
           <Row>
@@ -152,10 +155,13 @@ const Card = styled.div`
   background: #fff;
   border-radius: 16px;
   padding: 32px;
+  padding-top:20px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
 `;
 
 const SectionTitle = styled.h3`
+  display: flex;
+  align-items: center;
   margin: 0;
   font-size:15px;
   letter-spacing:1px;

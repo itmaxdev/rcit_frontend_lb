@@ -5,8 +5,9 @@ import styled from "styled-components";
 import { useTranslation } from "react-i18next";
 import { Context } from "../Context";
 
-import logoSvg from "../assets/logo.svg";
+import logoWhite from "../assets/logoWhite.svg";
 import globeSvg from "../assets/globe.svg";
+import globeWhiteSvg from "../assets/globeWhite.svg";
 import arrowSvg from "../assets/arrow-long-right.svg";
 import menuSvg from "../assets/menu.svg";
 import userSvg from "../assets/user.svg";
@@ -21,8 +22,7 @@ const Header = ({ scrollToSection, refs }) => {
   return (
     <HeaderContainer>
       <LogoSection>
-        <LogoImage src={logoSvg} alt="Logo" />
-        <LogoText>RCIT</LogoText>
+        <LogoImage src={logoWhite} alt="Logo" />
       </LogoSection>
 
       <DesktopNavBar>
@@ -52,7 +52,7 @@ const Header = ({ scrollToSection, refs }) => {
             i18n.changeLanguage(i18n.resolvedLanguage === "en" ? "fr" : "en")
           }
         >
-          <img src={globeSvg} alt="Language" />
+          <img src={globeWhiteSvg} alt="Language" />
           {i18n.resolvedLanguage === "en" ? "EN" : "FR"}
         </LanguageButton>
         <DesktopActions>
@@ -71,8 +71,9 @@ const Header = ({ scrollToSection, refs }) => {
           </Link>
           <Link to={isLoggedIn ? `/profile/${accountType}/DeclareDevices` : "/signup"}>
             <DeclareButton>
-              {t("Header_DeclareNow")}
-              <img src={arrowSvg} alt="Arrow" />
+              <span>{t("Declare Devices")}</span>
+              <hr />
+              <span>{t("For Individuals & Importers")}</span>
             </DeclareButton>
           </Link>
         </DesktopActions>
@@ -112,8 +113,9 @@ const Header = ({ scrollToSection, refs }) => {
           </Link>
           <Link to={isLoggedIn ? `/profile/${accountType}/DeclareDevices` : "/signup"}>
             <DeclareButton>
-              {t("Header_DeclareNow")}
-              <img src={arrowSvg} alt="Arrow" />
+              <span>{t("Declare Devices")}</span>
+              <hr />
+              <span>{t("For Individuals & Importers")}</span>
             </DeclareButton>
           </Link>
         </MobileMenu>
@@ -129,7 +131,7 @@ const HeaderContainer = styled.div`
   align-items: center;
   justify-content: center;
   padding: 22px;
-  background-color: white;
+  background-color: #1d2025;
   position: relative;
   gap: 50px;
 
@@ -150,7 +152,7 @@ const LogoSection = styled.div`
 `;
 
 const LogoImage = styled.img`
-  height: 22px;
+  height: 26px;
 `;
 
 const LogoText = styled.h1`
@@ -181,6 +183,10 @@ const NavItem = styled.div`
   font-size: 15px;
   cursor: pointer;
   text-align: center;
+  color:#fff;
+  @media (max-width: 768px) {
+    color: #1d2025;
+  }
 `;
 
 const Actions = styled.div`
@@ -195,7 +201,7 @@ const LanguageButton = styled.div`
   padding: 6px 10px 6px 6px;
   gap: 6px;
   border-radius: 40px;
-  background: #f5f6fa;
+  color: #f5f6fa;
 `;
 
 const MenuButton = styled.div`
@@ -227,7 +233,7 @@ const MobileMenu = styled.div`
 const DesktopActions = styled.div`
   display: flex;
   gap: 10px;
-
+  align-items: center;
   @media (max-width: 768px) {
     display: none;
   }
@@ -236,12 +242,13 @@ const DesktopActions = styled.div`
 const LoginButton = styled.button`
   cursor: pointer;
   display: flex;
-  padding: ${(props) => (props.isLoggedIn ? "9px" : "15px 20px")};
+  padding: ${(props) => (props.isLoggedIn ? "9px" : "16px 20px")};
   justify-content: center;
   align-items: center;
   border-radius: 24px;
-  border: 1px solid #20294c;
-  background: white;
+  border: 1px solid #fff;
+  color: #fff;
+  background: transparent;
   white-space: nowrap;
   font-size: 14px;
   width: 100%;
@@ -254,12 +261,13 @@ const LoginButton = styled.button`
 
 const DeclareButton = styled.button`
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   text-align: center;
   cursor: pointer;
-  padding: 11px 18px 11px 28px;
-  gap: 6px;
+  padding: 5px 20px 5px 20px;
+  gap: 3px;
   color: #fff;
   border-radius: 38px;
   border: 1px solid #436C4D;
@@ -267,7 +275,11 @@ const DeclareButton = styled.button`
   white-space: nowrap;
   font-size: 14px;
   width: 100%;
-
+  >hr{
+    width: 100%;
+    border: 0;
+    border-top: 1px solid #ddd;
+  }
   @media (max-width: 1100px) and (min-width: 769px) {
     padding: 9px 15px;
     font-size: 12px;

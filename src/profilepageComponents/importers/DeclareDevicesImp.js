@@ -36,10 +36,10 @@ const DeclareDevicesImp = () => {
   const [popupOpen, setPopupOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [paymentData, setPaymentData] = useState({
-    totalCIFValue: 10,
-    totalCustomsDuty: 20,
+    totalCIFValue: 0,
+    totalCustomsDuty: 0,
     usdToLbpRate: 89500,
-    vatPercentage: 11
+    vatPercentage: 0
   });
   const [showPayment, setShowPayment] = useState(false);
 
@@ -107,8 +107,10 @@ const DeclareDevicesImp = () => {
     const newSummary = JSON.parse(JSON.stringify(summaryData))
     const sums = uploadedData.reduce(
       (acc, item) => {
-        acc.totalCif += Number(item.cfi || 0);
-        acc.totalDuty += Number(item.dutyFee || 0);
+        if (item.status == "READY_TO_PROCESS") {
+          acc.totalCif += Number(item.cfi || 0);
+          acc.totalDuty += Number(item.dutyFee || 0);
+        }
         return acc;
       },
       { totalCif: 0, totalDuty: 0 }
@@ -161,6 +163,11 @@ const DeclareDevicesImp = () => {
     setShowPayment(true)
   }
 
+  const closePayment = () => {
+    if (busy) return
+    setShowPayment(false)
+  }
+
   const handlePopupClose = () => {
     navigate("/profile/role_importer/dashboard");
     setPopupOpen(false);
@@ -173,7 +180,7 @@ const DeclareDevicesImp = () => {
 
   if (showPayment) {
     return (
-      <PaymentSummary busy={busy} onPay={handleDeclare} data={paymentData} />
+      <PaymentSummary busy={busy} onClose={closePayment} onPay={handleDeclare} data={paymentData} />
     )
   }
 
@@ -313,11 +320,11 @@ const DeclareDevicesImp = () => {
                   {summaryData?.invalidRecordsCount || "-"}
                 </Stat>
                 <Stat>
-                  <StatText>{t("Total Value")}</StatText>
+                  <StatText>{t("Total Value")} (USD)</StatText>
                   <strong>{summaryData?.totalCIFValue || "-"}</strong>
                 </Stat>
                 <Stat style={{ borderRight: 0 }}>
-                  <StatText>{t("Total Customs Duty")}</StatText>
+                  <StatText>{t("Total Customs Duty")} (USD)</StatText>
                   <strong>{summaryData?.totalCustomsDuty || "-"}</strong>
                 </Stat>
               </Stats>
@@ -348,7 +355,7 @@ const DeclareDevicesImp = () => {
         )}
       </MainContainer>
 
-      {popupOpen && (
+      {!popupOpen && (
         <Popup
           purpose="userDeclare"
           onClose={() => handlePopupClose()}
@@ -457,7 +464,10 @@ const DownloadButton = styled.button`
   border: 1px solid #436C4D;
   background: #436C4D;
   transition: all 0.3s ease;
-
+  &:disabled{
+    opacity:0.4 !important;
+    cursor: default;
+  }
   &:hover {
     opacity: 0.7;
   }
@@ -575,18 +585,23 @@ const Footer = styled.div`
 
 const Stats = styled.div`
   display: flex;
-  gap: 6px;
+  gap: 8px;
 `;
 
 const Stat = styled.div`
   border-right: 1px solid #D4D6DF;
-  padding-right: 6px;
+  padding-right: 8px;
+  font-size:16px;
+  >strong{
+    letter-spacing:1px;
+  }
 `;
 
 const StatText = styled.p`
   color: #797f94;
   font-size: 14px;
   font-weight: 500;
+  margin-bottom:5px;
 `;
 
 const ButtonContainer = styled.div`

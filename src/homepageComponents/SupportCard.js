@@ -137,9 +137,9 @@ const SupportCardContainer = styled.div`
 
 const CardContainer = styled.div`
   background: linear-gradient(
-      328deg,
-      rgba(22, 114, 192, 0) 1.87%,
-      rgba(22, 114, 192, 0.9) 73.32%
+      158deg,
+      #4f7659 1.87%,
+      #4f765933 73.32%
     ),
     linear-gradient(0deg, rgba(17, 32, 54, 0.3) 0%, rgba(17, 32, 54, 0.3) 100%),
     url(${img}) lightgray 50% / cover no-repeat;

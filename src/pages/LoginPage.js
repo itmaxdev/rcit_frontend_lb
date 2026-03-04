@@ -8,7 +8,7 @@ import { getToken } from "../functions/token";
 import InputField from "../sharedComponents/InputField";
 
 import img from "../assets/login.png";
-import logoSvg from "../assets/logo.svg";
+import logoWhite from "../assets/logoWhite.svg";
 import globeSvg from "../assets/globe.svg";
 import chevron from "../assets/chevron-down.svg";
 
@@ -66,8 +66,7 @@ const LoginPage = () => {
     <LoginPageContainer>
       <CardContainer>
         <LogoSection>
-          <LogoImage src={logoSvg} alt="Logo" />
-          <LogoText>RCIT</LogoText>
+          <LogoImage src={logoWhite} alt="Logo" />
         </LogoSection>
         <Title>{t("LoginPage_Title")}</Title>
       </CardContainer>
@@ -142,10 +141,11 @@ const LoginPageContainer = styled.div`
 
 const CardContainer = styled.div`
   background: linear-gradient(
-      220deg,
-      rgba(22, 114, 192, 0) 1.87%,
-      rgba(22, 114, 192, 0.9) 73.32%
+      45deg,
+      #4f7659 1.87%,
+      #4f765933 73.32%
     ),
+    linear-gradient(0deg, rgba(17, 32, 54, 0.3) 0%, rgba(17, 32, 54, 0.3) 100%),
     url(${img}) lightgray 50% / cover no-repeat;
   padding: 80px 120px;
   display: flex;
@@ -172,7 +172,7 @@ const LogoSection = styled.div`
 `;
 
 const LogoImage = styled.img`
-  height: 22px;
+  height: 28px;
 `;
 
 const LogoText = styled.h1`

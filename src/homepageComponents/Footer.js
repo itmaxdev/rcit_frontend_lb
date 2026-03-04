@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 import styled from "styled-components";
 import { useTranslation } from "react-i18next";
 
-import logoSvg from "../assets/logo.svg";
+import logoWhite from "../assets/logoWhite.svg";
 import facebook from "../assets/facebook.svg";
 import instagram from "../assets/instagram.svg";
 import linkedin from "../assets/linkedin.svg";
@@ -17,8 +17,7 @@ const Footer = ({ scrollToSection, refs }) => {
   return (
     <FooterContainer>
       <LogoSection>
-        <LogoImage src={logoSvg} alt="Logo" />
-        <LogoText>RCIT</LogoText>
+        <LogoImage src={logoWhite} alt="Logo" />
       </LogoSection>
 
       <ColumnsContainer>
@@ -108,7 +107,7 @@ const LogoSection = styled.div`
 `;
 
 const LogoImage = styled.img`
-  height: 22px;
+  height: 26px;
 `;
 
 const LogoText = styled.h1`
