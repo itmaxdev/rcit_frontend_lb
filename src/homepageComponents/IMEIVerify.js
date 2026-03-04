@@ -95,8 +95,8 @@ const IMEIVerifyContainer = styled.div`
   align-items: center;
   background: radial-gradient(
       100.14% 160.15% at 55.3% 181.34%,
-      rgba(22, 114, 192, 0.5) 0%,
-      rgba(22, 114, 192, 0) 100%
+      #22863A33 0%,
+      #F0FAF400 100%
     ),
     #fff;
   padding: 50px 20px 0;
@@ -154,7 +154,7 @@ const InputField = styled.input`
   outline: none;
   color: #000;
   cursor: text;
-  caret-color: #436C4D;
+  caret-color: #4F7659;
 
   &::placeholder {
     opacity: 0.2;
@@ -162,7 +162,7 @@ const InputField = styled.input`
 `;
 
 const VerifyButton = styled.button`
-  background-color: ${(props) => (props.isTextPresent ? "#436C4D" : "#D4D6DF")};
+  background-color: ${(props) => (props.isTextPresent ? "#436C4D" : "rgba(66, 108, 77,0.2)")};
   color: ${(props) => (props.isTextPresent ? "#FFFFFF" : "#FFF")};
   border: none;
   padding: 10px 20px;
@@ -171,7 +171,7 @@ const VerifyButton = styled.button`
   cursor: ${(props) => (props.isTextPresent ? "pointer" : "not-allowed")};
   transition: background-color 0.3s;
 
-  &:hover {
+  &:hover2 {
     background-color: ${(props) =>
       props.isTextPresent ? "#135F99" : "#D4D6DF"};
   }
