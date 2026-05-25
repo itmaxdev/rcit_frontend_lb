@@ -7,7 +7,7 @@ import adminApprove from "../assets/approve.svg";
 import adminReject from "../assets/reject.svg";
 import userApprove from "../assets/approved.svg";
 
-const Popup = ({ purpose, onClose, onAction }) => {
+const Popup = ({ data, purpose, onClose, onAction }) => {
   const { t } = useTranslation();
 
   // Determine the content based on the purpose
@@ -49,6 +49,13 @@ const Popup = ({ purpose, onClose, onAction }) => {
     actionText = t("Declare a new device");
     cancelText = t("Go to dashboard");
     isColumn = true;
+  } else if (purpose === "submitDevicesSuccess") {
+    img = userApprove;
+    headerText = t("Submitted Successfully!");
+    subheaderText = <span><b>{t("Your $ uploaded devices").replace("$", data.devices)}</b>{" " + t("from the file document have been successfully submitted.")}</span>
+    actionText = t("Track Devices Status");
+    cancelText = t("Go to dashboard");
+    isColumn = true;
   }
 
   return (
@@ -87,7 +94,7 @@ const Overlay = styled.div`
 
 const PopupContainer = styled.div`
   background: white;
-  padding: 30px;
+  padding: 50px;
   border-radius: 20px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   text-align: center;
@@ -96,19 +103,20 @@ const PopupContainer = styled.div`
 `;
 
 const SVG = styled.img`
-  height: 70px;
+  height: 150px;
   margin-bottom: 20px;
 `;
 
 const Header = styled.h2`
   margin: 0;
-  font-size: 26px;
-  font-weight: 700;
+  font-size: 40px;
+  font-weight: 800;
+  color:#436C4D;
 `;
 
 const Subheader = styled.p`
-  margin: 10px 0 20px;
-  font-size: 14px;
+  margin: 15px 0 20px;
+  font-size: 18px;
   font-weight: 400;
 `;
 
@@ -121,11 +129,11 @@ const ButtonsContainer = styled.div`
 `;
 
 const ActionButton = styled.button`
-  padding: 10px 20px;
+  padding: ${({ isColumn }) => (isColumn ? "13px 20px" : "10px 20px")};
   border-radius: 38px;
   background: ${({ isRed }) => (isRed ? "#EC011A" : "#436C4D")};
   color: white;
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 400;
   border: none;
   cursor: pointer;
@@ -138,12 +146,12 @@ const ActionButton = styled.button`
 `;
 
 const CancelButton = styled.button`
-  padding: 10px 25px;
+  padding: ${({ isColumn }) => (isColumn ? "11px 20px" : "10px 20px")};
   border-radius: 38px;
   background: none;
   color: #20294c;
   border: 1px solid #20294c;
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 400;
   cursor: pointer;
   transition: all 0.3s ease;
