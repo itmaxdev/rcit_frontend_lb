@@ -1,9 +1,16 @@
 // src/profilepageComponents/admins/UserDetails.js
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import styled from "styled-components";
 import { useTranslation } from "react-i18next";
 import { useParams, Link } from "react-router-dom";
 import { fetchUser, manageUserAction, updateUser } from "../../functions/admin";
+import {
+  getPrimaryRole,
+  getRoleDisplayName,
+  MANAGEABLE_ROLE_OPTIONS,
+  ROLE_IMPORTER,
+  ROLE_USER,
+} from "../../config/roles";
 
 import InputField from "../../sharedComponents/InputField";
 import AdminDocumentUpload from "./AdminDocumentUpload";
@@ -27,7 +34,7 @@ const initialFormData = {
   documentCompanyRegistrationDocument: null,
   documentCompanyOwnerNationalID: null,
   status: "",
-  roles: "",
+  roles: [],
   documents: [],
 };
 
@@ -39,11 +46,11 @@ const UserDetails = () => {
   const [popupPurpose, setPopupPurpose] = useState("");
   const [popupAction, setPopupAction] = useState(() => () => {});
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     const data = await fetchUser(userId);
-    setFormData(data || []);
-    setOriginalData(data || {});
-  };
+    setFormData(data || initialFormData);
+    setOriginalData(data || initialFormData);
+  }, [userId]);
 
   const handleAction = (purpose, actionFunction) => () => {
     setPopupPurpose(purpose);
@@ -53,7 +60,7 @@ const UserDetails = () => {
 
   useEffect(() => {
     fetchData();
-  }, [userId]);
+  }, [fetchData]);
 
   const [originalData, setOriginalData] = useState(initialFormData);
   const [formData, setFormData] = useState(initialFormData);
@@ -93,6 +100,16 @@ const UserDetails = () => {
     }));
   };
 
+  const handleRoleChange = (event) => {
+    setFormData((prev) => ({
+      ...prev,
+      roles: [event.target.value],
+    }));
+  };
+
+  const primaryRole = getPrimaryRole(formData.roles);
+  const originalPrimaryRole = getPrimaryRole(originalData.roles);
+
   return (
     <UserDetailsContainer>
       <Link to="/profile/role_admin/UserManagement">
@@ -107,9 +124,7 @@ const UserDetails = () => {
           <Name>
             {originalData.firstName} {originalData.lastName}
           </Name>
-          <AccountType>
-            / {originalData.roles[0] === "ROLE_USER" ? "User" : "Importer"}
-          </AccountType>
+          <AccountType>/ {getRoleDisplayName(primaryRole || originalPrimaryRole)}</AccountType>
           <StatusBadge status={originalData.status}>
             {t(originalData.status)}
           </StatusBadge>
@@ -153,6 +168,22 @@ const UserDetails = () => {
         <Subheader>{t("SignupPage_Personal")}</Subheader>
 
         <InputRow>
+          <RoleFieldContainer>
+            <RoleLabel>Role</RoleLabel>
+            <RoleSelect
+              value={primaryRole || MANAGEABLE_ROLE_OPTIONS[0].value}
+              onChange={handleRoleChange}
+            >
+              {MANAGEABLE_ROLE_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </RoleSelect>
+          </RoleFieldContainer>
+        </InputRow>
+
+        <InputRow>
           <InputField
             fieldName="Input_FirstName"
             changeValue={handleChange("firstName")}
@@ -191,7 +222,7 @@ const UserDetails = () => {
           />
         </InputRow>
       </InfoBlock>
-      <InfoBlock selected={formData.roles[0] === "ROLE_USER"}>
+      <InfoBlock selected={primaryRole === ROLE_USER}>
         <Subheader>{t("SignupPage_Additional")}</Subheader>
         <InputRow>
           <InputField
@@ -222,7 +253,7 @@ const UserDetails = () => {
           />
         </InputRow>
       </InfoBlock>
-      <InfoBlock selected={formData.roles[0] === "ROLE_IMPORTER"}>
+      <InfoBlock selected={primaryRole === ROLE_IMPORTER}>
         <Subheader>{t("SignupPage_Company")}</Subheader>
         <InputRow>
           <InputField
@@ -470,4 +501,30 @@ const NameContainer = styled.div`
   display: flex;
   align-items: center;
   gap: 10px;
+`;
+
+const RoleFieldContainer = styled.div`
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  gap: 4px;
+`;
+
+const RoleLabel = styled.label`
+  font-size: 12px;
+  font-weight: 500;
+  color: #797f94;
+`;
+
+const RoleSelect = styled.select`
+  width: 100%;
+  border: none;
+  border-bottom: 1.5px solid #20294c;
+  outline: none;
+  font-size: 16px;
+  font-weight: 500;
+  padding: 4px 0;
+  background: none;
+  color: #20294c;
+  font-family: "Lato", sans-serif;
 `;

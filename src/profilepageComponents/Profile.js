@@ -3,6 +3,7 @@ import React, { useState, useEffect } from "react";
 import styled from "styled-components";
 import { useTranslation } from "react-i18next";
 import { fetchUser } from "../functions/profile";
+import { getPrimaryRole, getRoleDisplayName, ROLE_IMPORTER, ROLE_USER } from "../config/roles";
 
 import InputField from "../sharedComponents/InputField";
 import AdminDocumentUpload from "./admins/AdminDocumentUpload";
@@ -23,7 +24,7 @@ const basicFormData = {
   documentCompanyRegistrationDocument: null,
   documentCompanyOwnerNationalID: null,
   status: "",
-  roles: "",
+  roles: [],
   documents: [],
 };
 
@@ -32,7 +33,7 @@ const Profile = () => {
 
   const fetchData = async () => {
     const data = await fetchUser();
-    setFormData(data || []);
+    setFormData(data || basicFormData);
   };
 
   useEffect(() => {
@@ -40,6 +41,7 @@ const Profile = () => {
   }, []);
 
   const [formData, setFormData] = useState(basicFormData);
+  const primaryRole = getPrimaryRole(formData.roles);
 
   return (
     <ProfileContainer>
@@ -48,9 +50,7 @@ const Profile = () => {
           <Name>
             {formData.firstName} {formData.lastName}
           </Name>
-          <AccountType>
-            / {formData.roles[0] === "ROLE_USER" ? "User" : "Importer"}
-          </AccountType>
+          <AccountType>/ {getRoleDisplayName(primaryRole)}</AccountType>
           <StatusBadge status={formData.status}>
             {t(formData.status)}
           </StatusBadge>
@@ -99,7 +99,7 @@ const Profile = () => {
           />
         </InputRow>
       </InfoBlock>
-      <InfoBlock selected={formData.roles[0] === "ROLE_USER"}>
+      <InfoBlock selected={primaryRole === ROLE_USER}>
         <Subheader>{t("SignupPage_Additional")}</Subheader>
         <InputRow>
           <InputField
@@ -129,7 +129,7 @@ const Profile = () => {
           />
         </InputRow>
       </InfoBlock>
-      <InfoBlock selected={formData.roles[0] === "ROLE_IMPORTER"}>
+      <InfoBlock selected={primaryRole === ROLE_IMPORTER}>
         <Subheader>{t("SignupPage_Company")}</Subheader>
         <InputRow>
           <InputField
