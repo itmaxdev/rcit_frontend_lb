@@ -1,10 +1,10 @@
 // src/functions/registered.js
 import { getToken } from "./token";
 import { makeAuthenticatedRequest } from "./authenticatedRequest";
+import { API_BASE_URL } from "../config/api";
 
-const BASE_URL = "http://10.0.204.83:8080/rcit/v1/api";
-const USER_URL = `${BASE_URL}/imeis`;
-const ADMIN_URL = `${BASE_URL}/admins/imeis`;
+const USER_URL = `${API_BASE_URL}/imeis`;
+const ADMIN_URL = `${API_BASE_URL}/admins/imeis`;
 
 export const fetchRegisteredDevices = async (
   page = 1,

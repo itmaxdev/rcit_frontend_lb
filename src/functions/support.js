@@ -2,10 +2,10 @@
 import { getToken, parseJwt } from "./token";
 import { makeAuthenticatedRequest } from "./authenticatedRequest";
 import i18n from "i18next";
+import { API_BASE_URL } from "../config/api";
 
-const BASE_URL = "http://10.0.204.83:8080/rcit/v1/api";
-const USER_SUPPORT_URL = `${BASE_URL}/user/support`;
-const PUBLIC_SUPPORT_URL = `${BASE_URL}/public/support`;
+const USER_SUPPORT_URL = `${API_BASE_URL}/user/support`;
+const PUBLIC_SUPPORT_URL = `${API_BASE_URL}/public/support`;
 
 export const sendSupportRequest = async (data, isUser = false) => {
   const supportRequest = {

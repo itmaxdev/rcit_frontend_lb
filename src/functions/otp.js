@@ -1,11 +1,11 @@
 // src/functions/otp.js
 import i18n from "i18next";
+import { USER_API_BASE_URL } from "../config/api";
 
-const BASE_URL = "http://10.0.204.83:8080/rcit/v1/api/user";
-const GENERATE_OTP_URL = `${BASE_URL}/generate-otp`;
-const VERIFY_OTP_URL = `${BASE_URL}/verify-otp`;
-const FORGET_GENERATE_OTP_URL = `${BASE_URL}/forgot-password-generate-otp/`;
-const FORGET_VERIFY_OTP_URL = `${BASE_URL}/forgot-password-verify-otp/`;
+const GENERATE_OTP_URL = `${USER_API_BASE_URL}/generate-otp`;
+const VERIFY_OTP_URL = `${USER_API_BASE_URL}/verify-otp`;
+const FORGET_GENERATE_OTP_URL = `${USER_API_BASE_URL}/forgot-password-generate-otp/`;
+const FORGET_VERIFY_OTP_URL = `${USER_API_BASE_URL}/forgot-password-verify-otp/`;
 
 export const genOTP = async (data, isForgotPassword = false) => {
   try {

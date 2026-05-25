@@ -1,8 +1,8 @@
 // src/functions/login.js
 import { saveToken } from "./token";
+import { API_BASE_URL } from "../config/api";
 
-const BASE_URL = "http://10.0.204.83:8080/rcit/v1/api";
-const LOGIN_URL = `${BASE_URL}/auth/authenticate`;
+const LOGIN_URL = `${API_BASE_URL}/auth/authenticate`;
 
 // Identify input type (email/phone)
 const identifyInputType = (input) => {
