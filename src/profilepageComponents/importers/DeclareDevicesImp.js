@@ -122,10 +122,10 @@ const DeclareDevicesImp = () => {
     setSummaryData((previousSummary) =>
       previousSummary
         ? {
-            ...previousSummary,
-            totalCIFValue: sums.totalCif,
-            totalCustomsDuty: sums.totalDuty,
-          }
+          ...previousSummary,
+          totalCIFValue: sums.totalCif,
+          totalCustomsDuty: sums.totalDuty,
+        }
         : previousSummary
     );
   }, [uploadedData]);
@@ -147,7 +147,7 @@ const DeclareDevicesImp = () => {
     }
   };
 
-  const handleDeclare = async () => {
+  const submitToCustoms = async () => {
     if (
       summaryData?.status === "PROCESSED_OK" &&
       summaryData?.validRecordsCount > 0 &&
@@ -155,8 +155,8 @@ const DeclareDevicesImp = () => {
     ) {
       setBusy(true);
       try {
-        await declareInformation(uploadID);
-        global.alert2(t("Declaration successful!"));
+        const resp = await declareInformation(uploadID);
+        if (resp == 200) setPopupOpen(true)
       } catch (error) {
         console.error("Error declaring information:", error);
       }
@@ -183,16 +183,16 @@ const DeclareDevicesImp = () => {
     setPopupOpen(false);
   };
 
-  if (showPayment) {
-    return (
-      <PaymentSummary
-        busy={busy}
-        onClose={closePayment}
-        onPay={handleDeclare}
-        data={paymentData}
-      />
-    );
-  }
+  // if (showPayment) {
+  //   return (
+  //     <PaymentSummary
+  //       busy={busy}
+  //       onClose={closePayment}
+  //       onPay={handleDeclare}
+  //       data={paymentData}
+  //     />
+  //   );
+  // }
 
   return (
     <DeclareDevicesImpContainer>
@@ -339,7 +339,7 @@ const DeclareDevicesImp = () => {
                 </Stat>
               </Stats>
               <ButtonContainer>
-                <UploadButton onClick={handleDownloadReport}>
+                <UploadButton disabled={busy} onClick={handleDownloadReport}>
                   <img
                     src={downloadSVG}
                     alt="Download"
@@ -348,13 +348,13 @@ const DeclareDevicesImp = () => {
                   {t("Download report")}
                 </UploadButton>
                 <DownloadButton
-                  onClick={openPayment}
+                  onClick={submitToCustoms}
                   disabled={
                     !(
                       summaryData?.status === "PROCESSED_OK" &&
                       summaryData?.validRecordsCount > 0 &&
                       summaryData?.invalidRecordsCount === 0
-                    )
+                    ) || busy
                   }
                 >
                   {t("Submit to Customs")}
@@ -367,7 +367,8 @@ const DeclareDevicesImp = () => {
 
       {popupOpen && (
         <Popup
-          purpose="userDeclare"
+          purpose="submitDevicesSuccess"
+          data={{ devices: summaryData?.totalIMEIs ?? 0 }}
           onClose={() => handlePopupClose()}
           onAction={() => handlePopupAction()}
           actionText={t("Popup_CloseButton")}

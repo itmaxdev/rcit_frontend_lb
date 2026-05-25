@@ -89,7 +89,7 @@ export const fetchUploadResults = async (uploadID, page, pageSize) => {
       const errorData = await response.json();
       global.alert2(`Failed to fetch results with status ${errorData.message}`);
       throw new Error(`HTTP error! status: ${errorData.message}`);
-    }    
+    }
 
     const data = await response.json();
 
@@ -189,4 +189,5 @@ export const declareInformation = async (uploadID) => {
     console.error("Error declaring information:", error);
     global.alert2("Failed to declare information. Please try again.");
   }
+  return false;
 };
