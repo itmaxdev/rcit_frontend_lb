@@ -14,6 +14,7 @@ import IMEIVerify from "../homepageComponents/IMEIVerify";
 import RegisteredDevices from "../profilepageComponents/RegisteredDevices";
 import Profile from "../profilepageComponents/Profile";
 import SupportCard from "../homepageComponents/SupportCard";
+import CustomsDeclarations from "../profilepageComponents/customs/CustomsDeclarations";
 import {
   ROLE_ADMIN,
   ROLE_CUSTOMS,
@@ -106,11 +107,9 @@ const ProfilePage = () => {
 
           {accountType === ROLE_CUSTOMS && (
             <Route path="role_customs/*">
-              <Route path="" element={<Navigate to="Dashboard" />} />
-              <Route
-                path="Dashboard"
-                element={<Placeholder title="Customs Dashboard" />}
-              />
+              <Route path="" element={<Navigate to="Declaration" />} />
+              <Route path="Dashboard" element={<Navigate to="../Declaration" />} />
+              <Route path="Declaration" element={<CustomsDeclarations />} />
               <Route path="Profile" element={<Profile />} />
             </Route>
           )}
