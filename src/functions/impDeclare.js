@@ -1,9 +1,9 @@
 // src/functions/impDeclare.js
 import { getToken } from "./token";
 import { makeAuthenticatedRequest } from "./authenticatedRequest";
+import { API_BASE_URL } from "../config/api";
 
-const BASE_URL = "http://10.0.204.83:8080/rcit/v1/api";
-const BULK_URL = `${BASE_URL}/importers/bulk-uploads`;
+const BULK_URL = `${API_BASE_URL}/importers/bulk-uploads`;
 
 const pollUploadResults = async (uploadID, interval = 1000) => {
   return new Promise((resolve, reject) => {

@@ -4,6 +4,7 @@ import styled from "styled-components";
 import { useTranslation } from "react-i18next";
 import { Link, useLocation } from "react-router-dom";
 import { Context } from "../Context";
+import { ROLE_ADMIN, ROLE_CUSTOMS } from "../config/roles";
 
 import globeSvg from "../assets/globe.svg";
 import profileSvg from "../assets/profile.svg";
@@ -27,7 +28,7 @@ const Header = () => {
     <HeaderContainer>
       <Title>{t("Sidebar_" + title)}</Title>
       <ButtonsContainer>
-        {accountType !== "ROLE_ADMIN" && (
+        {accountType !== ROLE_ADMIN && accountType !== ROLE_CUSTOMS && (
           <Link to={`/profile/${accountType.toLowerCase()}/Help`}>
             <Support>
               <img src={supportSvg} alt="Support" />
@@ -44,7 +45,7 @@ const Header = () => {
           <img src={globeSvg} alt="Language" />
           {i18n.resolvedLanguage === "en" ? "EN" : "FR"}
         </LanguageButton>
-        {accountType !== "ROLE_ADMIN" && (
+        {accountType !== ROLE_ADMIN && (
           <Link to={`/profile/${accountType.toLowerCase()}/Profile`}>
             <Button
               src={profileSvg}

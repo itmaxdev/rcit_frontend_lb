@@ -1,8 +1,7 @@
 // src/functions/admin.js
 import { getToken } from "./token";
 import { makeAuthenticatedRequest } from "./authenticatedRequest";
-
-const BASE_URL = "http://10.0.204.83:8080/rcit/v1/api/admin";
+import { ADMIN_API_BASE_URL } from "../config/api";
 
 export const fetchPendingEntities = async (
   isUser = true,
@@ -14,7 +13,7 @@ export const fetchPendingEntities = async (
     const token = getToken();
     const endpoint = isUser ? "/users/pending" : "/importers/pending";
     const params = new URLSearchParams({ page, size: pageSize });
-    const url = `${BASE_URL}${endpoint}?${params.toString()}`;
+    const url = `${ADMIN_API_BASE_URL}${endpoint}?${params.toString()}`;
     const headers = { Authorization: `Bearer ${token}` };
 
     const response = await makeAuthenticatedRequest(url, {
@@ -40,7 +39,7 @@ export const fetchPendingEntities = async (
 export const fetchUser = async (userId) => {
   try {
     const token = getToken();
-    const url = `${BASE_URL}/get-user/${userId}`;
+    const url = `${ADMIN_API_BASE_URL}/get-user/${userId}`;
     const headers = { Authorization: `Bearer ${token}` };
 
     const response = await makeAuthenticatedRequest(url, {
@@ -61,7 +60,7 @@ export const fetchUser = async (userId) => {
         .split("|")
         .map((path) => path.split("/").pop());
       const documentPromises = filePaths.map(async (fileName) => {
-        const docUrl = `${BASE_URL}/documents/${userName}/${fileName}`;
+        const docUrl = `${ADMIN_API_BASE_URL}/documents/${userName}/${fileName}`;
         const docResponse = await makeAuthenticatedRequest(docUrl, {
           method: "GET",
           headers,
@@ -103,7 +102,7 @@ export const manageUserAction = async (userId, action) => {
         throw new Error("Invalid action provided");
     }
 
-    const url = `${BASE_URL}${endpoint}`;
+    const url = `${ADMIN_API_BASE_URL}${endpoint}`;
     const headers = { Authorization: `Bearer ${token}` };
 
     const response = await makeAuthenticatedRequest(url, {
@@ -132,7 +131,7 @@ export const manageUserAction = async (userId, action) => {
 export const updateUser = async (userId, userData) => {
   try {
     const token = getToken();
-    const url = `${BASE_URL}/update-user/${userId}`;
+    const url = `${ADMIN_API_BASE_URL}/update-user/${userId}`;
     const headers = {
       "Content-Type": "application/json",
       Authorization: `Bearer ${token}`,
@@ -200,7 +199,7 @@ export const editUserDocuments = async (
           `ID_${nationalIDNumber}.pdf`,
           { type: "application/pdf" }
         ),
-        endpoint: `${BASE_URL}/${username}/edit-documents`,
+        endpoint: `${ADMIN_API_BASE_URL}/${username}/edit-documents`,
       });
     }
 
@@ -211,7 +210,7 @@ export const editUserDocuments = async (
           `CRD_${nationalIDNumber}.pdf`,
           { type: "application/pdf" }
         ),
-        endpoint: `${BASE_URL}/${username}/edit-documents`,
+        endpoint: `${ADMIN_API_BASE_URL}/${username}/edit-documents`,
       });
     }
 
@@ -222,7 +221,7 @@ export const editUserDocuments = async (
           `CONID_${nationalIDNumber}.pdf`,
           { type: "application/pdf" }
         ),
-        endpoint: `${BASE_URL}/${username}/edit-documents`,
+        endpoint: `${ADMIN_API_BASE_URL}/${username}/edit-documents`,
       });
     }
 

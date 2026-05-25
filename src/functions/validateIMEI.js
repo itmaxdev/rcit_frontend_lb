@@ -1,6 +1,7 @@
 // src/functions/validateIMEI.js
-const BASE_URL = "http://10.0.204.83:8080/rcit/v1/api";
-const VALIDATE_URL = `${BASE_URL}/imei/validate`;
+import { API_BASE_URL } from "../config/api";
+
+const VALIDATE_URL = `${API_BASE_URL}/imei/validate`;
 
 export const validateIMEI = async (imei) => {
   try {
@@ -48,4 +49,3 @@ export const validateIMEI = async (imei) => {
     return null;
   }
 };
-

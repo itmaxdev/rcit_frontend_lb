@@ -1,6 +1,7 @@
 // src/functions/signup.js
-const BASE_URL = "http://10.0.204.83:8080/rcit/v1/api";
-const REG_URL = `${BASE_URL}/user/register`;
+import { API_BASE_URL } from "../config/api";
+
+const REG_URL = `${API_BASE_URL}/user/register`;
 
 export const handleSignup = async (
   data,
@@ -63,7 +64,7 @@ export const handleSignup = async (
 };
 
 const uploadDocuments = async (userName, data, accountType) => {
-  const uploadUrl = `${BASE_URL}/user/${userName}/documents`;
+  const uploadUrl = `${API_BASE_URL}/user/${userName}/documents`;
   const formData = new FormData();
 
   const files = [];

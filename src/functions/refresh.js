@@ -1,9 +1,9 @@
 // src/functions/refresh.js
 import { getToken, saveToken, deleteToken } from "./token";
 import { makeAuthenticatedRequest } from "./authenticatedRequest";
+import { API_BASE_URL } from "../config/api";
 
-const BASE_URL = "http://10.0.204.83:8080/rcit/v1/api";
-const REFRESH_URL = `${BASE_URL}/auth/refresh-token`;
+const REFRESH_URL = `${API_BASE_URL}/auth/refresh-token`;
 
 export const refreshToken = async () => {
   const authToken = getToken();

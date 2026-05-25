@@ -14,6 +14,12 @@ import IMEIVerify from "../homepageComponents/IMEIVerify";
 import RegisteredDevices from "../profilepageComponents/RegisteredDevices";
 import Profile from "../profilepageComponents/Profile";
 import SupportCard from "../homepageComponents/SupportCard";
+import {
+  ROLE_ADMIN,
+  ROLE_CUSTOMS,
+  ROLE_IMPORTER,
+  ROLE_USER,
+} from "../config/roles";
 
 const ProfilePage = () => {
   const navigate = useNavigate();
@@ -39,7 +45,7 @@ const ProfilePage = () => {
         <Routes>
           <Route path="/" element={<Navigate to={basePath} />} />
 
-          {accountType === "ROLE_USER" && (
+          {accountType === ROLE_USER && (
             <Route path="role_user/*">
               <Route path="" element={<Navigate to="DeclareDevices" />} />
               <Route
@@ -59,7 +65,7 @@ const ProfilePage = () => {
             </Route>
           )}
 
-          {accountType === "ROLE_IMPORTER" && (
+          {accountType === ROLE_IMPORTER && (
             <Route path="role_importer/*">
               <Route path="" element={<Navigate to="DeclareDevices" />} />
               <Route
@@ -79,7 +85,7 @@ const ProfilePage = () => {
             </Route>
           )}
 
-          {accountType === "ROLE_ADMIN" && (
+          {accountType === ROLE_ADMIN && (
             <Route path="role_admin/*">
               <Route path="" element={<Navigate to="RegisteredDevices" />} />
               <Route
@@ -95,6 +101,17 @@ const ProfilePage = () => {
                 element={<Placeholder title="Permissions and Roles" />}
               />
               <Route path="Help" element={<SupportCard />} />
+            </Route>
+          )}
+
+          {accountType === ROLE_CUSTOMS && (
+            <Route path="role_customs/*">
+              <Route path="" element={<Navigate to="Dashboard" />} />
+              <Route
+                path="Dashboard"
+                element={<Placeholder title="Customs Dashboard" />}
+              />
+              <Route path="Profile" element={<Profile />} />
             </Route>
           )}
 

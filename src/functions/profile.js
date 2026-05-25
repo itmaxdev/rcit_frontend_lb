@@ -1,13 +1,12 @@
 // src/functions/profile.js
 import { getToken } from "./token";
 import { makeAuthenticatedRequest } from "./authenticatedRequest";
-
-const BASE_URL = "http://10.0.204.83:8080/rcit/v1/api/user";
+import { USER_API_BASE_URL } from "../config/api";
 
 export const fetchUser = async () => {
   try {
     const token = getToken();
-    const url = `${BASE_URL}/get-user`;
+    const url = `${USER_API_BASE_URL}/get-user`;
     const headers = { Authorization: `Bearer ${token}` };
 
     const response = await makeAuthenticatedRequest(url, {
@@ -28,7 +27,7 @@ export const fetchUser = async () => {
         .split("|")
         .map((path) => path.split("/").pop());
       const documentPromises = filePaths.map(async (fileName) => {
-        const docUrl = `${BASE_URL}/documents/${fileName}`;
+        const docUrl = `${USER_API_BASE_URL}/documents/${fileName}`;
         const docResponse = await makeAuthenticatedRequest(docUrl, {
           method: "GET",
           headers,

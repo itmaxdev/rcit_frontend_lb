@@ -17,6 +17,10 @@ import helpSvg from "../assets/help.svg";
 import profileSvg from "../assets/profile.svg";
 import logoutSvg from "../assets/logout.svg";
 import permissionSvg from "../assets/permissions.svg";
+import {
+  ROLE_ADMIN,
+  ROLE_CUSTOMS,
+} from "../config/roles";
 
 const Sidebar = ({ basePath }) => {
   const { t } = useTranslation();
@@ -30,7 +34,7 @@ const Sidebar = ({ basePath }) => {
   };
 
   const mainTabs =
-    accountType === "ROLE_ADMIN"
+    accountType === ROLE_ADMIN
       ? [
           { icon: dashboardSvg, label: "Dashboard", disabled: true },
           { icon: declareDevicesSvg, label: "UserManagement", disabled: false },
@@ -38,6 +42,10 @@ const Sidebar = ({ basePath }) => {
           { icon: reportsSvg, label: "Reports", disabled: true },
           { icon: permissionSvg, label: "PermissionsAndRoles", disabled: true },
           { icon: helpSvg, label: "Help", disabled: false },
+        ]
+      : accountType === ROLE_CUSTOMS
+      ? [
+          { icon: dashboardSvg, label: "Dashboard", disabled: true },
         ]
       : [
           { icon: dashboardSvg, label: "Dashboard", disabled: true },
@@ -54,7 +62,7 @@ const Sidebar = ({ basePath }) => {
         ];
 
   const footerTabs = [
-    ...(accountType !== "ROLE_ADMIN"
+    ...(accountType !== ROLE_ADMIN
       ? [{ icon: profileSvg, label: "Profile", disabled: false }]
       : []),
     {
@@ -153,14 +161,6 @@ const LogoSection = styled.div`
 
 const LogoImage = styled.img`
   height: 25px;
-`;
-
-const LogoText = styled.h1`
-  margin-left: 5px;
-  margin-bottom: 2px;
-  font-family: "Michroma", serif;
-  font-size: 18px;
-  color: white;
 `;
 
 const CloseSidebar = styled.img`

@@ -1,10 +1,10 @@
 // src/functions/indDeclare.js
 import { getToken } from "./token";
 import { makeAuthenticatedRequest } from "./authenticatedRequest";
+import { API_BASE_URL } from "../config/api";
 
-const BASE_URL = "http://10.0.204.83:8080/rcit/v1/api";
-const VERIFY_URL = `${BASE_URL}/user/verify-imei`;
-const DECLARE_URL = `${BASE_URL}/user/declare-imei`;
+const VERIFY_URL = `${API_BASE_URL}/user/verify-imei`;
+const DECLARE_URL = `${API_BASE_URL}/user/declare-imei`;
 
 export const handleIMEI = async (data, declare = false) => {
   const token = getToken();
@@ -27,15 +27,14 @@ export const handleIMEI = async (data, declare = false) => {
     });
 
     if (response.status === 200) {
-      const json = await response.json()
-      return { status: response.status, ...json }
+      const json = await response.json();
+      return { status: response.status, ...json };
     }
 
-    if (response.status === 409 || response.status == 400) {
-      const json = await response.json()
-      return { status: response.status, ...json }
+    if (response.status === 409 || response.status === 400) {
+      const json = await response.json();
+      return { status: response.status, ...json };
     }
-
 
     const errorData = await response.json();
     global.alert2(`Error! Status: ${errorData.message}`);
