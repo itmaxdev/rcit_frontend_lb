@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import styled from "styled-components";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
@@ -10,18 +10,17 @@ import {
 } from "../../functions/impDeclare";
 import DevicesTable from "../DevicesTableImporters";
 import Popup from "../Popup";
-import PaymentSummary from "../paymentSummary"
+import PaymentSummary from "../paymentSummary";
 
 import chevronSVG from "../../assets/chevron-down.svg";
 import downloadSVG from "../../assets/download.svg";
 import fileSVG from "../../assets/file.svg";
 import replaceSVG from "../../assets/replace.svg";
 
-const currencyData = {}
-
 const DeclareDevicesImp = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const currencyDataRef = useRef({});
 
   const [uploadedFile, setUploadedFile] = useState(null);
   const [uploading, setUploading] = useState(false);
@@ -39,10 +38,9 @@ const DeclareDevicesImp = () => {
     totalCIFValue: 0,
     totalCustomsDuty: 0,
     usdToLbpRate: 89500,
-    vatPercentage: 0
+    vatPercentage: 0,
   });
   const [showPayment, setShowPayment] = useState(false);
-
 
   const handleDownload = () => {
     const link = document.createElement("a");
@@ -51,20 +49,19 @@ const DeclareDevicesImp = () => {
     link.click();
   };
 
-  useEffect(() => {
-    // Only fetch devices if the file has been uploaded and page/pageSize has changed
-    if (fileUploaded) {
-      fetchDevices(currentPage, pageSize);
-    }
-  }, [currentPage, pageSize]); // Depend on fileUploaded
-
-  const fetchDevices = async (page, size) => {
+  const fetchDevices = useCallback(async (page, size) => {
     const response = await fetchUploadResults(uploadID, page + 1, size);
     if (response) {
       setUploadedData(response.content);
       setTotalElements(response.totalElements);
     }
-  };
+  }, [uploadID]);
+
+  useEffect(() => {
+    if (fileUploaded) {
+      fetchDevices(currentPage, pageSize);
+    }
+  }, [currentPage, pageSize, fileUploaded, fetchDevices]);
 
   const handlePageSizeChange = (e) => {
     const newSize = parseInt(e.target.value, 10);
@@ -86,8 +83,10 @@ const DeclareDevicesImp = () => {
       try {
         const ret = await bulkUpload(file);
         if (ret.uploadedData) {
-          currencyData.usdToLbpRate = ret.uploadedData.usdToLbpRate
-          currencyData.vatPercentage = ret.uploadedData.vatPercentage
+          currencyDataRef.current = {
+            usdToLbpRate: ret.uploadedData.usdToLbpRate,
+            vatPercentage: ret.uploadedData.vatPercentage,
+          };
           setUploadID(ret.uploadId);
           setSummaryData(ret.summaryData);
           setUploadedData(ret.uploadedData.content);
@@ -103,11 +102,10 @@ const DeclareDevicesImp = () => {
   };
 
   useEffect(() => {
-    if (!uploadedData || !Array.isArray(uploadedData)) return
-    const newSummary = JSON.parse(JSON.stringify(summaryData))
+    if (!uploadedData || !Array.isArray(uploadedData)) return;
     const sums = uploadedData.reduce(
       (acc, item) => {
-        if (item.status == "READY_TO_PROCESS") {
+        if (item.status === "READY_TO_PROCESS") {
           acc.totalCif += Number(item.cfi || 0);
           acc.totalDuty += Number(item.dutyFee || 0);
         }
@@ -115,15 +113,22 @@ const DeclareDevicesImp = () => {
       },
       { totalCif: 0, totalDuty: 0 }
     );
-    newSummary.totalCIFValue = sums.totalCif
-    newSummary.totalCustomsDuty = sums.totalDuty
+
     setPaymentData({
-      ...currencyData,
-      totalCIFValue: newSummary.totalCIFValue,
-      totalCustomsDuty: newSummary.totalCustomsDuty,
-    })
-    setSummaryData(newSummary)
-  }, [uploadedData])
+      ...currencyDataRef.current,
+      totalCIFValue: sums.totalCif,
+      totalCustomsDuty: sums.totalDuty,
+    });
+    setSummaryData((previousSummary) =>
+      previousSummary
+        ? {
+            ...previousSummary,
+            totalCIFValue: sums.totalCif,
+            totalCustomsDuty: sums.totalDuty,
+          }
+        : previousSummary
+    );
+  }, [uploadedData]);
 
   const handleDragOver = (e) => {
     e.preventDefault();
@@ -148,25 +153,25 @@ const DeclareDevicesImp = () => {
       summaryData?.validRecordsCount > 0 &&
       summaryData?.invalidRecordsCount === 0
     ) {
-      setBusy(true)
+      setBusy(true);
       try {
         await declareInformation(uploadID);
         global.alert2(t("Declaration successful!"));
       } catch (error) {
         console.error("Error declaring information:", error);
       }
-      setBusy(false)
+      setBusy(false);
     }
   };
 
   const openPayment = () => {
-    setShowPayment(true)
-  }
+    setShowPayment(true);
+  };
 
   const closePayment = () => {
-    if (busy) return
-    setShowPayment(false)
-  }
+    if (busy) return;
+    setShowPayment(false);
+  };
 
   const handlePopupClose = () => {
     navigate("/profile/role_importer/dashboard");
@@ -180,8 +185,13 @@ const DeclareDevicesImp = () => {
 
   if (showPayment) {
     return (
-      <PaymentSummary busy={busy} onClose={closePayment} onPay={handleDeclare} data={paymentData} />
-    )
+      <PaymentSummary
+        busy={busy}
+        onClose={closePayment}
+        onPay={handleDeclare}
+        data={paymentData}
+      />
+    );
   }
 
   return (
@@ -320,7 +330,7 @@ const DeclareDevicesImp = () => {
                   {summaryData?.invalidRecordsCount || "-"}
                 </Stat>
                 <Stat>
-                  <StatText>{t("Total Value")} (USD)</StatText>
+                  <StatText>{t("Total Declared Value (USD)")}</StatText>
                   <strong>{summaryData?.totalCIFValue || "-"}</strong>
                 </Stat>
                 <Stat style={{ borderRight: 0 }}>
@@ -347,7 +357,7 @@ const DeclareDevicesImp = () => {
                     )
                   }
                 >
-                  {t("Declare")}
+                  {t("Submit to Customs")}
                 </DownloadButton>
               </ButtonContainer>
             </Footer>

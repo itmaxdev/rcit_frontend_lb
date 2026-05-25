@@ -24,10 +24,10 @@ const DevicesTable = ({ data, isAdmin = false }) => {
             <TableHeader>{t("Brand")}</TableHeader>
             <TableHeader>{t("Model")}</TableHeader>
             <TableHeader>{t("Country of Origin")}</TableHeader>
-            <TableHeader>{t("Import Date")}</TableHeader>
+            <TableHeader>{t("Declaration Date")}</TableHeader>
             {isAdmin && <TableHeader>{t("User Email")}</TableHeader>}
             <TableHeader>{t("Device Status")}</TableHeader>
-            <TableHeader>{t("Value (USD)")}</TableHeader>
+            <TableHeader>{t("Declared Value (USD)")}</TableHeader>
             <TableHeader>{t("Customs Duty (USD)")}</TableHeader>
           </TableRow>
         </thead>

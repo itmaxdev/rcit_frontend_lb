@@ -255,5 +255,9 @@
   "Error_Phone": "Téléphone invalide, veuillez fournir un numéro de téléphone valide avec l'indicatif du pays",
   "Error_EmailPhone": "Le nom d'utilisateur ne suit pas le formatage de l'e-mail ou du numéro de téléphone",
   "Error_Password": "Le mot de passe doit contenir au moins une lettre majuscule et minuscule, un chiffre et un caractère spécial",
-  "Error_Confirm": "Les mots de passe ne correspondent pas"
+  "Error_Confirm": "Les mots de passe ne correspondent pas",
+  "Declaration Date": "Date de déclaration",
+  "Declared Value (USD)": "Valeur déclarée (USD)",
+  "Total Declared Value (USD)": "Valeur totale déclarée (USD)",
+  "Submit to Customs": "Soumettre aux douanes"
 }
