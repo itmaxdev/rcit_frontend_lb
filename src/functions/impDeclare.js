@@ -10,11 +10,20 @@ const pollUploadResults = async (uploadID, interval = 1000) => {
     const poll = async () => {
       try {
         const summary = await getSummaryData(uploadID);
+        const totalIMEIs = Number(summary?.totalIMEIs ?? 0);
+        const validRecordsCount = Number(summary?.validRecordsCount ?? 0);
+        const invalidRecordsCount = Number(summary?.invalidRecordsCount ?? 0);
+        const isTerminalStatus =
+          summary?.status === "PROCESSED_OK" ||
+          summary?.status === "PROCESSED_INVALID";
+        const isCountComplete =
+          totalIMEIs > 0 &&
+          validRecordsCount + invalidRecordsCount >= totalIMEIs;
 
-        if (summary.status !== "PROCESSING") {
+        if (isTerminalStatus && isCountComplete) {
           resolve(summary);
         } else {
-          setTimeout(poll, interval); // Retry after the specified interval
+          setTimeout(poll, interval);
         }
       } catch (error) {
         reject(error);
@@ -28,7 +37,7 @@ const pollUploadResults = async (uploadID, interval = 1000) => {
 // Updated bulkUpload function
 export const bulkUpload = async (file) => {
   const token = getToken();
-  const ret = {}
+  const ret = {};
   try {
     const formData = new FormData();
     formData.append("imeiBulkFile", file);
@@ -48,16 +57,15 @@ export const bulkUpload = async (file) => {
     }
 
     const data = await response.json();
-    ret.uploadId = data.uploadId
+    ret.uploadId = data.uploadId;
 
     // Start polling for summary status
     const summary = await pollUploadResults(data.uploadId);
 
     if (summary.status === "PROCESSED_OK" || summary.status === "PROCESSED_INVALID") {
-      // Fetch final results once the upload process is completed
-      const results = await fetchUploadResults(data.uploadId, 1, 10); // Adjust page & pageSize as needed
-      ret.uploadedData = results
-      ret.summaryData = summary
+      const results = await fetchUploadResults(data.uploadId, 1, 10);
+      ret.uploadedData = results;
+      ret.summaryData = summary;
     } else {
       const errorData = await response.json();
       console.error(
@@ -69,7 +77,7 @@ export const bulkUpload = async (file) => {
     console.error("Error during bulk upload:", error);
     global.alert2("Failed to upload file. Please try again.");
   }
-  return ret
+  return ret;
 };
 
 // Function to fetch results by upload ID

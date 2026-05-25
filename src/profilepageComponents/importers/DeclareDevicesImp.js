@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import styled from "styled-components";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
@@ -10,7 +10,6 @@ import {
 } from "../../functions/impDeclare";
 import DevicesTable from "../DevicesTableImporters";
 import Popup from "../Popup";
-import PaymentSummary from "../paymentSummary";
 
 import chevronSVG from "../../assets/chevron-down.svg";
 import downloadSVG from "../../assets/download.svg";
@@ -20,7 +19,6 @@ import replaceSVG from "../../assets/replace.svg";
 const DeclareDevicesImp = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const currencyDataRef = useRef({});
 
   const [uploadedFile, setUploadedFile] = useState(null);
   const [uploading, setUploading] = useState(false);
@@ -34,13 +32,6 @@ const DeclareDevicesImp = () => {
   const [summaryData, setSummaryData] = useState(null);
   const [popupOpen, setPopupOpen] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [paymentData, setPaymentData] = useState({
-    totalCIFValue: 0,
-    totalCustomsDuty: 0,
-    usdToLbpRate: 89500,
-    vatPercentage: 0,
-  });
-  const [showPayment, setShowPayment] = useState(false);
 
   const handleDownload = () => {
     const link = document.createElement("a");
@@ -48,6 +39,8 @@ const DeclareDevicesImp = () => {
     link.download = "template.csv";
     link.click();
   };
+
+  const displayCount = (value) => (value ?? "-");
 
   const fetchDevices = useCallback(async (page, size) => {
     const response = await fetchUploadResults(uploadID, page + 1, size);
@@ -83,10 +76,6 @@ const DeclareDevicesImp = () => {
       try {
         const ret = await bulkUpload(file);
         if (ret.uploadedData) {
-          currencyDataRef.current = {
-            usdToLbpRate: ret.uploadedData.usdToLbpRate,
-            vatPercentage: ret.uploadedData.vatPercentage,
-          };
           setUploadID(ret.uploadId);
           setSummaryData(ret.summaryData);
           setUploadedData(ret.uploadedData.content);
@@ -114,11 +103,6 @@ const DeclareDevicesImp = () => {
       { totalCif: 0, totalDuty: 0 }
     );
 
-    setPaymentData({
-      ...currencyDataRef.current,
-      totalCIFValue: sums.totalCif,
-      totalCustomsDuty: sums.totalDuty,
-    });
     setSummaryData((previousSummary) =>
       previousSummary
         ? {
@@ -156,21 +140,14 @@ const DeclareDevicesImp = () => {
       setBusy(true);
       try {
         const resp = await declareInformation(uploadID);
-        if (resp == 200) setPopupOpen(true)
+        if (resp === 200) {
+          setPopupOpen(true);
+        }
       } catch (error) {
         console.error("Error declaring information:", error);
       }
       setBusy(false);
     }
-  };
-
-  const openPayment = () => {
-    setShowPayment(true);
-  };
-
-  const closePayment = () => {
-    if (busy) return;
-    setShowPayment(false);
   };
 
   const handlePopupClose = () => {
@@ -182,17 +159,6 @@ const DeclareDevicesImp = () => {
     navigate("/profile/role_importer/DeclareDevices");
     setPopupOpen(false);
   };
-
-  // if (showPayment) {
-  //   return (
-  //     <PaymentSummary
-  //       busy={busy}
-  //       onClose={closePayment}
-  //       onPay={handleDeclare}
-  //       data={paymentData}
-  //     />
-  //   );
-  // }
 
   return (
     <DeclareDevicesImpContainer>
@@ -317,17 +283,17 @@ const DeclareDevicesImp = () => {
                 <Stat>
                   <StatText>{t("Total ready to process devices")}</StatText>
                   <span style={{ color: "green", marginRight: "8px" }}>●</span>
-                  {summaryData?.validRecordsCount || "-"}
+                  {displayCount(summaryData?.validRecordsCount)}
                 </Stat>
                 <Stat>
                   <StatText>{t("Total missing information devices")}</StatText>
                   <span style={{ color: "orange", marginRight: "8px" }}>●</span>
-                  {summaryData?.missingRecordsCount || "-"}
+                  {displayCount(summaryData?.missingRecordsCount)}
                 </Stat>
                 <Stat>
                   <StatText>{t("Total invalid devices")}</StatText>
                   <span style={{ color: "red", marginRight: "8px" }}>●</span>
-                  {summaryData?.invalidRecordsCount || "-"}
+                  {displayCount(summaryData?.invalidRecordsCount)}
                 </Stat>
                 <Stat>
                   <StatText>{t("Total Declared Value (USD)")}</StatText>
