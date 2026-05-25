@@ -1,9 +1,13 @@
 // src/profilepageComponents/RegisteredDevices.js
-import React, { useState, useEffect, useContext } from "react";
+import React, { useState, useEffect, useContext, useCallback } from "react";
 import styled from "styled-components";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
-import { fetchRegisteredDevices } from "../functions/registered";
+import {
+  clearImporterUploadData,
+  fetchClearableImporterUpload,
+  fetchRegisteredDevices,
+} from "../functions/registered";
 import { Context } from "../Context";
 
 import DevicesTable from "./DevicesTable";
@@ -23,12 +27,9 @@ const RegisteredDevices = () => {
   const [pageSize, setPageSize] = useState(10);
   const [search, setSearch] = useState("");
   const [totalElements, setTotalElements] = useState(0);
+  const [clearableUpload, setClearableUpload] = useState(null);
 
-  useEffect(() => {
-    fetchDevices();
-  }, [currentPage, pageSize]);
-
-  const fetchDevices = async () => {
+  const fetchDevices = useCallback(async () => {
     const response = await fetchRegisteredDevices(
       currentPage + 1,
       pageSize,
@@ -40,7 +41,22 @@ const RegisteredDevices = () => {
       setData(response.data);
       setTotalElements(response.totalElements);
     }
-  };
+  }, [accountType, currentPage, pageSize, search]);
+
+  const fetchClearableUpload = useCallback(async () => {
+    const response = await fetchClearableImporterUpload();
+    setClearableUpload(response);
+  }, []);
+
+  useEffect(() => {
+    fetchDevices();
+  }, [fetchDevices]);
+
+  useEffect(() => {
+    if (accountType === "ROLE_IMPORTER") {
+      fetchClearableUpload();
+    }
+  }, [accountType, fetchClearableUpload]);
 
   const handlePageSizeChange = (e) => {
     const newSize = parseInt(e.target.value, 10);
@@ -57,6 +73,26 @@ const RegisteredDevices = () => {
       navigate("/profile/role_user/RegisterDevices");
     } else {
       navigate("/");
+    }
+  };
+
+  const handleClearData = async () => {
+    if (!clearableUpload?.uploadId) {
+      return;
+    }
+
+    const shouldClear = window.confirm(
+      t("ClearData_Confirmation")
+    );
+
+    if (!shouldClear) {
+      return;
+    }
+
+    const cleared = await clearImporterUploadData(clearableUpload.uploadId);
+    if (cleared) {
+      await fetchDevices();
+      await fetchClearableUpload();
     }
   };
 
@@ -83,12 +119,19 @@ const RegisteredDevices = () => {
           <Title>{t("RegisteredDevices_Title")}</Title>
           <Subtext>{t("RegisteredDevices_Subtitle")}</Subtext>
         </TextContainer>
-        {accountType !== "ROLE_ADMIN" && (
-          <Button onClick={handleButton}>
-            <img src={plusSVG} alt="Plus" />
-            {t("RegisteredDevices_AddButton")}
-          </Button>
-        )}
+        <HeaderActions>
+          {accountType === "ROLE_IMPORTER" && clearableUpload?.uploadId && (
+            <SecondaryButton type="button" onClick={handleClearData}>
+              {t("Clear Data")}
+            </SecondaryButton>
+          )}
+          {accountType !== "ROLE_ADMIN" && (
+            <Button onClick={handleButton}>
+              <img src={plusSVG} alt="Plus" />
+              {t("RegisteredDevices_AddButton")}
+            </Button>
+          )}
+        </HeaderActions>
       </Header>
 
       <TableContainer>
@@ -189,6 +232,12 @@ const Header = styled.div`
   gap: 20px;
 `;
 
+const HeaderActions = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 12px;
+`;
+
 const TextContainer = styled.div`
   display: flex;
   flex-direction: column;
@@ -222,6 +271,12 @@ const Button = styled.button`
   &:hover {
     opacity: 0.7;
   }
+`;
+
+const SecondaryButton = styled(Button)`
+  background: #ffffff;
+  color: #436c4d;
+  border: 1px solid #436c4d;
 `;
 
 const TableContainer = styled.div`

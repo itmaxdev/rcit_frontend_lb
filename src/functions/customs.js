@@ -69,3 +69,31 @@ export const fetchCustomsDeclarationDetail = async (
     return null;
   }
 };
+
+export const startCustomsDeclarationReview = async (
+  declarationType,
+  declarationId
+) => {
+  try {
+    const token = getToken();
+    const response = await makeAuthenticatedRequest(
+      `${CUSTOMS_API_BASE_URL}/declarations/${declarationType}/${declarationId}/start-review`,
+      {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    if (!response?.ok) {
+      const errorData = response ? await response.json() : null;
+      throw new Error(errorData?.message || "Failed to start declaration review");
+    }
+
+    return response.json();
+  } catch (error) {
+    console.error("Error starting customs declaration review:", error);
+    return null;
+  }
+};

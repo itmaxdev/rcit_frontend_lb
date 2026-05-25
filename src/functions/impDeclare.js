@@ -175,7 +175,7 @@ export const downloadFullFile = async (uploadID) => {
 // Function to declare the information
 export const declareInformation = async (uploadID) => {
   const token = getToken();
-  const url = `${BULK_URL}/${uploadID}`;
+  const url = `${BULK_URL}/${uploadID}/submit-to-customs`;
 
   try {
     const response = await makeAuthenticatedRequest(url, {

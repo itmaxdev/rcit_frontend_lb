@@ -292,6 +292,8 @@
   "Customs_NoImporterDeclarations": "No importer declarations found.",
   "Customs_NoIndividualDeclarations": "No individual declarations found.",
   "Customs_NoDeclarationsSubtitle": "Declarations will appear here once they are available.",
+  "Clear Data": "Clear Data",
+  "ClearData_Confirmation": "This will remove the submitted registered declaration data so you can upload the same file again. Do you want to continue?",
   "NoDevices_Title1": "No registered devices yet.",
   "NoDevices_Title2": "Start your device registration process!",
   "Start Registration": "Start Registration!",

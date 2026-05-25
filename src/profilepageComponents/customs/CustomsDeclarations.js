@@ -7,6 +7,7 @@ import searchSVG from "../../assets/search3.svg";
 import {
   fetchCustomsDeclarationDetail,
   fetchCustomsDeclarations,
+  startCustomsDeclarationReview,
 } from "../../functions/customs";
 
 const DECLARATION_TYPES = {
@@ -102,6 +103,31 @@ const CustomsDeclarations = () => {
     );
     setSelectedDeclaration(detail);
     setIsDetailLoading(false);
+  };
+
+  const handleActionClick = async (row) => {
+    if (
+      row.declarationType === DECLARATION_TYPES.IMPORTER &&
+      row.status === "SUBMITTED"
+    ) {
+      const updatedRow = await startCustomsDeclarationReview(
+        row.declarationType,
+        row.id
+      );
+
+      if (updatedRow) {
+        setDeclarations((previousRows) =>
+          previousRows.map((item) =>
+            item.id === row.id && item.declarationType === row.declarationType
+              ? updatedRow
+              : item
+          )
+        );
+        row = updatedRow;
+      }
+    }
+
+    setOpenMenuId(openMenuId === row.id ? null : row.id);
   };
 
   return (
@@ -255,11 +281,7 @@ const CustomsDeclarations = () => {
                           <ActionCell>
                             <ActionButton
                               type="button"
-                              onClick={() =>
-                                setOpenMenuId(
-                                  openMenuId === row.id ? null : row.id
-                                )
-                              }
+                              onClick={() => handleActionClick(row)}
                             >
                               ...
                             </ActionButton>

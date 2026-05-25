@@ -285,5 +285,7 @@
   "Customs_DeclarationSubtitle": "Gérer les déclarations",
   "Customs_NoImporterDeclarations": "Aucune déclaration importateur trouvée.",
   "Customs_NoIndividualDeclarations": "Aucune déclaration individuelle trouvée.",
-  "Customs_NoDeclarationsSubtitle": "Les déclarations apparaîtront ici lorsqu'elles seront disponibles."
+  "Customs_NoDeclarationsSubtitle": "Les déclarations apparaîtront ici lorsqu'elles seront disponibles.",
+  "Clear Data": "Effacer les données",
+  "ClearData_Confirmation": "Cela supprimera les données de la déclaration enregistrée et soumise afin de pouvoir téléverser à nouveau le même fichier. Voulez-vous continuer ?"
 }
