@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import chevronSVG from "../../assets/chevron-down.svg";
 import emptySVG from "../../assets/noRegistered.svg";
 import searchSVG from "../../assets/search3.svg";
+import eyeSVG from "../../assets/eye.svg";
 import {
   fetchCustomsDeclarationDetail,
   fetchCustomsDeclarations,
@@ -257,7 +258,7 @@ const CustomsDeclarations = () => {
                       <LoadingCell colSpan="11">{t("Loading")}</LoadingCell>
                     </tr>
                   ) : (
-                    declarations.map((row) => (
+                    declarations.map((row, index) => (
                       <tr key={`${row.declarationType}-${row.id}`}>
                         <Td>
                           <input type="checkbox" aria-label={`select ${row.declarationNumber}`} />
@@ -286,12 +287,94 @@ const CustomsDeclarations = () => {
                               ...
                             </ActionButton>
                             {openMenuId === row.id && (
-                              <ActionMenu>
+                              <ActionMenu
+                                $openUpwards={
+                                  index >= declarations.length - 2
+                                }
+                              >
                                 <ActionMenuButton
                                   type="button"
                                   onClick={() => openDetails(row)}
                                 >
-                                  {t("View Details")}
+                                  <ActionLabel>
+                                    <ActionIcon src={eyeSVG} alt="" aria-hidden="true" />
+                                    <span>{t("View Details")}</span>
+                                  </ActionLabel>
+                                </ActionMenuButton>
+                                <ActionMenuButton
+                                  type="button"
+                                  onClick={() => setOpenMenuId(null)}
+                                >
+                                  <ActionLabel>
+                                    <ActionSvg
+                                      viewBox="0 0 20 20"
+                                      fill="none"
+                                      aria-hidden="true"
+                                    >
+                                      <path
+                                        d="M13.333 2.5L17.5 6.667L7.5 16.667H3.333V12.5L13.333 2.5Z"
+                                        stroke="#1D2025"
+                                        strokeWidth="1.5"
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                      />
+                                      <path
+                                        d="M11.667 4.167L15.833 8.333"
+                                        stroke="#1D2025"
+                                        strokeWidth="1.5"
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                      />
+                                    </ActionSvg>
+                                    <span>{t("Adjust")}</span>
+                                  </ActionLabel>
+                                </ActionMenuButton>
+                                <ActionMenuButton
+                                  type="button"
+                                  onClick={() => setOpenMenuId(null)}
+                                >
+                                  <ActionLabel>
+                                    <ActionSvg
+                                      viewBox="0 0 20 20"
+                                      fill="none"
+                                      aria-hidden="true"
+                                    >
+                                      <path
+                                        d="M4.167 10L8.333 14.167L15.833 5.833"
+                                        stroke="#1D2025"
+                                        strokeWidth="1.7"
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                      />
+                                    </ActionSvg>
+                                    <span>{t("Approve")}</span>
+                                  </ActionLabel>
+                                </ActionMenuButton>
+                                <ActionMenuButton
+                                  type="button"
+                                  onClick={() => setOpenMenuId(null)}
+                                >
+                                  <ActionLabel>
+                                    <ActionSvg
+                                      viewBox="0 0 20 20"
+                                      fill="none"
+                                      aria-hidden="true"
+                                    >
+                                      <path
+                                        d="M5 5L15 15"
+                                        stroke="#1D2025"
+                                        strokeWidth="1.7"
+                                        strokeLinecap="round"
+                                      />
+                                      <path
+                                        d="M15 5L5 15"
+                                        stroke="#1D2025"
+                                        strokeWidth="1.7"
+                                        strokeLinecap="round"
+                                      />
+                                    </ActionSvg>
+                                    <span>{t("Reject")}</span>
+                                  </ActionLabel>
                                 </ActionMenuButton>
                               </ActionMenu>
                             )}
@@ -491,7 +574,7 @@ const ContentCard = styled.div`
   padding: 20px;
   width: 100%;
   height: 100%;
-  overflow: hidden;
+  overflow: visible;
   display: flex;
   flex-direction: column;
 `;
@@ -580,6 +663,7 @@ const TableWrapper = styled.div`
   flex-direction: column;
   height: 100%;
   min-height: 0;
+  overflow: visible;
 `;
 
 const PaginationBar = styled.div`
@@ -612,7 +696,7 @@ const PageSizeInput = styled.input`
 const Table = styled.table`
   width: 100%;
   border-collapse: collapse;
-  overflow: hidden;
+  overflow: visible;
 
   thead tr {
     background: #f7f8fc;
@@ -698,7 +782,10 @@ const ActionButton = styled.button`
 const ActionMenu = styled.div`
   position: absolute;
   right: 0;
-  top: calc(100% + 6px);
+  top: ${({ $openUpwards }) =>
+    $openUpwards ? "auto" : "calc(100% + 6px)"};
+  bottom: ${({ $openUpwards }) =>
+    $openUpwards ? "calc(100% + 6px)" : "auto"};
   min-width: 160px;
   border-radius: 12px;
   border: 1px solid #e6e8f0;
@@ -713,13 +800,39 @@ const ActionMenuButton = styled.button`
   border: none;
   background: transparent;
   text-align: left;
-  padding: 10px 12px;
-  border-radius: 8px;
+  padding: 12px 14px;
+  border-radius: 0;
   cursor: pointer;
+  border-bottom: 1px solid #edf0f7;
+
+  &:last-child {
+    border-bottom: none;
+  }
 
   &:hover {
     background: #f5f7fb;
   }
+`;
+
+const ActionLabel = styled.span`
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: #1d2025;
+  font-size: 14px;
+  font-weight: 500;
+`;
+
+const ActionIcon = styled.img`
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
+`;
+
+const ActionSvg = styled.svg`
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
 `;
 
 const DrawerOverlay = styled.div`
