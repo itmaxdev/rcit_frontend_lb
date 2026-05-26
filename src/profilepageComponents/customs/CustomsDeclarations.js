@@ -5,6 +5,7 @@ import chevronSVG from "../../assets/chevron-down.svg";
 import emptySVG from "../../assets/noRegistered.svg";
 import searchSVG from "../../assets/search3.svg";
 import eyeSVG from "../../assets/eye.svg";
+import Popup from "../Popup";
 import {
   adjustDeclarationValue,
   approveDeclaration,
@@ -57,6 +58,12 @@ const CustomsDeclarations = () => {
   const [showAdjustToast, setShowAdjustToast] = useState(false);
   const [adjustError, setAdjustError] = useState(null);
   const [tableActionError, setTableActionError] = useState(null);
+
+  // Reject confirmation popup state
+  const [rejectPopupOpen, setRejectPopupOpen] = useState(false);
+  const [rejectTargetRow, setRejectTargetRow] = useState(null);
+  const [rejectReason, setRejectReason] = useState("");
+  const [isRejecting, setIsRejecting] = useState(false);
 
   const menuRef = useRef(null);
 
@@ -263,27 +270,42 @@ const CustomsDeclarations = () => {
     closeAdjustPanel();
   };
 
-  const handleReject = async () => {
-    if (!adjustRow) return;
-    setIsActioning(true);
-    setAdjustError(null);
+  const openRejectPopup = (row) => {
+    setOpenMenuId(null);
+    setRejectTargetRow(row);
+    setRejectReason("");
+    setRejectPopupOpen(true);
+  };
+
+  const closeRejectPopup = () => {
+    setRejectPopupOpen(false);
+    setRejectTargetRow(null);
+    setRejectReason("");
+  };
+
+  const handleConfirmReject = async () => {
+    if (!rejectTargetRow || !rejectReason.trim()) return;
+    setIsRejecting(true);
     const result = await rejectDeclaration(
-      adjustRow.declarationType,
-      adjustRow.id
+      rejectTargetRow.declarationType,
+      rejectTargetRow.id,
+      rejectReason.trim()
     );
-    setIsActioning(false);
+    setIsRejecting(false);
     if (!result) {
-      setAdjustError(t("Failed to reject declaration. Please try again."));
+      setTableActionError(t("Failed to reject declaration. Please try again."));
+      closeRejectPopup();
       return;
     }
     setDeclarations((prev) =>
       prev.map((item) =>
-        item.id === adjustRow.id &&
-        item.declarationType === adjustRow.declarationType
+        item.id === rejectTargetRow.id &&
+        item.declarationType === rejectTargetRow.declarationType
           ? result
           : item
       )
     );
+    closeRejectPopup();
     closeAdjustPanel();
   };
 
@@ -552,26 +574,7 @@ const CustomsDeclarations = () => {
                                 </ActionMenuButton>
                                 <ActionMenuButton
                                   type="button"
-                                  onClick={async () => {
-                                    setOpenMenuId(null);
-                                    setTableActionError(null);
-                                    const result = await rejectDeclaration(
-                                      row.declarationType,
-                                      row.id
-                                    );
-                                    if (result) {
-                                      setDeclarations((prev) =>
-                                        prev.map((item) =>
-                                          item.id === row.id &&
-                                          item.declarationType === row.declarationType
-                                            ? result
-                                            : item
-                                        )
-                                      );
-                                    } else {
-                                      setTableActionError(t("Failed to reject declaration. Please try again."));
-                                    }
-                                  }}
+                                  onClick={() => openRejectPopup(row)}
                                 >
                                   <ActionLabel>
                                     <ActionSvg
@@ -830,7 +833,7 @@ const CustomsDeclarations = () => {
                 <>
                   <AdjustSecondaryButton
                     type="button"
-                    onClick={handleReject}
+                    onClick={() => openRejectPopup(adjustRow)}
                     disabled={isActioning}
                   >
                     {t("Reject Declaration")}
@@ -860,6 +863,17 @@ const CustomsDeclarations = () => {
             </AdjustFooter>
           </DrawerPanel>
         </DrawerOverlay>
+      )}
+      {/* Reject declaration confirmation popup */}
+      {rejectPopupOpen && (
+        <Popup
+          purpose="rejectDeclaration"
+          reasonValue={rejectReason}
+          onReasonChange={setRejectReason}
+          onClose={closeRejectPopup}
+          onAction={handleConfirmReject}
+          disabled={isRejecting || !rejectReason.trim()}
+        />
       )}
     </PageContainer>
   );

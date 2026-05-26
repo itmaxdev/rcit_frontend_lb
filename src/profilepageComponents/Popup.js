@@ -7,7 +7,7 @@ import adminApprove from "../assets/approve.svg";
 import adminReject from "../assets/reject.svg";
 import userApprove from "../assets/approved.svg";
 
-const Popup = ({ data, purpose, onClose, onAction }) => {
+const Popup = ({ data, purpose, onClose, onAction, reasonValue, onReasonChange, disabled }) => {
   const { t } = useTranslation();
 
   // Determine the content based on the purpose
@@ -17,7 +17,8 @@ const Popup = ({ data, purpose, onClose, onAction }) => {
     actionText,
     cancelText = t("Cancel"),
     isRed = false,
-    isColumn = false;
+    isColumn = false,
+    isBlueHeader = false;
   if (purpose === "approve") {
     img = adminApprove;
     headerText = t("Approve Request");
@@ -56,19 +57,42 @@ const Popup = ({ data, purpose, onClose, onAction }) => {
     actionText = t("Track Devices Status");
     cancelText = t("Go to dashboard");
     isColumn = true;
+  } else if (purpose === "rejectDeclaration") {
+    img = adminReject;
+    headerText = t("Are you sure do you want reject this declaration?");
+    subheaderText = null;
+    actionText = t("Reject");
+    isRed = true;
+    isColumn = true;
+    isBlueHeader = true;
   }
 
   return (
     <Overlay>
       <PopupContainer>
         <SVG src={img} alt="Icon" />
-        <Header>{headerText}</Header>
-        <Subheader>{subheaderText}</Subheader>
+        <Header isBlue={isBlueHeader}>{headerText}</Header>
+        {subheaderText && <Subheader>{subheaderText}</Subheader>}
+        {purpose === "rejectDeclaration" && onReasonChange && (
+          <ReasonSection>
+            <ReasonLabel>
+              {t("Rejection Reason")}
+              <ReasonRequired> *</ReasonRequired>
+            </ReasonLabel>
+            <ReasonSubLabel>{t("Add Reason")}</ReasonSubLabel>
+            <ReasonTextarea
+              value={reasonValue || ""}
+              onChange={(e) => onReasonChange(e.target.value)}
+              placeholder={t("Reason goes here")}
+              rows={4}
+            />
+          </ReasonSection>
+        )}
         <ButtonsContainer isColumn={isColumn}>
           <CancelButton isColumn={isColumn} onClick={onClose}>
             {cancelText}
           </CancelButton>
-          <ActionButton isColumn={isColumn} isRed={isRed} onClick={onAction}>
+          <ActionButton isColumn={isColumn} isRed={isRed} onClick={onAction} disabled={disabled}>
             {actionText}
           </ActionButton>
         </ButtonsContainer>
@@ -109,15 +133,59 @@ const SVG = styled.img`
 
 const Header = styled.h2`
   margin: 0;
-  font-size: 40px;
+  font-size: ${({ isBlue }) => (isBlue ? "28px" : "40px")};
   font-weight: 800;
-  color:#436C4D;
+  color: ${({ isBlue }) => (isBlue ? "#2671d9" : "#436C4D")};
 `;
 
 const Subheader = styled.p`
   margin: 15px 0 20px;
   font-size: 18px;
   font-weight: 400;
+`;
+
+const ReasonSection = styled.div`
+  width: 100%;
+  text-align: left;
+  margin: 20px 0 4px;
+`;
+
+const ReasonLabel = styled.p`
+  font-size: 15px;
+  font-weight: 700;
+  color: #1d2025;
+  margin: 0 0 4px;
+`;
+
+const ReasonRequired = styled.span`
+  color: #ec011a;
+`;
+
+const ReasonSubLabel = styled.p`
+  font-size: 13px;
+  color: #6f7897;
+  margin: 0 0 8px;
+`;
+
+const ReasonTextarea = styled.textarea`
+  width: 100%;
+  border: 1px solid #d4d6df;
+  border-radius: 8px;
+  padding: 12px;
+  font-size: 14px;
+  color: #1d2025;
+  font-family: inherit;
+  resize: vertical;
+  outline: none;
+  box-sizing: border-box;
+
+  &:focus {
+    border-color: #2671d9;
+  }
+
+  &::placeholder {
+    color: #b0b5c9;
+  }
 `;
 
 const ButtonsContainer = styled.div`
@@ -140,8 +208,13 @@ const ActionButton = styled.button`
   transition: all 0.3s ease;
   width: ${({ isColumn }) => (isColumn ? "100%" : "45%")};
 
-  &:hover {
+  &:hover:not(:disabled) {
     opacity: 0.7;
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
   }
 `;
 

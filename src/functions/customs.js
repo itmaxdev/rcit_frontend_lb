@@ -155,7 +155,7 @@ export const approveDeclaration = async (declarationType, declarationId) => {
   }
 };
 
-export const rejectDeclaration = async (declarationType, declarationId) => {
+export const rejectDeclaration = async (declarationType, declarationId, reason) => {
   try {
     const token = getToken();
     const response = await makeAuthenticatedRequest(
@@ -164,7 +164,9 @@ export const rejectDeclaration = async (declarationType, declarationId) => {
         method: "PUT",
         headers: {
           Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
         },
+        body: JSON.stringify({ reason }),
       }
     );
 
