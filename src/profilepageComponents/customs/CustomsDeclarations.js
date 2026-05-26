@@ -20,12 +20,42 @@ const DECLARATION_TYPES = {
 };
 
 const STATUS_STYLES = {
-  SUBMITTED: { background: "#e8f1ff", color: "#2671d9" },
-  UNDER_REVIEW: { background: "#fff3df", color: "#f19a15" },
-  APPROVED: { background: "#e5f6e7", color: "#1c9d4b" },
-  DECLINED: { background: "#ffe8e8", color: "#e03d3d" },
-  AWAITING_PAYMENT: { background: "#fff0e6", color: "#d55d00" },
-  PAID: { background: "#e5f6e7", color: "#1c9d4b" },
+  SUBMITTED: {
+    background: "#e8f1ff",
+    color: "#2671d9",
+    icon: "dot",
+    iconColor: "#2671d9",
+  },
+  UNDER_REVIEW: {
+    background: "#fff3df",
+    color: "#f19a15",
+    icon: "clock",
+    iconColor: "#f19a15",
+  },
+  APPROVED: {
+    background: "#e5f6e7",
+    color: "#1c9d4b",
+    icon: "check",
+    iconColor: "#1c9d4b",
+  },
+  DECLINED: {
+    background: "#ffe8e8",
+    color: "#e03d3d",
+    icon: "cross",
+    iconColor: "#e03d3d",
+  },
+  AWAITING_PAYMENT: {
+    background: "#fff0e6",
+    color: "#d55d00",
+    icon: "flag",
+    iconColor: "#e03d3d",
+  },
+  PAID: {
+    background: "#eef6ef",
+    color: "#516275",
+    icon: "check",
+    iconColor: "#1c9d4b",
+  },
 };
 
 const rowKey = (row) => `${row.declarationType}-${row.id}`;
@@ -498,7 +528,7 @@ const CustomsDeclarations = () => {
                     </tr>
                   ) : (
                     declarations.map((row, index) => (
-                      <tr key={rowKey(row)}>
+                      <TableRow key={rowKey(row)}>
                         <Td>
                           <StyledCheckbox
                             type="checkbox"
@@ -519,6 +549,7 @@ const CustomsDeclarations = () => {
                         <Td>{row.priceSource}</Td>
                         <Td>
                           <StatusBadge $status={row.status}>
+                            {renderStatusIcon(row.status)}
                             {formatStatusLabel(row.status)}
                           </StatusBadge>
                         </Td>
@@ -649,7 +680,7 @@ const CustomsDeclarations = () => {
                             )}
                           </ActionCell>
                         </Td>
-                      </tr>
+                      </TableRow>
                     ))
                   )}
                 </tbody>
@@ -722,6 +753,7 @@ const CustomsDeclarations = () => {
                     <SummaryLabel>{t("Status")}</SummaryLabel>
                     <SummaryValue>
                       <StatusBadge $status={selectedDeclaration.status}>
+                        {renderStatusIcon(selectedDeclaration.status)}
                         {formatStatusLabel(selectedDeclaration.status)}
                       </StatusBadge>
                     </SummaryValue>
@@ -795,6 +827,7 @@ const CustomsDeclarations = () => {
                 <AdjustDetailLabel>{t("Status")}</AdjustDetailLabel>
                 <AdjustDetailValue>
                   <StatusBadge $status={adjustRow.status}>
+                    {renderStatusIcon(adjustRow.status)}
                     {formatStatusLabel(adjustRow.status)}
                   </StatusBadge>
                 </AdjustDetailValue>
@@ -1023,10 +1056,95 @@ const VarianceValue = ({ value }) => {
   );
 };
 
+const renderStatusIcon = (status) => {
+  const style = STATUS_STYLES[status];
+
+  if (!style?.icon) {
+    return null;
+  }
+
+  if (style.icon === "dot") {
+    return <StatusDot $color={style.iconColor} />;
+  }
+
+  if (style.icon === "clock") {
+    return (
+      <StatusSvg viewBox="0 0 16 16" fill="none" aria-hidden="true">
+        <circle
+          cx="8"
+          cy="8"
+          r="6"
+          stroke={style.iconColor}
+          strokeWidth="1.4"
+        />
+        <path
+          d="M8 4.8V8.2L10.3 9.5"
+          stroke={style.iconColor}
+          strokeWidth="1.4"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </StatusSvg>
+    );
+  }
+
+  if (style.icon === "check") {
+    return (
+      <StatusSvg viewBox="0 0 16 16" fill="none" aria-hidden="true">
+        <path
+          d="M3.5 8.3L6.5 11.1L12.5 4.9"
+          stroke={style.iconColor}
+          strokeWidth="1.7"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </StatusSvg>
+    );
+  }
+
+  if (style.icon === "cross") {
+    return (
+      <StatusSvg viewBox="0 0 16 16" fill="none" aria-hidden="true">
+        <path
+          d="M4.5 4.5L11.5 11.5"
+          stroke={style.iconColor}
+          strokeWidth="1.7"
+          strokeLinecap="round"
+        />
+        <path
+          d="M11.5 4.5L4.5 11.5"
+          stroke={style.iconColor}
+          strokeWidth="1.7"
+          strokeLinecap="round"
+        />
+      </StatusSvg>
+    );
+  }
+
+  if (style.icon === "flag") {
+    return (
+      <StatusSvg viewBox="0 0 16 16" fill="none" aria-hidden="true">
+        <path
+          d="M4.5 13.2V3.2"
+          stroke={style.iconColor}
+          strokeWidth="1.4"
+          strokeLinecap="round"
+        />
+        <path
+          d="M5.2 3.8H11.4L10.1 6.1L11.4 8.4H5.2V3.8Z"
+          fill={style.iconColor}
+        />
+      </StatusSvg>
+    );
+  }
+
+  return null;
+};
+
 const PageContainer = styled.div`
   display: flex;
   width: 90%;
-  height: calc(100vh - 75px);
+  min-height: calc(100vh - 75px);
   flex-direction: column;
   padding: 40px 0;
   align-items: flex-start;
@@ -1048,7 +1166,7 @@ const TextBlock = styled.div`
 const Title = styled.h1`
   font-size: 20px;
   font-weight: 700;
-  color: #436c4d;
+  color: #1d2d64;
   margin-bottom: 10px;
 `;
 
@@ -1057,15 +1175,17 @@ const Subtitle = styled.p`
 `;
 
 const ContentCard = styled.div`
+  width: 100%;
+  flex: 1;
+  min-height: 0;
   border-radius: 12px;
   border: 1px solid #d4d6df;
   background: #fff;
   padding: 20px;
-  width: 100%;
-  height: 100%;
-  overflow: visible;
   display: flex;
   flex-direction: column;
+  gap: 18px;
+  overflow: visible;
 `;
 
 const Toolbar = styled.div`
@@ -1073,7 +1193,7 @@ const Toolbar = styled.div`
   justify-content: space-between;
   align-items: center;
   gap: 20px;
-  margin-bottom: 20px;
+  flex-wrap: wrap;
 `;
 
 const Tabs = styled.div`
@@ -1094,12 +1214,14 @@ const TabButton = styled.button`
 `;
 
 const SearchContainer = styled.div`
+  width: 100%;
+  max-width: 320px;
   display: flex;
   align-items: center;
+  gap: 10px;
   border: 1px solid #d4d6df;
-  border-radius: 38px;
-  padding: 0 18px;
-  min-width: 280px;
+  border-radius: 999px;
+  padding: 0 16px;
   background: #fff;
 `;
 
@@ -1107,10 +1229,11 @@ const SearchButton = styled.button`
   border: none;
   background: transparent;
   padding: 0;
-  margin-right: 10px;
   cursor: pointer;
+  line-height: 1;
 
   img {
+    width: 18px;
     height: 18px;
   }
 `;
@@ -1118,14 +1241,15 @@ const SearchButton = styled.button`
 const SearchInput = styled.input`
   border: none;
   outline: none;
-  width: 100%;
+  flex: 1;
   font-size: 14px;
-  padding: 14px 0;
+  padding: 12px 0;
+  background: transparent;
 `;
 
 const EmptyState = styled.div`
   display: flex;
-  height: 100%;
+  min-height: 320px;
   width: 100%;
   align-items: center;
   justify-content: center;
@@ -1148,24 +1272,27 @@ const EmptyText = styled.p`
 `;
 
 const TableWrapper = styled.div`
+  width: 100%;
+  flex: 1;
+  min-height: 0;
   display: flex;
   flex-direction: column;
-  height: 100%;
-  min-height: 0;
-  overflow: visible;
+  overflow-x: auto;
+  overflow-y: visible;
 `;
 
 const PaginationBar = styled.div`
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
   align-items: center;
-  margin-bottom: 12px;
   gap: 16px;
+  flex-wrap: wrap;
 `;
 
 const PaginationText = styled.p`
   color: #6f7897;
-  font-size: 14px;
+  font-size: 13px;
+  white-space: nowrap;
 `;
 
 const PaginationControls = styled.div`
@@ -1185,7 +1312,6 @@ const PageSizeInput = styled.input`
 const Table = styled.table`
   width: 100%;
   border-collapse: collapse;
-  overflow: visible;
 
   thead tr {
     background: #f7f8fc;
@@ -1198,17 +1324,19 @@ const ItemsTable = styled(Table)`
 
 const Th = styled.th`
   color: #6f7897;
-  font-size: 14px;
+  font-size: 12px;
   font-weight: 500;
   text-align: left;
-  padding: 14px 10px;
-  vertical-align: top;
+  padding: 12px 14px;
+  vertical-align: middle;
 `;
 
 const Td = styled.td`
-  padding: 16px 10px;
+  padding: 14px;
   border-top: 1px solid #edf0f7;
-  vertical-align: top;
+  color: #1d2025;
+  font-size: 13px;
+  vertical-align: middle;
   white-space: ${({ $preserveLines }) => ($preserveLines ? "pre-line" : "normal")};
 `;
 
@@ -1218,10 +1346,18 @@ const NameCell = styled(Td)`
   max-width: 180px;
 `;
 
+const TableRow = styled.tr`
+  transition: background 0.15s ease;
+
+  &:hover {
+    background: #fafbff;
+  }
+`;
+
 const LoadingCell = styled.td`
-  padding: 32px 16px;
+  padding: 28px 16px;
   text-align: center;
-  color: #6f7897;
+  color: #797f94;
 `;
 
 const StyledCheckbox = styled.input`
@@ -1235,13 +1371,28 @@ const StyledCheckbox = styled.input`
 const StatusBadge = styled.span`
   display: inline-flex;
   align-items: center;
-  justify-content: center;
+  gap: 6px;
   border-radius: 999px;
-  padding: 8px 14px;
-  font-size: 14px;
+  padding: 7px 12px;
+  font-size: 12px;
+  font-weight: 500;
   white-space: nowrap;
   background: ${({ $status }) => STATUS_STYLES[$status]?.background || "#eef1f8"};
   color: ${({ $status }) => STATUS_STYLES[$status]?.color || "#1d2025"};
+`;
+
+const StatusDot = styled.span`
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: ${({ $color }) => $color};
+  flex-shrink: 0;
+`;
+
+const StatusSvg = styled.svg`
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
 `;
 
 const VarianceContainer = styled.div`
