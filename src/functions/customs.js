@@ -97,3 +97,85 @@ export const startCustomsDeclarationReview = async (
     return null;
   }
 };
+
+export const adjustDeclarationValue = async (
+  declarationType,
+  declarationId,
+  adjustedValue,
+  reason
+) => {
+  try {
+    const token = getToken();
+    const response = await makeAuthenticatedRequest(
+      `${CUSTOMS_API_BASE_URL}/declarations/${declarationType}/${declarationId}/adjust`,
+      {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ adjustedValue, reason }),
+      }
+    );
+
+    if (!response?.ok) {
+      const errorData = response ? await response.json() : null;
+      throw new Error(errorData?.message || "Failed to adjust declaration value");
+    }
+
+    return response.json();
+  } catch (error) {
+    console.error("Error adjusting declaration value:", error);
+    return null;
+  }
+};
+
+export const approveDeclaration = async (declarationType, declarationId) => {
+  try {
+    const token = getToken();
+    const response = await makeAuthenticatedRequest(
+      `${CUSTOMS_API_BASE_URL}/declarations/${declarationType}/${declarationId}/approve`,
+      {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    if (!response?.ok) {
+      const errorData = response ? await response.json() : null;
+      throw new Error(errorData?.message || "Failed to approve declaration");
+    }
+
+    return response.json();
+  } catch (error) {
+    console.error("Error approving declaration:", error);
+    return null;
+  }
+};
+
+export const rejectDeclaration = async (declarationType, declarationId) => {
+  try {
+    const token = getToken();
+    const response = await makeAuthenticatedRequest(
+      `${CUSTOMS_API_BASE_URL}/declarations/${declarationType}/${declarationId}/reject`,
+      {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    if (!response?.ok) {
+      const errorData = response ? await response.json() : null;
+      throw new Error(errorData?.message || "Failed to reject declaration");
+    }
+
+    return response.json();
+  } catch (error) {
+    console.error("Error rejecting declaration:", error);
+    return null;
+  }
+};
