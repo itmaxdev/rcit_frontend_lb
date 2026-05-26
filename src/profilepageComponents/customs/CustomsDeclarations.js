@@ -185,6 +185,9 @@ const CustomsDeclarations = () => {
           )
         );
         row = updatedRow;
+      } else {
+        setTableActionError(t("Failed to start declaration review. Please try again."));
+        return;
       }
     }
 
@@ -194,9 +197,11 @@ const CustomsDeclarations = () => {
   const openAdjustPanel = (row) => {
     setOpenMenuId(null);
     setAdjustRow(row);
-    setAdjustedValue("");
-    setAdjustReason("");
-    setAdjustSaved(false);
+    setAdjustedValue(
+      row.approvedPriceUsd != null ? String(Math.trunc(Number(row.approvedPriceUsd))) : ""
+    );
+    setAdjustReason(row.adjustmentReason || "");
+    setAdjustSaved(row.approvedPriceUsd != null && Boolean(row.adjustmentReason));
     setShowAdjustToast(false);
     setAdjustError(null);
     setIsAdjustOpen(true);
@@ -212,12 +217,16 @@ const CustomsDeclarations = () => {
 
   const handleSaveAdjustment = async () => {
     if (!adjustRow || !adjustReason.trim() || !adjustedValue) return;
+    if (!/^\d+$/.test(adjustedValue)) {
+      setAdjustError(t("Adjusted value must be a whole number."));
+      return;
+    }
     setIsAdjusting(true);
     setAdjustError(null);
     const result = await adjustDeclarationValue(
       adjustRow.declarationType,
       adjustRow.id,
-      parseFloat(adjustedValue),
+      parseInt(adjustedValue, 10),
       adjustReason.trim()
     );
     setIsAdjusting(false);
@@ -234,6 +243,10 @@ const CustomsDeclarations = () => {
       )
     );
     setAdjustRow(result);
+    setAdjustedValue(
+      result?.approvedPriceUsd != null ? String(Math.trunc(Number(result.approvedPriceUsd))) : adjustedValue
+    );
+    setAdjustReason(result?.adjustmentReason || adjustReason.trim());
     setAdjustSaved(true);
     setShowAdjustToast(true);
     setTimeout(() => setShowAdjustToast(false), 4000);
@@ -482,119 +495,125 @@ const CustomsDeclarations = () => {
                                     <span>{t("View Details")}</span>
                                   </ActionLabel>
                                 </ActionMenuButton>
-                                <ActionMenuButton
-                                  type="button"
-                                  onClick={() => openAdjustPanel(row)}
-                                >
-                                  <ActionLabel>
-                                    <ActionSvg
-                                      viewBox="0 0 20 20"
-                                      fill="none"
-                                      aria-hidden="true"
-                                    >
-                                      <path
-                                        d="M13.333 2.5L17.5 6.667L7.5 16.667H3.333V12.5L13.333 2.5Z"
-                                        stroke="#1D2025"
-                                        strokeWidth="1.5"
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                      />
-                                      <path
-                                        d="M11.667 4.167L15.833 8.333"
-                                        stroke="#1D2025"
-                                        strokeWidth="1.5"
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                      />
-                                    </ActionSvg>
-                                    <span>{t("Adjust")}</span>
-                                  </ActionLabel>
-                                </ActionMenuButton>
-                                <ActionMenuButton
-                                  type="button"
-                                  onClick={async () => {
-                                    setOpenMenuId(null);
-                                    setTableActionError(null);
-                                    const result = await approveDeclaration(
-                                      row.declarationType,
-                                      row.id
-                                    );
-                                    if (result) {
-                                      setDeclarations((prev) =>
-                                        prev.map((item) =>
-                                          item.id === row.id &&
-                                          item.declarationType === row.declarationType
-                                            ? result
-                                            : item
-                                        )
+                                {canAdjustDeclaration(row) && (
+                                  <ActionMenuButton
+                                    type="button"
+                                    onClick={() => openAdjustPanel(row)}
+                                  >
+                                    <ActionLabel>
+                                      <ActionSvg
+                                        viewBox="0 0 20 20"
+                                        fill="none"
+                                        aria-hidden="true"
+                                      >
+                                        <path
+                                          d="M13.333 2.5L17.5 6.667L7.5 16.667H3.333V12.5L13.333 2.5Z"
+                                          stroke="#1D2025"
+                                          strokeWidth="1.5"
+                                          strokeLinecap="round"
+                                          strokeLinejoin="round"
+                                        />
+                                        <path
+                                          d="M11.667 4.167L15.833 8.333"
+                                          stroke="#1D2025"
+                                          strokeWidth="1.5"
+                                          strokeLinecap="round"
+                                          strokeLinejoin="round"
+                                        />
+                                      </ActionSvg>
+                                      <span>{t("Adjust")}</span>
+                                    </ActionLabel>
+                                  </ActionMenuButton>
+                                )}
+                                {canApproveDeclaration(row) && (
+                                  <ActionMenuButton
+                                    type="button"
+                                    onClick={async () => {
+                                      setOpenMenuId(null);
+                                      setTableActionError(null);
+                                      const result = await approveDeclaration(
+                                        row.declarationType,
+                                        row.id
                                       );
-                                    } else {
-                                      setTableActionError(t("Failed to approve declaration. Please try again."));
-                                    }
-                                  }}
-                                >
-                                  <ActionLabel>
-                                    <ActionSvg
-                                      viewBox="0 0 20 20"
-                                      fill="none"
-                                      aria-hidden="true"
-                                    >
-                                      <path
-                                        d="M4.167 10L8.333 14.167L15.833 5.833"
-                                        stroke="#1D2025"
-                                        strokeWidth="1.7"
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                      />
-                                    </ActionSvg>
-                                    <span>{t("Approve")}</span>
-                                  </ActionLabel>
-                                </ActionMenuButton>
-                                <ActionMenuButton
-                                  type="button"
-                                  onClick={async () => {
-                                    setOpenMenuId(null);
-                                    setTableActionError(null);
-                                    const result = await rejectDeclaration(
-                                      row.declarationType,
-                                      row.id
-                                    );
-                                    if (result) {
-                                      setDeclarations((prev) =>
-                                        prev.map((item) =>
-                                          item.id === row.id &&
-                                          item.declarationType === row.declarationType
-                                            ? result
-                                            : item
-                                        )
+                                      if (result) {
+                                        setDeclarations((prev) =>
+                                          prev.map((item) =>
+                                            item.id === row.id &&
+                                            item.declarationType === row.declarationType
+                                              ? result
+                                              : item
+                                          )
+                                        );
+                                      } else {
+                                        setTableActionError(t("Failed to approve declaration. Please try again."));
+                                      }
+                                    }}
+                                  >
+                                    <ActionLabel>
+                                      <ActionSvg
+                                        viewBox="0 0 20 20"
+                                        fill="none"
+                                        aria-hidden="true"
+                                      >
+                                        <path
+                                          d="M4.167 10L8.333 14.167L15.833 5.833"
+                                          stroke="#1D2025"
+                                          strokeWidth="1.7"
+                                          strokeLinecap="round"
+                                          strokeLinejoin="round"
+                                        />
+                                      </ActionSvg>
+                                      <span>{t("Approve")}</span>
+                                    </ActionLabel>
+                                  </ActionMenuButton>
+                                )}
+                                {canRejectDeclaration(row) && (
+                                  <ActionMenuButton
+                                    type="button"
+                                    onClick={async () => {
+                                      setOpenMenuId(null);
+                                      setTableActionError(null);
+                                      const result = await rejectDeclaration(
+                                        row.declarationType,
+                                        row.id
                                       );
-                                    } else {
-                                      setTableActionError(t("Failed to reject declaration. Please try again."));
-                                    }
-                                  }}
-                                >
-                                  <ActionLabel>
-                                    <ActionSvg
-                                      viewBox="0 0 20 20"
-                                      fill="none"
-                                      aria-hidden="true"
-                                    >
-                                      <path
-                                        d="M5 5L15 15"
-                                        stroke="#1D2025"
-                                        strokeWidth="1.7"
-                                        strokeLinecap="round"
-                                      />
-                                      <path
-                                        d="M15 5L5 15"
-                                        stroke="#1D2025"
-                                        strokeWidth="1.7"
-                                        strokeLinecap="round"
-                                      />
-                                    </ActionSvg>
-                                    <span>{t("Reject")}</span>
-                                  </ActionLabel>
-                                </ActionMenuButton>
+                                      if (result) {
+                                        setDeclarations((prev) =>
+                                          prev.map((item) =>
+                                            item.id === row.id &&
+                                            item.declarationType === row.declarationType
+                                              ? result
+                                              : item
+                                          )
+                                        );
+                                      } else {
+                                        setTableActionError(t("Failed to reject declaration. Please try again."));
+                                      }
+                                    }}
+                                  >
+                                    <ActionLabel>
+                                      <ActionSvg
+                                        viewBox="0 0 20 20"
+                                        fill="none"
+                                        aria-hidden="true"
+                                      >
+                                        <path
+                                          d="M5 5L15 15"
+                                          stroke="#1D2025"
+                                          strokeWidth="1.7"
+                                          strokeLinecap="round"
+                                        />
+                                        <path
+                                          d="M15 5L5 15"
+                                          stroke="#1D2025"
+                                          strokeWidth="1.7"
+                                          strokeLinecap="round"
+                                        />
+                                      </ActionSvg>
+                                      <span>{t("Reject")}</span>
+                                    </ActionLabel>
+                                  </ActionMenuButton>
+                                )}
                               </ActionMenu>
                             )}
                           </ActionCell>
@@ -764,14 +783,19 @@ const CustomsDeclarations = () => {
                 <AdjustDetailLabel>{t("Adjusted Value")}</AdjustDetailLabel>
                 <AdjustDetailValue>
                   {adjustSaved ? (
-                    <strong>{formatMoney(parseFloat(adjustedValue))}</strong>
+                    <strong>{formatMoney(parseInt(adjustedValue || "0", 10))}</strong>
                   ) : (
                     <AdjustInput
-                      type="number"
+                      type="text"
+                      inputMode="numeric"
                       placeholder={t("Input goes here")}
                       value={adjustedValue}
-                      onChange={(e) => setAdjustedValue(e.target.value)}
-                      min="0"
+                      onChange={(e) => {
+                        const nextValue = e.target.value;
+                        if (/^\d*$/.test(nextValue)) {
+                          setAdjustedValue(nextValue);
+                        }
+                      }}
                     />
                   )}
                 </AdjustDetailValue>
@@ -851,7 +875,7 @@ const CustomsDeclarations = () => {
                   <AdjustPrimaryButton
                     type="button"
                     onClick={handleSaveAdjustment}
-                    disabled={isAdjusting || !adjustedValue || !adjustReason.trim()}
+                    disabled={isAdjusting || !/^\d+$/.test(adjustedValue) || !adjustReason.trim()}
                   >
                     {isAdjusting ? t("Saving...") : t("Save Adjustment")}
                   </AdjustPrimaryButton>
@@ -892,6 +916,18 @@ const formatStatusLabel = (status) =>
     : "-";
 
 const formatImeis = (imeis) => (imeis ? imeis.split("|").join("\n") : "-");
+
+const canAdjustDeclaration = (row) =>
+  row.declarationType === DECLARATION_TYPES.IMPORTER &&
+  row.status === "UNDER_REVIEW";
+
+const canApproveDeclaration = (row) =>
+  row.declarationType === DECLARATION_TYPES.IMPORTER &&
+  row.status === "UNDER_REVIEW";
+
+const canRejectDeclaration = (row) =>
+  row.declarationType === DECLARATION_TYPES.IMPORTER &&
+  (row.status === "SUBMITTED" || row.status === "UNDER_REVIEW");
 
 const VarianceValue = ({ value }) => {
   const isPositive = value >= 0;
