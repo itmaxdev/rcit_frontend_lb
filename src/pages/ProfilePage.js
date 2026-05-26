@@ -8,6 +8,7 @@ import Sidebar from "../profilepageComponents/Sidebar";
 import Header from "../profilepageComponents/Header";
 import DeclareDevicesInd from "../profilepageComponents/individuals/DeclareDevicesInd";
 import DeclareDevicesImp from "../profilepageComponents/importers/DeclareDevicesImp";
+import ImporterDeclarations from "../profilepageComponents/importers/ImporterDeclarations";
 import UserManagement from "../profilepageComponents/admins/UserManagement";
 import UserDetails from "../profilepageComponents/admins/UserDetails";
 import IMEIVerify from "../homepageComponents/IMEIVerify";
@@ -74,7 +75,7 @@ const ProfilePage = () => {
                 element={<Placeholder title="Dashboard" />}
               />
               <Route path="VerifyIMEI" element={<IMEIVerify />} />
-              <Route path="DeclareDevices" element={<RegisteredDevices />} />
+              <Route path="DeclareDevices" element={<ImporterDeclarations />} />
               <Route path="RegisterDevices" element={<DeclareDevicesImp />} />
               <Route
                 path="DigitalWallet"

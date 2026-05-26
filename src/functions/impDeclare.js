@@ -4,6 +4,7 @@ import { makeAuthenticatedRequest } from "./authenticatedRequest";
 import { API_BASE_URL } from "../config/api";
 
 const BULK_URL = `${API_BASE_URL}/importers/bulk-uploads`;
+const DECLARATIONS_URL = `${API_BASE_URL}/importers/declarations`;
 
 const pollUploadResults = async (uploadID, interval = 1000) => {
   return new Promise((resolve, reject) => {
@@ -78,6 +79,30 @@ export const bulkUpload = async (file) => {
     global.alert2("Failed to upload file. Please try again.");
   }
   return ret;
+};
+
+export const fetchImporterDeclarations = async (page = 1, pageSize = 100) => {
+  const token = getToken();
+  const url = `${DECLARATIONS_URL}?page=${page}&pageSize=${pageSize}`;
+
+  try {
+    const response = await makeAuthenticatedRequest(url, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (!response?.ok) {
+      const errorData = response ? await response.json() : null;
+      throw new Error(errorData?.message || "Failed to fetch importer declarations");
+    }
+
+    return response.json();
+  } catch (error) {
+    console.error("Error fetching importer declarations:", error);
+    return null;
+  }
 };
 
 // Function to fetch results by upload ID
