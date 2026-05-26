@@ -95,19 +95,19 @@ const DeclareDevicesImp = () => {
     const sums = uploadedData.reduce(
       (acc, item) => {
         if (item.status === "READY_TO_PROCESS") {
-          acc.totalCif += Number(item.cfi || 0);
+          acc.totalDeclaredValue += Number(item.declaredValue || 0);
           acc.totalDuty += Number(item.dutyFee || 0);
         }
         return acc;
       },
-      { totalCif: 0, totalDuty: 0 }
+      { totalDeclaredValue: 0, totalDuty: 0 }
     );
 
     setSummaryData((previousSummary) =>
       previousSummary
         ? {
           ...previousSummary,
-          totalCIFValue: sums.totalCif,
+          totalDeclaredValue: sums.totalDeclaredValue,
           totalCustomsDuty: sums.totalDuty,
         }
         : previousSummary
@@ -297,11 +297,11 @@ const DeclareDevicesImp = () => {
                 </Stat>
                 <Stat>
                   <StatText>{t("Total Declared Value (USD)")}</StatText>
-                  <strong>{summaryData?.totalCIFValue || "-"}</strong>
+                  <strong>{summaryData?.totalDeclaredValue ?? "-"}</strong>
                 </Stat>
                 <Stat style={{ borderRight: 0 }}>
                   <StatText>{t("Total Customs Duty")} (USD)</StatText>
-                  <strong>{summaryData?.totalCustomsDuty || "-"}</strong>
+                  <strong>{summaryData?.totalCustomsDuty ?? "-"}</strong>
                 </Stat>
               </Stats>
               <ButtonContainer>

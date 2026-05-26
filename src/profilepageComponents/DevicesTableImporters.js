@@ -55,8 +55,8 @@ const DevicesTable = ({ data, isAdmin = false }) => {
                     {t(device.status || "Registered")}
                   </StatusBadge>
                 </TableCell>
-                <TableCell>{device.cfi || "-"}</TableCell>
-                <TableCell>{device.dutyFee || "-"}</TableCell>
+                <TableCell>{device.declaredValue ?? "-"}</TableCell>
+                <TableCell>{device.dutyFee ?? "-"}</TableCell>
               </TableRow>
             ))
           ) : (

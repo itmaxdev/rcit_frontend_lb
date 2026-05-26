@@ -13,10 +13,12 @@ const PaymentSummary = ({ data, busy, onClose, onPay }) => {
   const { t } = useTranslation();
   const [currency, setCurrency] = useState("USD");
   const [method, setMethod] = useState("card");
+  const declaredTotal = Number(data.totalDeclaredValue ?? data.totalCIFValue ?? 0);
+  const customsDutyTotal = Number(data.totalCustomsDuty ?? 0);
 
-  const totalWithDuty = data.totalCIFValue + data.totalCustomsDuty;
+  const totalWithDuty = declaredTotal + customsDutyTotal;
   const vat = totalWithDuty * (data.vatPercentage / 100);
-  const totalPayable = data.totalCustomsDuty + vat;
+  const totalPayable = customsDutyTotal + vat;
 
   const formatted = (value) =>
     new Intl.NumberFormat("en-US", {
@@ -35,11 +37,11 @@ const PaymentSummary = ({ data, busy, onClose, onPay }) => {
         <SummaryBox>
           <Row>
             <span>{t("Total Value")}</span>
-            <span>{formatted(data.totalCIFValue)}</span>
+            <span>{formatted(declaredTotal)}</span>
           </Row>
           <Row style={{ borderColor: "#C1C1C1" }}>
             <span>{t("Total Customs Duty")}</span>
-            <strong>{formatted(data.totalCustomsDuty)}</strong>
+            <strong>{formatted(customsDutyTotal)}</strong>
           </Row>
           <Row>
             <span>{t("Total (Value + Customs Duty)")}</span>
