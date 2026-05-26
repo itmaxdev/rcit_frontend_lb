@@ -1,5 +1,5 @@
 // PaymentSummary.jsx
-import React, { useState, useMemo } from "react";
+import React, { useState } from "react";
 import styled from "styled-components";
 import { useTranslation } from "react-i18next";
 
@@ -13,12 +13,16 @@ const PaymentSummary = ({ data, busy, onClose, onPay }) => {
   const { t } = useTranslation();
   const [currency, setCurrency] = useState("USD");
   const [method, setMethod] = useState("card");
-  const declaredTotal = Number(data.totalDeclaredValue ?? data.totalCIFValue ?? 0);
+  const approvedTotal = Number(
+    data.totalApprovedValue ?? data.totalDeclaredValue ?? data.totalCIFValue ?? 0
+  );
   const customsDutyTotal = Number(data.totalCustomsDuty ?? 0);
-
-  const totalWithDuty = declaredTotal + customsDutyTotal;
-  const vat = totalWithDuty * (data.vatPercentage / 100);
-  const totalPayable = customsDutyTotal + vat;
+  const dutyPercentage = Number(data.dutyPercentage ?? 0);
+  const totalWithDuty = Number(data.totalWithDuty ?? approvedTotal + customsDutyTotal);
+  const vat = Number(
+    data.vatAmount ?? totalWithDuty * (Number(data.vatPercentage ?? 0) / 100)
+  );
+  const totalPayable = Number(data.totalPayable ?? customsDutyTotal + vat);
 
   const formatted = (value) =>
     new Intl.NumberFormat("en-US", {
@@ -30,21 +34,26 @@ const PaymentSummary = ({ data, busy, onClose, onPay }) => {
     <Wrapper>
       <Card>
         <SectionTitle>
-          <img onClick={onClose} src={arrowSvg} style={{ transform: "rotate(180deg", padding: 10, cursor: "pointer" }} />
+          <img
+            onClick={onClose}
+            src={arrowSvg}
+            alt=""
+            style={{ transform: "rotate(180deg", padding: 10, cursor: "pointer" }}
+          />
           {t("PAYMENT SUMMARY")}
         </SectionTitle>
 
         <SummaryBox>
           <Row>
-            <span>{t("Total Value")}</span>
-            <span>{formatted(declaredTotal)}</span>
+            <span>{t("Total Approved Value")}</span>
+            <span>{formatted(approvedTotal)}</span>
           </Row>
           <Row style={{ borderColor: "#C1C1C1" }}>
-            <span>{t("Total Customs Duty")}</span>
+            <span>{t("Total Customs Duty")} ({dutyPercentage}%)</span>
             <strong>{formatted(customsDutyTotal)}</strong>
           </Row>
           <Row>
-            <span>{t("Total (Value + Customs Duty)")}</span>
+            <span>{t("Total (Approved Value + Customs Duty)")}</span>
             <span>{formatted(totalWithDuty)}</span>
           </Row>
           <Row style={{ border: 0 }}>

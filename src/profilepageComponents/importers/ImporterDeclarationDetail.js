@@ -5,7 +5,9 @@ import { useNavigate, useParams } from "react-router-dom";
 import {
   downloadFullFile,
   fetchImporterDeclarationById,
+  initiateDeclarationPayment,
 } from "../../functions/impDeclare";
+import PaymentSummary from "../paymentSummary";
 
 const STATUS_STYLES = {
   SUBMITTED: { background: "#e8f1ff", color: "#2671d9" },
@@ -29,6 +31,7 @@ const ImporterDeclarationDetail = () => {
   const { declarationId } = useParams();
   const [declaration, setDeclaration] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [paymentBusy, setPaymentBusy] = useState(false);
 
   const loadDeclaration = useCallback(async () => {
     setLoading(true);
@@ -53,6 +56,25 @@ const ImporterDeclarationDetail = () => {
     await downloadFullFile(declaration.id);
   };
 
+  const handlePay = async () => {
+    if (!declaration?.id || paymentBusy) {
+      return;
+    }
+
+    setPaymentBusy(true);
+    const response = await initiateDeclarationPayment(declaration.id);
+    setPaymentBusy(false);
+
+    if (response?.checkoutUrl) {
+      window.location.href = response.checkoutUrl;
+      return;
+    }
+
+    global.alert2?.(
+      t("Failed to initiate payment. Please try again.")
+    );
+  };
+
   if (loading) {
     return <PageState>{t("Loading")}</PageState>;
   }
@@ -74,10 +96,6 @@ const ImporterDeclarationDetail = () => {
 
   return (
     <PageContainer>
-      <Header>
-        <Title>{t("Declaration Status")}</Title>
-      </Header>
-
       <TrackerContainer>
         {TRACKER_STEPS.map((step, index) => {
           const isComplete = index < currentStepIndex;
@@ -127,6 +145,26 @@ const ImporterDeclarationDetail = () => {
           </DetailItem>
         </DetailsGrid>
       </CardContainer>
+
+      {currentStatus === "AWAITING_PAYMENT" && (
+        <PaymentSection>
+          <PaymentSummary
+            data={{
+              totalDeclaredValue: declaration.totalDeclaredValue,
+              totalApprovedValue: declaration.totalApprovedValue,
+              totalCustomsDuty: declaration.totalCustomsDuty,
+              totalPayable: declaration.totalFees,
+              vatAmount: declaration.vatAmount,
+              dutyPercentage: declaration.dutyPercentage,
+              vatPercentage: declaration.vatPercentage,
+              usdToLbpRate: declaration.usdToLbpRate,
+            }}
+            busy={paymentBusy}
+            onClose={handleBack}
+            onPay={handlePay}
+          />
+        </PaymentSection>
+      )}
 
       <Footer>
         <BackButton type="button" onClick={handleBack}>
@@ -189,17 +227,6 @@ const PageContainer = styled.div`
   min-height: calc(100vh - 75px);
   flex-direction: column;
   padding: 32px 0 40px;
-`;
-
-const Header = styled.div`
-  width: 100%;
-  margin-bottom: 28px;
-`;
-
-const Title = styled.h1`
-  font-size: 20px;
-  font-weight: 700;
-  color: #1d2d64;
 `;
 
 const TrackerContainer = styled.div`
@@ -326,6 +353,11 @@ const Footer = styled.div`
   justify-content: flex-end;
   margin-top: auto;
   padding-top: 32px;
+`;
+
+const PaymentSection = styled.div`
+  width: 100%;
+  margin-top: 28px;
 `;
 
 const BackButton = styled.button`

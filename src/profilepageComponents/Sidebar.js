@@ -134,11 +134,16 @@ export default Sidebar;
 
 const SidebarContainer = styled.div`
   background-color: #1d2025;
-  height: 100%;
+  height: 100vh;
+  min-height: 100vh;
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
   padding: 20px;
+  box-sizing: border-box;
+  position: sticky;
+  top: 0;
+  align-self: flex-start;
 
   overflow-y: auto;
   scrollbar-width: none;

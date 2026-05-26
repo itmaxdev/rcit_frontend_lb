@@ -142,13 +142,14 @@ export default ProfilePage;
 
 const ProfilePageContainer = styled.div`
   display: flex;
-  height: 100vh;
+  min-height: 100vh;
   width: 100vw;
+  align-items: stretch;
 `;
 
 const MainContent = styled.div`
   display: flex;
-  height: 100vh;
+  min-height: 100vh;
   width: 100%;
   flex-direction: column;
   justify-content: start;

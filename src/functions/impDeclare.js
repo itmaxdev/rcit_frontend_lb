@@ -129,6 +129,30 @@ export const fetchImporterDeclarationById = async (uploadId) => {
   }
 };
 
+export const initiateDeclarationPayment = async (uploadId) => {
+  const token = getToken();
+  const url = `${DECLARATIONS_URL}/${uploadId}/payments`;
+
+  try {
+    const response = await makeAuthenticatedRequest(url, {
+      method: "PUT",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (!response?.ok) {
+      const errorData = response ? await response.json() : null;
+      throw new Error(errorData?.message || "Failed to initiate declaration payment");
+    }
+
+    return response.json();
+  } catch (error) {
+    console.error("Error initiating declaration payment:", error);
+    return null;
+  }
+};
+
 // Function to fetch results by upload ID
 export const fetchUploadResults = async (uploadID, page, pageSize) => {
   const token = getToken();
