@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import styled from "styled-components";
 import { useTranslation } from "react-i18next";
 import chevronSVG from "../../assets/chevron-down.svg";
@@ -6,8 +6,11 @@ import emptySVG from "../../assets/noRegistered.svg";
 import searchSVG from "../../assets/search3.svg";
 import eyeSVG from "../../assets/eye.svg";
 import {
+  adjustDeclarationValue,
+  approveDeclaration,
   fetchCustomsDeclarationDetail,
   fetchCustomsDeclarations,
+  rejectDeclaration,
   startCustomsDeclarationReview,
 } from "../../functions/customs";
 
@@ -25,6 +28,8 @@ const STATUS_STYLES = {
   PAID: { background: "#e5f6e7", color: "#1c9d4b" },
 };
 
+const rowKey = (row) => `${row.declarationType}-${row.id}`;
+
 const CustomsDeclarations = () => {
   const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState(DECLARATION_TYPES.IMPORTER);
@@ -39,6 +44,33 @@ const CustomsDeclarations = () => {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isDetailLoading, setIsDetailLoading] = useState(false);
   const [openMenuId, setOpenMenuId] = useState(null);
+  const [selectedRows, setSelectedRows] = useState(new Set());
+
+  // Adjust panel state
+  const [isAdjustOpen, setIsAdjustOpen] = useState(false);
+  const [adjustRow, setAdjustRow] = useState(null);
+  const [adjustedValue, setAdjustedValue] = useState("");
+  const [adjustReason, setAdjustReason] = useState("");
+  const [adjustSaved, setAdjustSaved] = useState(false);
+  const [isAdjusting, setIsAdjusting] = useState(false);
+  const [isActioning, setIsActioning] = useState(false);
+  const [showAdjustToast, setShowAdjustToast] = useState(false);
+  const [adjustError, setAdjustError] = useState(null);
+  const [tableActionError, setTableActionError] = useState(null);
+
+  const menuRef = useRef(null);
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    if (!openMenuId) return;
+    const handleOutside = (e) => {
+      if (menuRef.current && !menuRef.current.contains(e.target)) {
+        setOpenMenuId(null);
+      }
+    };
+    document.addEventListener("mousedown", handleOutside);
+    return () => document.removeEventListener("mousedown", handleOutside);
+  }, [openMenuId]);
 
   const loadDeclarations = useCallback(async () => {
     setIsLoading(true);
@@ -74,11 +106,13 @@ const CustomsDeclarations = () => {
   );
 
   const handleTabChange = (tab) => {
+    setTableActionError(null)
     setActiveTab(tab);
     setCurrentPage(0);
     setOpenMenuId(null);
     setSelectedDeclaration(null);
     setIsDrawerOpen(false);
+    setSelectedRows(new Set());
   };
 
   const handleSearchSubmit = () => {
@@ -92,6 +126,32 @@ const CustomsDeclarations = () => {
       setPageSize(newSize);
       setCurrentPage(0);
     }
+  };
+
+  // Checkbox helpers
+  const allSelected =
+    declarations.length > 0 &&
+    declarations.every((row) => selectedRows.has(rowKey(row)));
+  const someSelected = declarations.some((row) => selectedRows.has(rowKey(row)));
+
+  const handleSelectAll = (e) => {
+    if (e.target.checked) {
+      setSelectedRows(new Set(declarations.map(rowKey)));
+    } else {
+      setSelectedRows(new Set());
+    }
+  };
+
+  const handleSelectRow = (row) => {
+    setSelectedRows((prev) => {
+      const next = new Set(prev);
+      if (next.has(rowKey(row))) {
+        next.delete(rowKey(row));
+      } else {
+        next.add(rowKey(row));
+      }
+      return next;
+    });
   };
 
   const openDetails = async (row) => {
@@ -129,6 +189,102 @@ const CustomsDeclarations = () => {
     }
 
     setOpenMenuId(openMenuId === row.id ? null : row.id);
+  };
+
+  const openAdjustPanel = (row) => {
+    setOpenMenuId(null);
+    setAdjustRow(row);
+    setAdjustedValue("");
+    setAdjustReason("");
+    setAdjustSaved(false);
+    setShowAdjustToast(false);
+    setAdjustError(null);
+    setIsAdjustOpen(true);
+  };
+
+  const closeAdjustPanel = () => {
+    setIsAdjustOpen(false);
+    setAdjustRow(null);
+    setAdjustSaved(false);
+    setShowAdjustToast(false);
+    setAdjustError(null);
+  };
+
+  const handleSaveAdjustment = async () => {
+    if (!adjustRow || !adjustReason.trim() || !adjustedValue) return;
+    setIsAdjusting(true);
+    setAdjustError(null);
+    const result = await adjustDeclarationValue(
+      adjustRow.declarationType,
+      adjustRow.id,
+      parseFloat(adjustedValue),
+      adjustReason.trim()
+    );
+    setIsAdjusting(false);
+    if (!result) {
+      setAdjustError(t("Failed to save adjustment. Please try again."));
+      return;
+    }
+    setDeclarations((prev) =>
+      prev.map((item) =>
+        item.id === adjustRow.id &&
+        item.declarationType === adjustRow.declarationType
+          ? result
+          : item
+      )
+    );
+    setAdjustRow(result);
+    setAdjustSaved(true);
+    setShowAdjustToast(true);
+    setTimeout(() => setShowAdjustToast(false), 4000);
+  };
+
+  const handleApprove = async () => {
+    if (!adjustRow) return;
+    setIsActioning(true);
+    setAdjustError(null);
+    const result = await approveDeclaration(
+      adjustRow.declarationType,
+      adjustRow.id
+    );
+    setIsActioning(false);
+    if (!result) {
+      setAdjustError(t("Failed to approve declaration. Please try again."));
+      return;
+    }
+    setDeclarations((prev) =>
+      prev.map((item) =>
+        item.id === adjustRow.id &&
+        item.declarationType === adjustRow.declarationType
+          ? result
+          : item
+      )
+    );
+    closeAdjustPanel();
+  };
+
+  const handleReject = async () => {
+    if (!adjustRow) return;
+    setIsActioning(true);
+    setAdjustError(null);
+    const result = await rejectDeclaration(
+      adjustRow.declarationType,
+      adjustRow.id
+    );
+    setIsActioning(false);
+    if (!result) {
+      setAdjustError(t("Failed to reject declaration. Please try again."));
+      return;
+    }
+    setDeclarations((prev) =>
+      prev.map((item) =>
+        item.id === adjustRow.id &&
+        item.declarationType === adjustRow.declarationType
+          ? result
+          : item
+      )
+    );
+    closeAdjustPanel();
   };
 
   return (
@@ -176,6 +332,18 @@ const CustomsDeclarations = () => {
             />
           </SearchContainer>
         </Toolbar>
+
+        {tableActionError && (
+          <ErrorBanner>
+            {tableActionError}
+            <ErrorBannerClose
+              type="button"
+              onClick={() => setTableActionError(null)}
+            >
+              &#x2715;
+            </ErrorBannerClose>
+          </ErrorBanner>
+        )}
 
         {totalElements === 0 && !isLoading ? (
           <EmptyState>
@@ -238,7 +406,15 @@ const CustomsDeclarations = () => {
                 <thead>
                   <tr>
                     <Th>
-                      <input type="checkbox" aria-label="select all" />
+                      <StyledCheckbox
+                        type="checkbox"
+                        aria-label="select all"
+                        checked={allSelected}
+                        ref={(el) => {
+                          if (el) el.indeterminate = someSelected && !allSelected;
+                        }}
+                        onChange={handleSelectAll}
+                      />
                     </Th>
                     <Th>{t(activeTab === DECLARATION_TYPES.IMPORTER ? "Importer" : "Individual")}</Th>
                     <Th>{t("Declaration Nbr.")}</Th>
@@ -259,9 +435,14 @@ const CustomsDeclarations = () => {
                     </tr>
                   ) : (
                     declarations.map((row, index) => (
-                      <tr key={`${row.declarationType}-${row.id}`}>
+                      <tr key={rowKey(row)}>
                         <Td>
-                          <input type="checkbox" aria-label={`select ${row.declarationNumber}`} />
+                          <StyledCheckbox
+                            type="checkbox"
+                            aria-label={`select ${row.declarationNumber}`}
+                            checked={selectedRows.has(rowKey(row))}
+                            onChange={() => handleSelectRow(row)}
+                          />
                         </Td>
                         <NameCell>{row.submitterName}</NameCell>
                         <Td>{row.declarationNumber}</Td>
@@ -279,18 +460,18 @@ const CustomsDeclarations = () => {
                           </StatusBadge>
                         </Td>
                         <Td>
-                          <ActionCell>
+                          <ActionCell
+                            ref={openMenuId === row.id ? menuRef : null}
+                          >
                             <ActionButton
                               type="button"
                               onClick={() => handleActionClick(row)}
                             >
-                              ...
+                              &#8942;
                             </ActionButton>
                             {openMenuId === row.id && (
                               <ActionMenu
-                                $openUpwards={
-                                  index >= declarations.length - 2
-                                }
+                                $openUpwards={index >= declarations.length - 2}
                               >
                                 <ActionMenuButton
                                   type="button"
@@ -303,7 +484,7 @@ const CustomsDeclarations = () => {
                                 </ActionMenuButton>
                                 <ActionMenuButton
                                   type="button"
-                                  onClick={() => setOpenMenuId(null)}
+                                  onClick={() => openAdjustPanel(row)}
                                 >
                                   <ActionLabel>
                                     <ActionSvg
@@ -331,7 +512,26 @@ const CustomsDeclarations = () => {
                                 </ActionMenuButton>
                                 <ActionMenuButton
                                   type="button"
-                                  onClick={() => setOpenMenuId(null)}
+                                  onClick={async () => {
+                                    setOpenMenuId(null);
+                                    setTableActionError(null);
+                                    const result = await approveDeclaration(
+                                      row.declarationType,
+                                      row.id
+                                    );
+                                    if (result) {
+                                      setDeclarations((prev) =>
+                                        prev.map((item) =>
+                                          item.id === row.id &&
+                                          item.declarationType === row.declarationType
+                                            ? result
+                                            : item
+                                        )
+                                      );
+                                    } else {
+                                      setTableActionError(t("Failed to approve declaration. Please try again."));
+                                    }
+                                  }}
                                 >
                                   <ActionLabel>
                                     <ActionSvg
@@ -352,7 +552,26 @@ const CustomsDeclarations = () => {
                                 </ActionMenuButton>
                                 <ActionMenuButton
                                   type="button"
-                                  onClick={() => setOpenMenuId(null)}
+                                  onClick={async () => {
+                                    setOpenMenuId(null);
+                                    setTableActionError(null);
+                                    const result = await rejectDeclaration(
+                                      row.declarationType,
+                                      row.id
+                                    );
+                                    if (result) {
+                                      setDeclarations((prev) =>
+                                        prev.map((item) =>
+                                          item.id === row.id &&
+                                          item.declarationType === row.declarationType
+                                            ? result
+                                            : item
+                                        )
+                                      );
+                                    } else {
+                                      setTableActionError(t("Failed to reject declaration. Please try again."));
+                                    }
+                                  }}
                                 >
                                   <ActionLabel>
                                     <ActionSvg
@@ -390,6 +609,7 @@ const CustomsDeclarations = () => {
         )}
       </ContentCard>
 
+      {/* Detail drawer */}
       {isDrawerOpen && (
         <DrawerOverlay onClick={() => setIsDrawerOpen(false)}>
           <DrawerPanel onClick={(event) => event.stopPropagation()}>
@@ -399,7 +619,7 @@ const CustomsDeclarations = () => {
                 type="button"
                 onClick={() => setIsDrawerOpen(false)}
               >
-                x
+                &#x2715;
               </CloseDrawerButton>
             </DrawerHeader>
 
@@ -489,6 +709,155 @@ const CustomsDeclarations = () => {
                 </ItemsTable>
               </>
             )}
+          </DrawerPanel>
+        </DrawerOverlay>
+      )}
+
+      {/* Adjust consignment values panel */}
+      {isAdjustOpen && adjustRow && (
+        <DrawerOverlay onClick={closeAdjustPanel}>
+          <DrawerPanel onClick={(e) => e.stopPropagation()}>
+            <DrawerHeader>
+              <DrawerTitle style={{ color: "#2671d9" }}>
+                {t("Adjust Consignment Values")}
+              </DrawerTitle>
+              <CloseDrawerButton type="button" onClick={closeAdjustPanel}>
+                &#x2715;
+              </CloseDrawerButton>
+            </DrawerHeader>
+
+            {/* Declaration Details */}
+            <AdjustSection>
+              <AdjustSectionTitle>{t("Declaration Details")}</AdjustSectionTitle>
+              <AdjustDetailGrid>
+                <AdjustDetailLabel>{t("Declaration No.")}</AdjustDetailLabel>
+                <AdjustDetailValue>{adjustRow.declarationNumber}</AdjustDetailValue>
+
+                <AdjustDetailLabel>{t("Importer")}</AdjustDetailLabel>
+                <AdjustDetailValue>{adjustRow.submitterName}</AdjustDetailValue>
+
+                <AdjustDetailLabel>{t("Declaration Date")}</AdjustDetailLabel>
+                <AdjustDetailValue>{formatDate(adjustRow.declarationDate)}</AdjustDetailValue>
+
+                <AdjustDetailLabel>{t("Devices Count")}</AdjustDetailLabel>
+                <AdjustDetailValue>{adjustRow.devicesCount}</AdjustDetailValue>
+
+                <AdjustDetailLabel>{t("Status")}</AdjustDetailLabel>
+                <AdjustDetailValue>
+                  <StatusBadge $status={adjustRow.status}>
+                    {formatStatusLabel(adjustRow.status)}
+                  </StatusBadge>
+                </AdjustDetailValue>
+              </AdjustDetailGrid>
+            </AdjustSection>
+
+            {/* Value Summary */}
+            <AdjustSection>
+              <AdjustSectionTitle>{t("Value Summary (USD)")}</AdjustSectionTitle>
+              <AdjustDetailGrid>
+                <AdjustDetailLabel>{t("Declared Value")}</AdjustDetailLabel>
+                <AdjustDetailValue>{formatMoney(adjustRow.declaredTotalUsd)}</AdjustDetailValue>
+
+                <AdjustDetailLabel>{t("Estimated Value")}</AdjustDetailLabel>
+                <AdjustDetailValue>{formatMoney(adjustRow.estimatedValueUsd)}</AdjustDetailValue>
+
+                <AdjustDetailLabel>{t("Adjusted Value")}</AdjustDetailLabel>
+                <AdjustDetailValue>
+                  {adjustSaved ? (
+                    <strong>{formatMoney(parseFloat(adjustedValue))}</strong>
+                  ) : (
+                    <AdjustInput
+                      type="number"
+                      placeholder={t("Input goes here")}
+                      value={adjustedValue}
+                      onChange={(e) => setAdjustedValue(e.target.value)}
+                      min="0"
+                    />
+                  )}
+                </AdjustDetailValue>
+              </AdjustDetailGrid>
+            </AdjustSection>
+
+            {/* Adjustment Reason */}
+            <AdjustSection>
+              <AdjustSectionTitle>
+                {t("Adjustment Reason")}
+                {!adjustSaved && <AdjustRequired>*</AdjustRequired>}
+              </AdjustSectionTitle>
+              {adjustSaved ? (
+                <AdjustReasonText>{adjustReason}</AdjustReasonText>
+              ) : (
+                <AdjustTextarea
+                  placeholder={t("Reason goes here")}
+                  value={adjustReason}
+                  onChange={(e) => setAdjustReason(e.target.value)}
+                  rows={4}
+                />
+              )}
+            </AdjustSection>
+
+            {/* Success toast */}
+            {showAdjustToast && (
+              <AdjustToast>
+                <AdjustToastIcon>&#10003;</AdjustToastIcon>
+                {t("Adjustment saved successfully!")}
+                <AdjustToastClose
+                  type="button"
+                  onClick={() => setShowAdjustToast(false)}
+                >
+                  &#x2715;
+                </AdjustToastClose>
+              </AdjustToast>
+            )}
+
+            {/* Error toast */}
+            {adjustError && (
+              <AdjustErrorToast>
+                <AdjustErrorIcon>&#x2715;</AdjustErrorIcon>
+                {adjustError}
+                <AdjustToastClose
+                  type="button"
+                  onClick={() => setAdjustError(null)}
+                >
+                  &#x2715;
+                </AdjustToastClose>
+              </AdjustErrorToast>
+            )}
+
+            {/* Footer buttons */}
+            <AdjustFooter>
+              {adjustSaved ? (
+                <>
+                  <AdjustSecondaryButton
+                    type="button"
+                    onClick={handleReject}
+                    disabled={isActioning}
+                  >
+                    {t("Reject Declaration")}
+                  </AdjustSecondaryButton>
+                  <AdjustPrimaryButton
+                    type="button"
+                    onClick={handleApprove}
+                    disabled={isActioning}
+                  >
+                    {t("Approve Declaration")}
+                  </AdjustPrimaryButton>
+                </>
+              ) : (
+                <>
+                  <AdjustSecondaryButton type="button" onClick={closeAdjustPanel}>
+                    {t("Cancel")}
+                  </AdjustSecondaryButton>
+                  <AdjustPrimaryButton
+                    type="button"
+                    onClick={handleSaveAdjustment}
+                    disabled={isAdjusting || !adjustedValue || !adjustReason.trim()}
+                  >
+                    {isAdjusting ? t("Saving...") : t("Save Adjustment")}
+                  </AdjustPrimaryButton>
+                </>
+              )}
+            </AdjustFooter>
           </DrawerPanel>
         </DrawerOverlay>
       )}
@@ -735,6 +1104,14 @@ const LoadingCell = styled.td`
   color: #6f7897;
 `;
 
+const StyledCheckbox = styled.input`
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  accent-color: #2671d9;
+  flex-shrink: 0;
+`;
+
 const StatusBadge = styled.span`
   display: inline-flex;
   align-items: center;
@@ -767,6 +1144,8 @@ const Triangle = styled.span`
 
 const ActionCell = styled.div`
   position: relative;
+  display: flex;
+  align-items: center;
 `;
 
 const ActionButton = styled.button`
@@ -776,7 +1155,12 @@ const ActionButton = styled.button`
   width: 40px;
   height: 40px;
   cursor: pointer;
-  font-size: 16px;
+  font-size: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  color: #1d2025;
 `;
 
 const ActionMenu = styled.div`
@@ -851,6 +1235,8 @@ const DrawerPanel = styled.div`
   padding: 28px;
   overflow-y: auto;
   box-shadow: -16px 0 48px rgba(17, 24, 39, 0.14);
+  display: flex;
+  flex-direction: column;
 `;
 
 const DrawerHeader = styled.div`
@@ -868,9 +1254,10 @@ const DrawerTitle = styled.h2`
 const CloseDrawerButton = styled.button`
   border: none;
   background: transparent;
-  font-size: 24px;
+  font-size: 20px;
   cursor: pointer;
   color: #6f7897;
+  line-height: 1;
 `;
 
 const DrawerLoading = styled.div`
@@ -907,6 +1294,218 @@ const ItemsTitle = styled.h3`
   font-size: 18px;
   color: #1d2025;
   margin-bottom: 8px;
+`;
+
+/* Adjust panel specific styles */
+
+const AdjustSection = styled.div`
+  margin-bottom: 24px;
+`;
+
+const AdjustSectionTitle = styled.h3`
+  font-size: 16px;
+  font-weight: 700;
+  color: #1d2025;
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+`;
+
+const AdjustRequired = styled.span`
+  color: #e03d3d;
+  font-size: 16px;
+`;
+
+const AdjustDetailGrid = styled.div`
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  row-gap: 12px;
+  column-gap: 8px;
+`;
+
+const AdjustDetailLabel = styled.span`
+  font-size: 14px;
+  color: #6f7897;
+  align-self: center;
+`;
+
+const AdjustDetailValue = styled.div`
+  font-size: 14px;
+  color: #1d2025;
+  font-weight: 500;
+`;
+
+const AdjustInput = styled.input`
+  width: 100%;
+  border: none;
+  border-bottom: 1.5px solid #d4d6df;
+  padding: 6px 0;
+  font-size: 14px;
+  color: #1d2025;
+  outline: none;
+  background: transparent;
+
+  &:focus {
+    border-bottom-color: #2671d9;
+  }
+
+  &::placeholder {
+    color: #b0b5c9;
+  }
+`;
+
+const AdjustTextarea = styled.textarea`
+  width: 100%;
+  border: 1px solid #d4d6df;
+  border-radius: 8px;
+  padding: 12px;
+  font-size: 14px;
+  color: #1d2025;
+  outline: none;
+  resize: vertical;
+  font-family: inherit;
+
+  &:focus {
+    border-color: #2671d9;
+  }
+
+  &::placeholder {
+    color: #b0b5c9;
+  }
+`;
+
+const AdjustReasonText = styled.p`
+  font-size: 14px;
+  color: #1d2025;
+  line-height: 1.6;
+`;
+
+const AdjustToast = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #fff;
+  border: 1px solid #d4d6df;
+  border-radius: 10px;
+  padding: 14px 16px;
+  margin-bottom: 20px;
+  font-size: 14px;
+  color: #1d2025;
+  box-shadow: 0 4px 16px rgba(17, 24, 39, 0.08);
+`;
+
+const AdjustToastIcon = styled.span`
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #1c9d4b;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  flex-shrink: 0;
+`;
+
+const AdjustToastClose = styled.button`
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: #6f7897;
+  font-size: 14px;
+  margin-left: auto;
+  line-height: 1;
+`;
+
+const AdjustErrorToast = styled(AdjustToast)`
+  border-color: #f5c0c0;
+  background: #fff8f8;
+`;
+
+const AdjustErrorIcon = styled.span`
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #e03d3d;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  flex-shrink: 0;
+`;
+
+const ErrorBanner = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #fff8f8;
+  border: 1px solid #f5c0c0;
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  font-size: 14px;
+  color: #c0392b;
+`;
+
+const ErrorBannerClose = styled.button`
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: #c0392b;
+  font-size: 14px;
+  margin-left: auto;
+  line-height: 1;
+`;
+
+const AdjustFooter = styled.div`
+  display: flex;
+  gap: 12px;
+  margin-top: auto;
+  padding-top: 24px;
+`;
+
+const AdjustSecondaryButton = styled.button`
+  flex: 1;
+  padding: 14px;
+  border-radius: 10px;
+  border: 1.5px solid #d4d6df;
+  background: #fff;
+  color: #1d2025;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    background: #f5f7fb;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+`;
+
+const AdjustPrimaryButton = styled.button`
+  flex: 1;
+  padding: 14px;
+  border-radius: 10px;
+  border: none;
+  background: #2671d9;
+  color: #fff;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    background: #1d5cb5;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
 `;
 
 export default CustomsDeclarations;
