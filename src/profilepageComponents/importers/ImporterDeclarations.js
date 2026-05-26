@@ -50,6 +50,10 @@ const ImporterDeclarations = () => {
     navigate("/profile/role_importer/RegisterDevices");
   };
 
+  const handleOpenDeclaration = (uploadId) => {
+    navigate(`/profile/role_importer/DeclareDevices/${uploadId}`);
+  };
+
   const handleClearData = async () => {
     if (!clearableUpload?.uploadId) {
       return;
@@ -112,17 +116,31 @@ const ImporterDeclarations = () => {
           <LoadingState>{t("Loading")}</LoadingState>
         ) : (
           declarations.map((declaration, index) => (
-            <DeclarationCard key={declaration.id}>
+            <DeclarationCard
+              key={declaration.id}
+              role="button"
+              tabIndex={0}
+              onClick={() => handleOpenDeclaration(declaration.id)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  handleOpenDeclaration(declaration.id);
+                }
+              }}
+            >
               <CardHeader>
                 <CardTitleGroup>
                   <CardTitle>{t("Declaration")} {index + 1}</CardTitle>
-                  <StatusBadge $status={declaration.customsStatus || "SUBMITTED"}>
-                    {formatStatusLabel(declaration.customsStatus || "SUBMITTED")}
+                  <StatusBadge $status={declaration.importerStatus || declaration.customsStatus || "SUBMITTED"}>
+                    {formatStatusLabel(t, declaration.importerStatus || declaration.customsStatus || "SUBMITTED")}
                   </StatusBadge>
                 </CardTitleGroup>
                 <CsvButton
                   type="button"
-                  onClick={() => handleViewCsv(declaration.id)}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    handleViewCsv(declaration.id);
+                  }}
                 >
                   {t("View CSV")}
                 </CsvButton>
@@ -165,13 +183,22 @@ const formatDate = (value) => {
   });
 };
 
-const formatStatusLabel = (status) =>
-  status
-    ? status
-        .split("_")
-        .map((part) => part.charAt(0) + part.slice(1).toLowerCase())
-        .join(" ")
-    : "-";
+const formatStatusLabel = (t, status) => {
+  if (!status) {
+    return "-";
+  }
+
+  const labels = {
+    SUBMITTED: t("Submitted"),
+    UNDER_REVIEW: t("Under Review"),
+    APPROVED: t("Approved"),
+    DECLINED: t("Rejected"),
+    AWAITING_PAYMENT: t("Awaiting Payment"),
+    PAID: t("Paid"),
+  };
+
+  return labels[status] || status;
+};
 
 export default ImporterDeclarations;
 
@@ -263,6 +290,18 @@ const DeclarationCard = styled.div`
   display: flex;
   flex-direction: column;
   gap: 18px;
+  cursor: pointer;
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+
+  &:hover {
+    box-shadow: 0 8px 24px rgba(29, 45, 100, 0.08);
+    transform: translateY(-1px);
+  }
+
+  &:focus-visible {
+    outline: 2px solid #2671d9;
+    outline-offset: 3px;
+  }
 `;
 
 const CardHeader = styled.div`

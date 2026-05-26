@@ -151,7 +151,7 @@ const DeclareDevicesImp = () => {
   };
 
   const handlePopupClose = () => {
-    navigate("/profile/role_importer/dashboard");
+    navigate("/profile/role_importer/DeclareDevices");
     setPopupOpen(false);
   };
 

@@ -105,6 +105,30 @@ export const fetchImporterDeclarations = async (page = 1, pageSize = 100) => {
   }
 };
 
+export const fetchImporterDeclarationById = async (uploadId) => {
+  const token = getToken();
+  const url = `${DECLARATIONS_URL}/${uploadId}`;
+
+  try {
+    const response = await makeAuthenticatedRequest(url, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (!response?.ok) {
+      const errorData = response ? await response.json() : null;
+      throw new Error(errorData?.message || "Failed to fetch importer declaration");
+    }
+
+    return response.json();
+  } catch (error) {
+    console.error("Error fetching importer declaration:", error);
+    return null;
+  }
+};
+
 // Function to fetch results by upload ID
 export const fetchUploadResults = async (uploadID, page, pageSize) => {
   const token = getToken();

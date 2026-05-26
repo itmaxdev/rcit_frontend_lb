@@ -17,16 +17,11 @@ const Header = () => {
   const { accountType } = useContext(Context);
 
   const segments = location.pathname.split("/").filter(Boolean);
-
-  // Check if the path ends with "/UserDetails" and avoid taking the last segment if it's a number
-  const title =
-    segments.length > 1 && segments[segments.length - 2] === "UserDetails"
-      ? segments[segments.length - 2] // If the path ends with "/UserDetails", take the second-to-last segment
-      : segments[segments.length - 1]; // Otherwise, take the last segment
+  const title = getHeaderTitle(t, segments);
 
   return (
     <HeaderContainer>
-      <Title>{t("Sidebar_" + title)}</Title>
+      <Title>{title}</Title>
       <ButtonsContainer>
         {accountType !== ROLE_ADMIN && accountType !== ROLE_CUSTOMS && (
           <Link to={`/profile/${accountType.toLowerCase()}/Help`}>
@@ -60,6 +55,26 @@ const Header = () => {
 };
 
 export default Header;
+
+const getHeaderTitle = (t, segments) => {
+  const lastSegment = segments[segments.length - 1] || "";
+  const previousSegment = segments[segments.length - 2] || "";
+  const isNumericSegment = /^\d+$/.test(lastSegment);
+
+  if (previousSegment === "UserDetails") {
+    return t("Sidebar_UserDetails");
+  }
+
+  if (isNumericSegment && previousSegment === "DeclareDevices") {
+    return t("Declaration Status");
+  }
+
+  if (isNumericSegment && previousSegment) {
+    return t(`Sidebar_${previousSegment}`);
+  }
+
+  return t(`Sidebar_${lastSegment}`);
+};
 
 const HeaderContainer = styled.div`
   display: flex;
