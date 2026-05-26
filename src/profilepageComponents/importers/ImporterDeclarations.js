@@ -28,11 +28,19 @@ const ImporterDeclarations = () => {
   const [declarations, setDeclarations] = useState([]);
   const [clearableUpload, setClearableUpload] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
 
   const loadDeclarations = useCallback(async () => {
     setLoading(true);
+    setLoadError(false);
     const response = await fetchImporterDeclarations(1, 100);
-    setDeclarations(response?.data || []);
+    if (!response) {
+      setDeclarations([]);
+      setLoadError(true);
+      setLoading(false);
+      return;
+    }
+    setDeclarations(response.data || []);
     setLoading(false);
   }, []);
 
@@ -76,6 +84,23 @@ const ImporterDeclarations = () => {
   };
 
   if (!loading && declarations.length === 0) {
+    if (loadError) {
+      return (
+        <EmptyStateContainer>
+          <EmptyStateSVG src={emptySVG} alt="Failed to load declarations" />
+          <EmptyStateTitle>{t("ImporterDeclarations_LoadError")}</EmptyStateTitle>
+          <EmptyActions>
+            <SecondaryButton type="button" onClick={loadDeclarations}>
+              {t("Retry")}
+            </SecondaryButton>
+            <Button onClick={handleRegisterDevices}>
+              {t("RegisteredDevices_AddButton")}
+            </Button>
+          </EmptyActions>
+        </EmptyStateContainer>
+      );
+    }
+
     return (
       <EmptyStateContainer>
         <EmptyStateSVG src={emptySVG} alt="No declarations" />
@@ -397,4 +422,10 @@ const EmptyStateTitle = styled.h2`
   span {
     font-weight: 700;
   }
+`;
+
+const EmptyActions = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 12px;
 `;

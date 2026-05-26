@@ -57,6 +57,11 @@ const CustomsDeclarations = () => {
   const [showAdjustToast, setShowAdjustToast] = useState(false);
   const [adjustError, setAdjustError] = useState(null);
   const [tableActionError, setTableActionError] = useState(null);
+  const [isRejectOpen, setIsRejectOpen] = useState(false);
+  const [rejectRow, setRejectRow] = useState(null);
+  const [rejectReason, setRejectReason] = useState("");
+  const [rejectError, setRejectError] = useState(null);
+  const [isRejecting, setIsRejecting] = useState(false);
 
   const menuRef = useRef(null);
 
@@ -215,6 +220,23 @@ const CustomsDeclarations = () => {
     setAdjustError(null);
   };
 
+  const openRejectModal = (row) => {
+    if (!row) return;
+    setOpenMenuId(null);
+    setRejectRow(row);
+    setRejectReason(row.rejectionReason || "");
+    setRejectError(null);
+    setIsRejectOpen(true);
+  };
+
+  const closeRejectModal = () => {
+    setIsRejectOpen(false);
+    setRejectRow(null);
+    setRejectReason("");
+    setRejectError(null);
+    setIsRejecting(false);
+  };
+
   const handleSaveAdjustment = async () => {
     if (!adjustRow || !adjustReason.trim() || !adjustedValue) return;
     if (!/^\d+$/.test(adjustedValue)) {
@@ -278,26 +300,54 @@ const CustomsDeclarations = () => {
 
   const handleReject = async () => {
     if (!adjustRow) return;
-    setIsActioning(true);
-    setAdjustError(null);
+    openRejectModal(adjustRow);
+  };
+
+  const handleConfirmReject = async () => {
+    if (!rejectRow) return;
+    if (!rejectReason.trim()) {
+      setRejectError(t("Rejection reason is required."));
+      return;
+    }
+    setIsRejecting(true);
+    setRejectError(null);
     const result = await rejectDeclaration(
-      adjustRow.declarationType,
-      adjustRow.id
+      rejectRow.declarationType,
+      rejectRow.id,
+      rejectReason.trim()
     );
-    setIsActioning(false);
+    setIsRejecting(false);
     if (!result) {
-      setAdjustError(t("Failed to reject declaration. Please try again."));
+      setRejectError(t("Failed to reject declaration. Please try again."));
       return;
     }
     setDeclarations((prev) =>
       prev.map((item) =>
-        item.id === adjustRow.id &&
-        item.declarationType === adjustRow.declarationType
+        item.id === rejectRow.id &&
+        item.declarationType === rejectRow.declarationType
           ? result
           : item
       )
     );
-    closeAdjustPanel();
+    if (
+      selectedDeclaration &&
+      selectedDeclaration.id === rejectRow.id &&
+      selectedDeclaration.declarationType === rejectRow.declarationType
+    ) {
+      setSelectedDeclaration((previous) =>
+        previous
+          ? {
+              ...previous,
+              status: result.status,
+              rejectionReason: result.rejectionReason || rejectReason.trim(),
+            }
+          : previous
+      );
+    }
+    closeRejectModal();
+    if (adjustRow && adjustRow.id === rejectRow.id) {
+      closeAdjustPanel();
+    }
   };
 
   return (
@@ -570,26 +620,7 @@ const CustomsDeclarations = () => {
                                 {canRejectDeclaration(row) && (
                                   <ActionMenuButton
                                     type="button"
-                                    onClick={async () => {
-                                      setOpenMenuId(null);
-                                      setTableActionError(null);
-                                      const result = await rejectDeclaration(
-                                        row.declarationType,
-                                        row.id
-                                      );
-                                      if (result) {
-                                        setDeclarations((prev) =>
-                                          prev.map((item) =>
-                                            item.id === row.id &&
-                                            item.declarationType === row.declarationType
-                                              ? result
-                                              : item
-                                          )
-                                        );
-                                      } else {
-                                        setTableActionError(t("Failed to reject declaration. Please try again."));
-                                      }
-                                    }}
+                                    onClick={() => openRejectModal(row)}
                                   >
                                     <ActionLabel>
                                       <ActionSvg
@@ -884,6 +915,59 @@ const CustomsDeclarations = () => {
             </AdjustFooter>
           </DrawerPanel>
         </DrawerOverlay>
+      )}
+
+      {isRejectOpen && rejectRow && (
+        <RejectOverlay onClick={closeRejectModal}>
+          <RejectModalCard onClick={(event) => event.stopPropagation()}>
+            <RejectIconCircle>
+              <RejectIconLine />
+              <RejectIconLine $reverse />
+            </RejectIconCircle>
+
+            <RejectModalTitle>
+              {t("Are you sure you want to reject this declaration?")}
+            </RejectModalTitle>
+
+            <RejectFieldLabel>
+              {t("Rejection Reason")}
+              <AdjustRequired>*</AdjustRequired>
+            </RejectFieldLabel>
+            <RejectFieldHint>{t("Add Reason")}</RejectFieldHint>
+            <RejectTextarea
+              placeholder={t("Reason goes here")}
+              value={rejectReason}
+              onChange={(event) => setRejectReason(event.target.value)}
+              rows={4}
+            />
+
+            {rejectError && (
+              <AdjustErrorToast style={{ marginTop: "18px", marginBottom: "0" }}>
+                <AdjustErrorIcon>&#x2715;</AdjustErrorIcon>
+                {rejectError}
+                <AdjustToastClose
+                  type="button"
+                  onClick={() => setRejectError(null)}
+                >
+                  &#x2715;
+                </AdjustToastClose>
+              </AdjustErrorToast>
+            )}
+
+            <RejectFooter>
+              <RejectPrimaryButton
+                type="button"
+                onClick={handleConfirmReject}
+                disabled={isRejecting || !rejectReason.trim()}
+              >
+                {isRejecting ? t("Rejecting...") : t("Reject")}
+              </RejectPrimaryButton>
+              <RejectSecondaryButton type="button" onClick={closeRejectModal}>
+                {t("Cancel")}
+              </RejectSecondaryButton>
+            </RejectFooter>
+          </RejectModalCard>
+        </RejectOverlay>
       )}
     </PageContainer>
   );
@@ -1541,6 +1625,122 @@ const AdjustPrimaryButton = styled.button`
   &:disabled {
     opacity: 0.5;
     cursor: not-allowed;
+  }
+`;
+
+const RejectOverlay = styled.div`
+  position: fixed;
+  inset: 0;
+  background: rgba(13, 18, 28, 0.42);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  z-index: 40;
+`;
+
+const RejectModalCard = styled.div`
+  width: min(100%, 520px);
+  border-radius: 20px;
+  background: #fff;
+  padding: 32px;
+  box-shadow: 0 24px 60px rgba(17, 24, 39, 0.18);
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+`;
+
+const RejectIconCircle = styled.div`
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: #f21717;
+  margin: 0 auto 24px;
+  position: relative;
+`;
+
+const RejectIconLine = styled.span`
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 24px;
+  height: 2px;
+  background: #fff;
+  border-radius: 999px;
+  transform: translate(-50%, -50%) rotate(${({ $reverse }) => ($reverse ? "-45deg" : "45deg")});
+`;
+
+const RejectModalTitle = styled.h3`
+  font-size: 22px;
+  line-height: 1.35;
+  font-weight: 700;
+  color: #2671d9;
+  text-align: center;
+  margin: 0 0 20px;
+`;
+
+const RejectFieldLabel = styled.label`
+  font-size: 14px;
+  font-weight: 700;
+  color: #1d2025;
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+`;
+
+const RejectFieldHint = styled.span`
+  font-size: 13px;
+  color: #6f7897;
+  margin-bottom: 8px;
+`;
+
+const RejectTextarea = styled(AdjustTextarea)`
+  min-height: 118px;
+  resize: none;
+`;
+
+const RejectFooter = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 20px;
+`;
+
+const RejectPrimaryButton = styled.button`
+  width: 100%;
+  padding: 14px;
+  border-radius: 999px;
+  border: none;
+  background: #f21717;
+  color: #fff;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    background: #d91313;
+  }
+
+  &:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+`;
+
+const RejectSecondaryButton = styled.button`
+  width: 100%;
+  padding: 14px;
+  border-radius: 999px;
+  border: 1.5px solid #23315d;
+  background: #fff;
+  color: #23315d;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+
+  &:hover {
+    background: #f7f8fc;
   }
 `;
 

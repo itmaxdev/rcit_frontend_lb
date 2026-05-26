@@ -18,13 +18,6 @@ const STATUS_STYLES = {
   PAID: { background: "#e5f6e7", color: "#1c9d4b" },
 };
 
-const TRACKER_STEPS = [
-  "SUBMITTED",
-  "UNDER_REVIEW",
-  "AWAITING_PAYMENT",
-  "PAID",
-];
-
 const ImporterDeclarationDetail = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -70,6 +63,17 @@ const ImporterDeclarationDetail = () => {
       return;
     }
 
+    if (response?.status === "COMPLETED") {
+      global.alert2?.(
+        t("You have successfully completed the payment"),
+        "",
+        async () => {
+          await loadDeclaration();
+        }
+      );
+      return;
+    }
+
     global.alert2?.(
       t("Failed to initiate payment. Please try again.")
     );
@@ -92,12 +96,13 @@ const ImporterDeclarationDetail = () => {
 
   const currentStatus =
     declaration.importerStatus || declaration.customsStatus || "SUBMITTED";
-  const currentStepIndex = getTrackerStepIndex(currentStatus);
+  const trackerSteps = getTrackerSteps(currentStatus);
+  const currentStepIndex = getTrackerStepIndex(currentStatus, trackerSteps);
 
   return (
     <PageContainer>
       <TrackerContainer>
-        {TRACKER_STEPS.map((step, index) => {
+        {trackerSteps.map((step, index) => {
           const isComplete = index < currentStepIndex;
           const isActive = index === currentStepIndex;
 
@@ -166,6 +171,13 @@ const ImporterDeclarationDetail = () => {
         </PaymentSection>
       )}
 
+      {currentStatus === "DECLINED" && declaration.rejectionReason && (
+        <ReasonSection>
+          <ReasonTitle>{t("Rejection Reason")}</ReasonTitle>
+          <ReasonCard>{declaration.rejectionReason}</ReasonCard>
+        </ReasonSection>
+      )}
+
       <Footer>
         <BackButton type="button" onClick={handleBack}>
           {t("Back to Declarations")}
@@ -175,20 +187,21 @@ const ImporterDeclarationDetail = () => {
   );
 };
 
-const getTrackerStepIndex = (status) => {
-  switch (status) {
-    case "UNDER_REVIEW":
-    case "DECLINED":
-      return 1;
-    case "AWAITING_PAYMENT":
-    case "APPROVED":
-      return 2;
-    case "PAID":
-      return 3;
-    case "SUBMITTED":
-    default:
-      return 0;
+const getTrackerSteps = (status) => {
+  if (status === "DECLINED") {
+    return ["SUBMITTED", "UNDER_REVIEW", "DECLINED"];
   }
+
+  return ["SUBMITTED", "UNDER_REVIEW", "AWAITING_PAYMENT", "PAID"];
+};
+
+const getTrackerStepIndex = (status, trackerSteps) => {
+  if (status === "APPROVED") {
+    return trackerSteps.indexOf("AWAITING_PAYMENT");
+  }
+
+  const index = trackerSteps.indexOf(status);
+  return index >= 0 ? index : 0;
 };
 
 const formatDeclarationNumber = (value) =>
@@ -358,6 +371,32 @@ const Footer = styled.div`
 const PaymentSection = styled.div`
   width: 100%;
   margin-top: 28px;
+`;
+
+const ReasonSection = styled.div`
+  width: 100%;
+  margin-top: 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+`;
+
+const ReasonTitle = styled.h3`
+  font-size: 18px;
+  font-weight: 700;
+  color: #1d2d64;
+`;
+
+const ReasonCard = styled.div`
+  width: 100%;
+  border-radius: 12px;
+  border: 1px solid #f2c8c8;
+  background: #fff6f6;
+  padding: 18px 20px;
+  color: #7a2f2f;
+  font-size: 15px;
+  line-height: 1.6;
+  white-space: pre-wrap;
 `;
 
 const BackButton = styled.button`
