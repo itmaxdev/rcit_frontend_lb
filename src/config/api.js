@@ -1,4 +1,4 @@
-const DEFAULT_API_BASE_URL = "http://127.0.0.1:4041/rcit/v1/api";
+const DEFAULT_API_BASE_URL = "http://10.0.204.83:8080/rcit/v1/api";
 
 const apiBaseUrl = process.env.REACT_APP_API_BASE_URL || DEFAULT_API_BASE_URL;
 
