@@ -1,4 +1,3 @@
-// PaymentSummary.jsx
 import React, { useState } from "react";
 import styled from "styled-components";
 import { useTranslation } from "react-i18next";
@@ -7,12 +6,12 @@ import cardsImg from "../assets/cards.png";
 import libanPostImg from "../assets/libanpost.png";
 import paymentMethodsImg from "../assets/paymentmethods.png";
 import lockImg from "../assets/lock.png";
-import arrowSvg from "../assets/arrow-long-right-blue.svg";
 
-const PaymentSummary = ({ data, busy, onClose, onPay }) => {
+const PaymentSummary = ({ data, busy, onPay, paid = false }) => {
   const { t } = useTranslation();
   const [currency, setCurrency] = useState("USD");
   const [method, setMethod] = useState("card");
+
   const approvedTotal = Number(
     data.totalApprovedValue ?? data.totalDeclaredValue ?? data.totalCIFValue ?? 0
   );
@@ -25,275 +24,304 @@ const PaymentSummary = ({ data, busy, onClose, onPay }) => {
   const totalPayable = Number(data.totalPayable ?? customsDutyTotal + vat);
 
   const formatted = (value) =>
-    new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-    }).format(value);
+    new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(value);
 
   return (
-    <Wrapper>
-      <Card>
-        <SectionTitle>
-          <img
-            onClick={onClose}
-            src={arrowSvg}
-            alt=""
-            style={{ transform: "rotate(180deg", padding: 10, cursor: "pointer" }}
-          />
-          {t("PAYMENT SUMMARY")}
-        </SectionTitle>
+    <Card>
+      <CardTopRow>
+        <CardTitle>{t("PAYMENT SUMMARY")}</CardTitle>
+        {paid ? (
+          <PayStatusBadge $paid>{t("Paid Successfully")}</PayStatusBadge>
+        ) : (
+          <PayStatusBadge>{t("Awaiting Payment")}</PayStatusBadge>
+        )}
+      </CardTopRow>
 
-        <SummaryBox>
-          <Row>
-            <span>{t("Total Approved Value")}</span>
-            <span>{formatted(approvedTotal)}</span>
-          </Row>
-          <Row style={{ borderColor: "#C1C1C1" }}>
-            <span>{t("Total Customs Duty")} ({dutyPercentage}%)</span>
-            <strong>{formatted(customsDutyTotal)}</strong>
-          </Row>
-          <Row>
-            <span>{t("Total (Approved Value + Customs Duty)")}</span>
-            <span>{formatted(totalWithDuty)}</span>
-          </Row>
-          <Row style={{ border: 0 }}>
-            <span>{t("VAT")} ({data.vatPercentage}%)</span>
-            <strong>+{formatted(vat)}</strong>
-          </Row>
-        </SummaryBox>
+      <SummaryBox>
+        <SummaryRow>
+          <span>{t("Total Approved Value")}</span>
+          <span>{formatted(approvedTotal)}</span>
+        </SummaryRow>
+        <SummaryRow>
+          <span>{t("Total Customs Duty")} ({dutyPercentage}%)</span>
+          <strong>{formatted(customsDutyTotal)}</strong>
+        </SummaryRow>
+        <SummaryRow>
+          <span>{t("Total (Approved Value + Customs Duty)")}</span>
+          <span>{formatted(totalWithDuty)}</span>
+        </SummaryRow>
+        <SummaryRow $last>
+          <span>{t("VAT")} ({data.vatPercentage}%)</span>
+          <strong>+{formatted(vat)}</strong>
+        </SummaryRow>
+      </SummaryBox>
 
-        <TotalBox>
-          <Left>
-            <strong>TOTAL PAYABLE</strong> (TOTAL CUSTOMS DUTY + VAT)
-          </Left>
+      <TotalBox>
+        <TotalLeft>
+          <strong>{t("TOTAL PAYABLE")}</strong>{" "}
+          <TotalSub>({t("TOTAL CUSTOMS DUTY + VAT")})</TotalSub>
+        </TotalLeft>
+        <TotalRight>
+          <TotalAmount>{formatted(totalPayable)}</TotalAmount>
+          <TotalApprox>
+            ≈ {(totalPayable * data.usdToLbpRate).toLocaleString()} LBP
+          </TotalApprox>
+          <TotalRate>
+            {t("Exchange Rate")}: {data.usdToLbpRate?.toLocaleString()} USD/LBP
+          </TotalRate>
+        </TotalRight>
+      </TotalBox>
 
-          <Right>
-            <MainAmount>{formatted(totalPayable)}</MainAmount>
-            <Approx>
-              ≈ {(totalPayable * data.usdToLbpRate).toLocaleString()} LBP
-            </Approx>
-            <Rate>
-              Exchange Rate: {data.usdToLbpRate.toLocaleString()} USD/LBP
-            </Rate>
-          </Right>
-        </TotalBox>
+      {!paid && (
+        <>
+          <SectionLabel>{t("PAYMENT CURRENCY")}</SectionLabel>
+          <CurrencyRow>
+            <CurrencyOption onClick={() => !busy && setCurrency("USD")}>
+              <RadioOuter $active={currency === "USD"}>
+                {currency === "USD" && <RadioInner />}
+              </RadioOuter>
+              <span>USD</span>
+            </CurrencyOption>
+            <CurrencyOption onClick={() => !busy && setCurrency("LBP")}>
+              <RadioOuter $active={currency === "LBP"}>
+                {currency === "LBP" && <RadioInner />}
+              </RadioOuter>
+              <span>LBP</span>
+            </CurrencyOption>
+          </CurrencyRow>
 
-        <SectionTitle>{t("Payment Currency")}</SectionTitle>
-        <CurrencyRow>
-          <CurrencyOption onClick={() => !busy && setCurrency("USD")}>
-            <RadioOuter active={currency === "USD"}>
-              {currency === "USD" && <RadioInner />}
-            </RadioOuter>
-            <span>USD</span>
-          </CurrencyOption>
+          <SectionLabel>{t("PAYMENT METHOD")}</SectionLabel>
+          <MethodRow>
+            <MethodCard $active={method === "card"} onClick={() => !busy && setMethod("card")}>
+              <CheckBadge $active={method === "card"}>
+                <svg width="11" height="9" viewBox="0 0 11 9" fill="none">
+                  <path d="M1 4.5L4 7.5L10 1.5" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </CheckBadge>
+              <MethodIconBox>
+                <img src={cardsImg} style={{ height: 32 }} alt="cards" />
+              </MethodIconBox>
+              <MethodLabel>{t("CREDIT / DEBIT CARD")}</MethodLabel>
+            </MethodCard>
 
-          <CurrencyOption onClick={() => !busy && setCurrency("LBP")}>
-            <RadioOuter active={currency === "LBP"}>
-              {currency === "LBP" && <RadioInner />}
-            </RadioOuter>
-            <span>LBP</span>
-          </CurrencyOption>
-        </CurrencyRow>
+            <MethodCard $active={method === "libanpost"} onClick={() => !busy && setMethod("libanpost")}>
+              <CheckBadge $active={method === "libanpost"}>
+                <svg width="11" height="9" viewBox="0 0 11 9" fill="none">
+                  <path d="M1 4.5L4 7.5L10 1.5" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </CheckBadge>
+              <MethodIconBox>
+                <img src={libanPostImg} style={{ height: 50 }} alt="libanpost" />
+              </MethodIconBox>
+              <MethodLabel>{t("LIBANPOST")}</MethodLabel>
+            </MethodCard>
 
-        <SectionTitle>{t("paymentMethod")}</SectionTitle>
+            <MethodCard $active={method === "other"} onClick={() => !busy && setMethod("other")}>
+              <CheckBadge $active={method === "other"}>
+                <svg width="11" height="9" viewBox="0 0 11 9" fill="none">
+                  <path d="M1 4.5L4 7.5L10 1.5" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </CheckBadge>
+              <MethodIconBox>
+                <img src={paymentMethodsImg} style={{ height: 48, borderRadius: 8 }} alt="other methods" />
+              </MethodIconBox>
+              <MethodLabel>{t("OTHER PAYMENT METHODS")}</MethodLabel>
+            </MethodCard>
+          </MethodRow>
 
-        <MethodRow>
-          <MethodCard
-            active={method === "card"}
-            onClick={() => !busy && setMethod("card")}
-          >
-            <CheckBadge active={method === "card"}>✓</CheckBadge>
-
-            <IconWrapper>
-              <img src={cardsImg} style={{ height: 32 }} alt="cards" />
-            </IconWrapper>
-
-            <MethodLabel>CREDIT / DEBIT CARD</MethodLabel>
-          </MethodCard>
-
-          <MethodCard
-            active={method === "libanpost"}
-            onClick={() => !busy && setMethod("libanpost")}
-          >
-            <CheckBadge active={method === "libanpost"}>✓</CheckBadge>
-
-            <IconWrapper>
-              <img src={libanPostImg} style={{ height: 58 }} alt="libanpost" />
-            </IconWrapper>
-
-            <MethodLabel>LIBANPOST</MethodLabel>
-          </MethodCard>
-
-          <MethodCard
-            active={method === "other"}
-            onClick={() => !busy && setMethod("other")}
-          >
-            <CheckBadge active={method === "other"}>✓</CheckBadge>
-
-            <IconWrapper>
-              <img src={paymentMethodsImg} style={{ height: 50, borderRadius: 9 }} alt="other methods" />
-            </IconWrapper>
-
-            <MethodLabel>OTHER PAYMENT METHODS</MethodLabel>
-          </MethodCard>
-        </MethodRow>
-
-        <PayButton onClick={() => onPay()} disabled={busy} style={busy ? { opacity: 0.5, cursor: "default" } : null}>
-          <img src={lockImg} style={{ height: 16 }} alt="lock" />
-          {t("Pay")} {formatted(totalPayable)} {t("Now")}
-        </PayButton>
-      </Card>
-    </Wrapper>
+          <PayButton onClick={onPay} disabled={busy} $busy={busy}>
+            <img src={lockImg} style={{ height: 16, marginRight: 8 }} alt="" />
+            {t("PAY")} {formatted(totalPayable)} {t("NOW")}
+          </PayButton>
+        </>
+      )}
+    </Card>
   );
 };
 
 export default PaymentSummary;
 
-/* ================= STYLES ================= */
-
-const Wrapper = styled.div`
-  width: 100%;
-  height: 100%;
-  overflow: auto;
-  justify-content: center;
-  padding: 30px;
-  background: #f3f4f6;
-`;
-
 const Card = styled.div`
-  width: 900px;
-  margin:0 auto;
+  width: 100%;
   background: #fff;
   border-radius: 16px;
-  padding: 32px;
-  padding-top:20px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+  padding: 28px 32px;
+  border: 1px solid #e8eaf0;
 `;
 
-const SectionTitle = styled.h3`
+const CardTopRow = styled.div`
   display: flex;
   align-items: center;
-  margin: 0;
-  font-size:15px;
-  letter-spacing:1px;
+  justify-content: space-between;
+  margin-bottom: 20px;
+`;
+
+const CardTitle = styled.h3`
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: #1d2025;
   text-transform: uppercase;
+  margin: 0;
+`;
+
+const PayStatusBadge = styled.span`
+  padding: 5px 14px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 500;
+  background: ${({ $paid }) => ($paid ? "#eef6ef" : "#fff0e6")};
+  color: ${({ $paid }) => ($paid ? "#1c9d4b" : "#d55d00")};
 `;
 
 const SummaryBox = styled.div`
-  background: #F8FAF9;
-  padding: 15px;
-  padding-bottom:5px;
+  background: #f8faf9;
   border-radius: 12px;
-  margin-top: 14px;
-  font-size:12px;
+  padding: 4px 16px;
+  margin-bottom: 16px;
 `;
 
-const Row = styled.div`
+const SummaryRow = styled.div`
   display: flex;
   justify-content: space-between;
-  margin-bottom: 6px;
-  padding-bottom: 6px;
-  border-bottom:1px solid #E7F0EC;
+  align-items: center;
+  padding: 12px 0;
+  font-size: 13px;
+  color: #1d2025;
+  border-bottom: ${({ $last }) => ($last ? "none" : "1px solid #e7f0ec")};
 `;
 
 const TotalBox = styled.div`
-  margin: 10px 0 15px 0;
-  padding: 13px 18px;
-  border-radius: 14px;
-  border: 2px solid #2e7d32;
-  background: #eef7f1;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  padding: 16px 20px;
+  border-radius: 12px;
+  border: 1.5px solid #2e7d32;
+  background: #eef7f1;
+  margin-bottom: 24px;
 `;
 
-const Left = styled.div`
+const TotalLeft = styled.div`
   font-size: 14px;
+  color: #1d2025;
 `;
 
-const Right = styled.div`
+const TotalSub = styled.span`
+  font-size: 13px;
+  font-weight: 400;
+  color: #6f7897;
+`;
+
+const TotalRight = styled.div`
   text-align: right;
 `;
 
-const MainAmount = styled.div`
-  font-size: 25px;
-  font-weight: 900;
+const TotalAmount = styled.div`
+  font-size: 26px;
+  font-weight: 800;
   color: #1b5e20;
 `;
 
-const Approx = styled.div`
+const TotalApprox = styled.div`
   font-size: 12px;
-  margin-top: 4px;
+  color: #6f7897;
+  margin-top: 2px;
 `;
 
-const Rate = styled.div`
-  font-size: 10px;
+const TotalRate = styled.div`
+  font-size: 11px;
+  color: #9ca3af;
   margin-top: 2px;
-  color: #6b7280;
+`;
+
+const SectionLabel = styled.h4`
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: #1d2025;
+  margin: 0 0 14px;
 `;
 
 const CurrencyRow = styled.div`
-	margin:15px 0;
   display: flex;
-  gap: 32px;
+  gap: 28px;
   align-items: center;
+  margin-bottom: 22px;
 `;
 
 const CurrencyOption = styled.div`
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 8px;
   cursor: pointer;
-  font-size:12px;
+  font-size: 14px;
+  color: #1d2025;
+  user-select: none;
 `;
 
 const RadioOuter = styled.div`
-  width: 18px;
-  height: 18px;
+  width: 20px;
+  height: 20px;
   border-radius: 50%;
-  border: 2px solid ${p => (p.active ? "#2e7d32" : "#cbd5e1")};
+  border: 2px solid ${({ $active }) => ($active ? "#436c4d" : "#d4d6df")};
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: 0.2s ease;
+  transition: border-color 0.15s;
 `;
 
 const RadioInner = styled.div`
-  width: 8px;
-  height: 8px;
+  width: 10px;
+  height: 10px;
   border-radius: 50%;
-  background: #2e7d32;
+  background: #436c4d;
 `;
 
 const MethodRow = styled.div`
   display: flex;
-  gap: 24px;
-  margin-top: 16px;
+  gap: 16px;
+  margin-bottom: 28px;
+  justify-content: center;
 `;
 
 const MethodCard = styled.div`
   position: relative;
   flex: 1;
-  padding: 28px 20px;
-  border-radius: 14px;
-  border: 2px solid ${p => (p.active ? "#2e7d32" : "#e5e7eb")};
-  background: ${p => (p.active ? "#eef7f1" : "#fff")};
+  max-width: 240px;
+  padding: 20px 16px;
+  border-radius: 12px;
+  border: 2px solid ${({ $active }) => ($active ? "#436c4d" : "#e5e7eb")};
+  background: ${({ $active }) => ($active ? "#eef7f1" : "#fff")};
   cursor: pointer;
-  transition: 0.2s ease;
+  transition: border-color 0.15s, background 0.15s;
   text-align: center;
 
   &:hover {
-    border-color: #2e7d32;
+    border-color: #436c4d;
   }
 `;
 
-const IconWrapper = styled.div`
+const CheckBadge = styled.div`
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #436c4d;
+  display: ${({ $active }) => ($active ? "flex" : "none")};
+  align-items: center;
+  justify-content: center;
+`;
+
+const MethodIconBox = styled.div`
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: 12px;
-  height:50px;
-  margin-bottom: 18px;
+  height: 52px;
+  margin-bottom: 14px;
 
   img {
     object-fit: contain;
@@ -301,50 +329,31 @@ const IconWrapper = styled.div`
 `;
 
 const MethodLabel = styled.div`
-  font-size: 14px;
-  font-weight: 600;
-`;
-
-const CheckBadge = styled.div`
-  position: absolute;
-  top: 12px;
-  right: 12px;
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  background: ${p => (p.active ? "#2e7d32" : "transparent")};
-  color: white;
   font-size: 13px;
-  display: ${p => (p.active ? "flex" : "none")};
-  align-items: center;
-  justify-content: center;
+  font-weight: 600;
+  color: #1d2025;
+  letter-spacing: 0.3px;
 `;
 
 const PayButton = styled.button`
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-top: 32px;
   width: 100%;
-  padding: 16px;
-  background: #2e7d32;
+  padding: 18px;
+  background: #436c4d;
   color: #fff;
   border: none;
   border-radius: 12px;
   font-size: 16px;
-  font-weight:900;
-  cursor: pointer;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  cursor: ${({ $busy }) => ($busy ? "not-allowed" : "pointer")};
+  opacity: ${({ $busy }) => ($busy ? 0.6 : 1)};
   text-transform: uppercase;
-  box-shadow: 
-    0 10px 20px rgba(46, 125, 50, 0.25),
-    0 4px 6px rgba(46, 125, 50, 0.2);
-  &:hover {
+  transition: opacity 0.15s;
+
+  &:hover:not(:disabled) {
     opacity: 0.9;
-  }
-  img{
-    top: -1px;
-    position: relative;
-    height: 16px;
-    margin-right: 4px;
   }
 `;
