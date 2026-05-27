@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import styled from "styled-components";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
@@ -48,7 +48,7 @@ const STATUS_STYLES = {
   },
   PAID: {
     background: "#eef6ef",
-    color: "#516275",
+    color: "#1c9d4b",
     icon: "check",
     iconColor: "#1c9d4b",
   },
@@ -62,6 +62,27 @@ const ImporterDeclarations = () => {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [openMenuId, setOpenMenuId] = useState(null);
+  const [menuPosition, setMenuPosition] = useState({ top: 0, right: 0 });
+  const [selectedRows, setSelectedRows] = useState(new Set());
+
+  const menuRef = useRef(null);
+
+  useEffect(() => {
+    if (!openMenuId) return;
+    const handleOutside = (e) => {
+      if (menuRef.current && !menuRef.current.contains(e.target)) {
+        setOpenMenuId(null);
+      }
+    };
+    const handleScroll = () => setOpenMenuId(null);
+    document.addEventListener("mousedown", handleOutside);
+    window.addEventListener("scroll", handleScroll, true);
+    return () => {
+      document.removeEventListener("mousedown", handleOutside);
+      window.removeEventListener("scroll", handleScroll, true);
+    };
+  }, [openMenuId]);
 
   const loadDeclarations = useCallback(async () => {
     setLoading(true);
@@ -109,6 +130,31 @@ const ImporterDeclarations = () => {
     });
   }, [declarations, searchQuery, t]);
 
+  const allSelected =
+    filteredDeclarations.length > 0 &&
+    filteredDeclarations.every((d) => selectedRows.has(d.id));
+  const someSelected = filteredDeclarations.some((d) => selectedRows.has(d.id));
+
+  const handleSelectAll = (e) => {
+    if (e.target.checked) {
+      setSelectedRows(new Set(filteredDeclarations.map((d) => d.id)));
+    } else {
+      setSelectedRows(new Set());
+    }
+  };
+
+  const handleSelectRow = (id) => {
+    setSelectedRows((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
+
   const handleRegisterDevices = () => {
     navigate("/profile/role_importer/RegisterDevices");
   };
@@ -134,8 +180,7 @@ const ImporterDeclarations = () => {
     }
   };
 
-  const handleViewCsv = async (event, uploadId) => {
-    event.stopPropagation();
+  const handleViewCsv = async (uploadId) => {
     await downloadFullFile(uploadId);
   };
 
@@ -216,10 +261,20 @@ const ImporterDeclarations = () => {
             <Table>
               <thead>
                 <tr>
-                  <Th>{t("Dec ID")}</Th>
+                  <Th>
+                    <StyledCheckbox
+                      type="checkbox"
+                      aria-label="select all"
+                      checked={allSelected}
+                      ref={(el) => {
+                        if (el) el.indeterminate = someSelected && !allSelected;
+                      }}
+                      onChange={handleSelectAll}
+                    />
+                  </Th>
                   <Th>{t("Declaration Number")}</Th>
-                  <Th>{t("Nbr of declared devices")}</Th>
                   <Th>{t("Declaration Date")}</Th>
+                  <Th>{t("Nbr of declared devices")}</Th>
                   <Th>{t("Status")}</Th>
                   <Th>{t("Customs Duty (USD)")}</Th>
                   <Th>{t("Actions")}</Th>
@@ -240,23 +295,20 @@ const ImporterDeclarations = () => {
                       "SUBMITTED";
 
                     return (
-                      <Row
-                        key={declaration.id}
-                        tabIndex={0}
-                        onClick={() => handleOpenDeclaration(declaration.id)}
-                        onKeyDown={(event) => {
-                          if (event.key === "Enter" || event.key === " ") {
-                            event.preventDefault();
-                            handleOpenDeclaration(declaration.id);
-                          }
-                        }}
-                      >
-                        <Td>{index + 1}</Td>
+                      <TableRow key={declaration.id}>
+                        <Td>
+                          <StyledCheckbox
+                            type="checkbox"
+                            aria-label={`select ${formatDeclarationNumber(declaration.id)}`}
+                            checked={selectedRows.has(declaration.id)}
+                            onChange={() => handleSelectRow(declaration.id)}
+                          />
+                        </Td>
                         <DeclarationNumberCell>
                           {formatDeclarationNumber(declaration.id)}
                         </DeclarationNumberCell>
-                        <Td>{declaration.devicesCount ?? 0}</Td>
                         <Td>{formatDate(declaration.createdAt)}</Td>
+                        <Td>{declaration.devicesCount ?? 0}</Td>
                         <Td>
                           <StatusBadge $status={currentStatus}>
                             <StatusIcon status={currentStatus} />
@@ -265,24 +317,124 @@ const ImporterDeclarations = () => {
                         </Td>
                         <Td>{formatMoney(declaration.totalCustomsDuty)}</Td>
                         <Td>
-                          <ViewButton
-                            type="button"
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              handleOpenDeclaration(declaration.id);
-                            }}
-                          >
-                            <img src={eyeSVG} alt="" aria-hidden="true" />
-                            <span>{t("View Details")}</span>
-                          </ViewButton>
-                          <CsvLink
-                            type="button"
-                            onClick={(event) => handleViewCsv(event, declaration.id)}
-                          >
-                            {t("View CSV")}
-                          </CsvLink>
+                          <ActionCell>
+                            <ActionButton
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (openMenuId === declaration.id) {
+                                  setOpenMenuId(null);
+                                  return;
+                                }
+                                const rect = e.currentTarget.getBoundingClientRect();
+                                setMenuPosition({
+                                  top: rect.bottom + 6,
+                                  right: window.innerWidth - rect.right,
+                                });
+                                setOpenMenuId(declaration.id);
+                              }}
+                            >
+                              &#8942;
+                            </ActionButton>
+                            {openMenuId === declaration.id && (
+                              <ActionMenu
+                                ref={menuRef}
+                                $top={menuPosition.top}
+                                $right={menuPosition.right}
+                              >
+                                <ActionMenuButton
+                                  type="button"
+                                  onClick={() => {
+                                    setOpenMenuId(null);
+                                    handleOpenDeclaration(declaration.id);
+                                  }}
+                                >
+                                  <ActionLabel>
+                                    <ActionIcon
+                                      src={eyeSVG}
+                                      alt=""
+                                      aria-hidden="true"
+                                    />
+                                    <span>{t("View Details")}</span>
+                                  </ActionLabel>
+                                </ActionMenuButton>
+                                {currentStatus === "AWAITING_PAYMENT" && (
+                                  <ActionMenuButton
+                                    type="button"
+                                    onClick={() => {
+                                      setOpenMenuId(null);
+                                      handleOpenDeclaration(declaration.id);
+                                    }}
+                                  >
+                                    <ActionLabel>
+                                      <ActionSvg
+                                        viewBox="0 0 20 20"
+                                        fill="none"
+                                        aria-hidden="true"
+                                      >
+                                        <rect
+                                          x="2.5"
+                                          y="5"
+                                          width="15"
+                                          height="11"
+                                          rx="2"
+                                          stroke="#1D2025"
+                                          strokeWidth="1.5"
+                                        />
+                                        <path
+                                          d="M2.5 8.5H17.5"
+                                          stroke="#1D2025"
+                                          strokeWidth="1.5"
+                                          strokeLinecap="round"
+                                        />
+                                        <rect
+                                          x="5"
+                                          y="11.5"
+                                          width="3"
+                                          height="1.5"
+                                          rx="0.5"
+                                          fill="#1D2025"
+                                        />
+                                      </ActionSvg>
+                                      <span>{t("Proceed to Payment")}</span>
+                                    </ActionLabel>
+                                  </ActionMenuButton>
+                                )}
+                                <ActionMenuButton
+                                  type="button"
+                                  onClick={() => {
+                                    setOpenMenuId(null);
+                                    handleViewCsv(declaration.id);
+                                  }}
+                                >
+                                  <ActionLabel>
+                                    <ActionSvg
+                                      viewBox="0 0 20 20"
+                                      fill="none"
+                                      aria-hidden="true"
+                                    >
+                                      <path
+                                        d="M10 3.333V13.333M10 13.333L6.667 10M10 13.333L13.333 10"
+                                        stroke="#1D2025"
+                                        strokeWidth="1.5"
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                      />
+                                      <path
+                                        d="M3.333 15.833H16.667"
+                                        stroke="#1D2025"
+                                        strokeWidth="1.5"
+                                        strokeLinecap="round"
+                                      />
+                                    </ActionSvg>
+                                    <span>{t("View CSV")}</span>
+                                  </ActionLabel>
+                                </ActionMenuButton>
+                              </ActionMenu>
+                            )}
+                          </ActionCell>
                         </Td>
-                      </Row>
+                      </TableRow>
                     );
                   })
                 )}
@@ -301,11 +453,11 @@ const StatusIcon = ({ status }) => {
 
   if (icon === "check") {
     return (
-      <StatusSvg viewBox="0 0 16 16" aria-hidden="true">
+      <StatusSvg fill="none" viewBox="0 0 16 16" aria-hidden="true">
         <path
-          d="M3.5 8.2L6.5 11.2L12.3 5.4"
+          d="M3 8.5L6.5 12L13 5"
           stroke={iconColor}
-          strokeWidth="1.8"
+          strokeWidth="2"
           strokeLinecap="round"
           strokeLinejoin="round"
         />
@@ -477,6 +629,7 @@ const TableCard = styled.div`
   display: flex;
   flex-direction: column;
   gap: 18px;
+  overflow: visible;
 `;
 
 const Toolbar = styled.div`
@@ -521,6 +674,7 @@ const ResultsText = styled.div`
 const TableWrapper = styled.div`
   width: 100%;
   overflow-x: auto;
+  overflow-y: visible;
 `;
 
 const Table = styled.table`
@@ -538,19 +692,14 @@ const Th = styled.th`
   font-size: 12px;
   font-weight: 500;
   padding: 12px 14px;
+  vertical-align: middle;
 `;
 
-const Row = styled.tr`
-  cursor: pointer;
+const TableRow = styled.tr`
   transition: background 0.15s ease;
 
   &:hover {
     background: #fafbff;
-  }
-
-  &:focus-visible {
-    outline: 2px solid #2671d9;
-    outline-offset: -2px;
   }
 `;
 
@@ -565,6 +714,14 @@ const Td = styled.td`
 const DeclarationNumberCell = styled(Td)`
   color: #1d2d64;
   font-weight: 700;
+`;
+
+const StyledCheckbox = styled.input`
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  accent-color: #2671d9;
+  flex-shrink: 0;
 `;
 
 const StatusBadge = styled.span`
@@ -589,35 +746,84 @@ const StatusDot = styled.span`
 `;
 
 const StatusSvg = styled.svg`
-  width: 14px;
-  height: 14px;
+  width: 16px;
+  height: 16px;
   flex-shrink: 0;
 `;
 
-const ViewButton = styled.button`
+const ActionCell = styled.div`
+  position: relative;
+  display: flex;
+  align-items: center;
+`;
+
+const ActionButton = styled.button`
+  border-radius: 12px;
+  border: 1px solid #e6e8f0;
+  background: #fff;
+  width: 40px;
+  height: 40px;
+  cursor: pointer;
+  font-size: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  color: #1d2025;
+`;
+
+const ActionMenu = styled.div`
+  position: fixed;
+  top: ${({ $top }) => $top}px;
+  right: ${({ $right }) => $right}px;
+  width: max-content;
+  border-radius: 12px;
+  border: 1px solid #e6e8f0;
+  background: #fff;
+  box-shadow: 0 12px 32px rgba(17, 24, 39, 0.12);
+  padding: 8px;
+  z-index: 100;
+`;
+
+const ActionMenuButton = styled.button`
+  display: block;
+  width: 100%;
   border: none;
   background: transparent;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  color: #1d2025;
-  font-size: 13px;
+  text-align: left;
+  padding: 10px 14px;
+  border-radius: 0;
   cursor: pointer;
-  margin-right: 12px;
+  border-bottom: 1px solid #edf0f7;
 
-  img {
-    width: 16px;
-    height: 16px;
+  &:last-child {
+    border-bottom: none;
+  }
+
+  &:hover {
+    background: #f5f7fb;
   }
 `;
 
-const CsvLink = styled.button`
-  border: none;
-  background: transparent;
-  color: #2671d9;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
+const ActionLabel = styled.span`
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: #1d2025;
+  font-size: 14px;
+  font-weight: 500;
+`;
+
+const ActionIcon = styled.img`
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
+`;
+
+const ActionSvg = styled.svg`
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
 `;
 
 const LoadingState = styled.div`

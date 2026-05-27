@@ -15,7 +15,7 @@ const STATUS_STYLES = {
   APPROVED: { background: "#e5f6e7", color: "#1c9d4b" },
   DECLINED: { background: "#ffe8e8", color: "#e03d3d" },
   AWAITING_PAYMENT: { background: "#fff0e6", color: "#d55d00" },
-  PAID: { background: "#e5f6e7", color: "#1c9d4b" },
+  PAID: { background: "#eef6ef", color: "#1c9d4b" },
 };
 
 const ImporterDeclarationDetail = () => {
@@ -42,17 +42,12 @@ const ImporterDeclarationDetail = () => {
   };
 
   const handleViewCsv = async () => {
-    if (!declaration?.id) {
-      return;
-    }
-
+    if (!declaration?.id) return;
     await downloadFullFile(declaration.id);
   };
 
   const handlePay = async () => {
-    if (!declaration?.id || paymentBusy) {
-      return;
-    }
+    if (!declaration?.id || paymentBusy) return;
 
     setPaymentBusy(true);
     const response = await initiateDeclarationPayment(declaration.id);
@@ -67,16 +62,12 @@ const ImporterDeclarationDetail = () => {
       global.alert2?.(
         t("You have successfully completed the payment"),
         "",
-        async () => {
-          await loadDeclaration();
-        }
+        async () => { await loadDeclaration(); }
       );
       return;
     }
 
-    global.alert2?.(
-      t("Failed to initiate payment. Please try again.")
-    );
+    global.alert2?.(t("Failed to initiate payment. Please try again."));
   };
 
   if (loading) {
@@ -87,9 +78,9 @@ const ImporterDeclarationDetail = () => {
     return (
       <PageState>
         <div>{t("ImporterDeclarations_EmptyTitle")}</div>
-        <BackButton type="button" onClick={handleBack}>
+        <OutlineButton type="button" onClick={handleBack}>
           {t("Back to Declarations")}
-        </BackButton>
+        </OutlineButton>
       </PageState>
     );
   }
@@ -97,7 +88,9 @@ const ImporterDeclarationDetail = () => {
   const currentStatus =
     declaration.importerStatus || declaration.customsStatus || "SUBMITTED";
   const trackerSteps = getTrackerSteps(currentStatus);
-  const currentStepIndex = getTrackerStepIndex(currentStatus, trackerSteps);
+  const currentStepIndex = getTrackerStepIndex(currentStatus);
+  const isPaid = currentStatus === "PAID";
+  const hasPayment = isPaid || currentStatus === "AWAITING_PAYMENT" || currentStatus === "APPROVED";
 
   return (
     <PageContainer>
@@ -109,27 +102,45 @@ const ImporterDeclarationDetail = () => {
           return (
             <TrackerStep key={step}>
               {index > 0 && (
-                <TrackerLine
-                  $complete={index - 1 < currentStepIndex}
-                  $active={index - 1 === currentStepIndex && currentStepIndex > 0}
-                />
+                <TrackerLine $complete={index <= currentStepIndex} />
               )}
-              <TrackerMarker $complete={isComplete} $active={isActive} />
-              <TrackerLabel>{formatStatusLabel(t, step)}</TrackerLabel>
+              <TrackerMarker $complete={isComplete} $active={isActive} $rejected={isActive && step === "DECLINED"}>
+                {isComplete && (
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                    <path
+                      d="M3 8.5L6.5 12L13 5"
+                      stroke="white"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                )}
+                {isActive && step === "DECLINED" && (
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                    <path d="M3 3L11 11" stroke="white" strokeWidth="2" strokeLinecap="round"/>
+                    <path d="M11 3L3 11" stroke="white" strokeWidth="2" strokeLinecap="round"/>
+                  </svg>
+                )}
+              </TrackerMarker>
+              <TrackerLabel>
+                {formatStatusLabel(t, step)}
+              </TrackerLabel>
             </TrackerStep>
           );
         })}
       </TrackerContainer>
 
-      <CardContainer>
+      <DeclarationCard>
         <CardHeader>
           <CardTitleGroup>
-            <CardTitle>{t("Declaration")}</CardTitle>
+            <CardTitle>
+              {t("Declaration")} {declaration.id}
+            </CardTitle>
             <StatusBadge $status={currentStatus}>
               {formatStatusLabel(t, currentStatus)}
             </StatusBadge>
           </CardTitleGroup>
-
           <CsvButton type="button" onClick={handleViewCsv}>
             {t("View CSV")}
           </CsvButton>
@@ -140,18 +151,20 @@ const ImporterDeclarationDetail = () => {
             <DetailLabel>{t("Declaration Number")}</DetailLabel>
             <DetailValue>{formatDeclarationNumber(declaration.id)}</DetailValue>
           </DetailItem>
+          <DetailDivider />
           <DetailItem>
             <DetailLabel>{t("Nbr of Devices")}</DetailLabel>
             <DetailValue>{declaration.devicesCount ?? 0}</DetailValue>
           </DetailItem>
+          <DetailDivider />
           <DetailItem>
             <DetailLabel>{t("Declaration Date")}</DetailLabel>
             <DetailValue>{formatDate(declaration.createdAt)}</DetailValue>
           </DetailItem>
         </DetailsGrid>
-      </CardContainer>
+      </DeclarationCard>
 
-      {currentStatus === "AWAITING_PAYMENT" && (
+      {hasPayment && (
         <PaymentSection>
           <PaymentSummary
             data={{
@@ -165,8 +178,8 @@ const ImporterDeclarationDetail = () => {
               usdToLbpRate: declaration.usdToLbpRate,
             }}
             busy={paymentBusy}
-            onClose={handleBack}
             onPay={handlePay}
+            paid={isPaid}
           />
         </PaymentSection>
       )}
@@ -179,39 +192,63 @@ const ImporterDeclarationDetail = () => {
       )}
 
       <Footer>
-        <BackButton type="button" onClick={handleBack}>
-          {t("Back to Declarations")}
-        </BackButton>
+        {isPaid ? (
+          <>
+            <OutlineButton type="button" onClick={handleViewCsv}>
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{ marginRight: 6 }}>
+                <path
+                  d="M8 2.667V10M8 10L5.333 7.333M8 10L10.667 7.333"
+                  stroke="currentColor"
+                  strokeWidth="1.4"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+                <path
+                  d="M2.667 12H13.333"
+                  stroke="currentColor"
+                  strokeWidth="1.4"
+                  strokeLinecap="round"
+                />
+              </svg>
+              {t("Download Invoice")}
+            </OutlineButton>
+            <PrimaryButton type="button" onClick={handleBack}>
+              {t("Back to Dashboard")}
+            </PrimaryButton>
+          </>
+        ) : (
+          <PrimaryButton type="button" onClick={handleBack}>
+            {t("Back to Dashboard")}
+          </PrimaryButton>
+        )}
       </Footer>
     </PageContainer>
   );
 };
 
 const getTrackerSteps = (status) => {
-  if (status === "DECLINED") {
-    return ["SUBMITTED", "UNDER_REVIEW", "DECLINED"];
-  }
-
-  return ["SUBMITTED", "UNDER_REVIEW", "AWAITING_PAYMENT", "PAID"];
+  if (status === "DECLINED") return ["SUBMITTED", "UNDER_REVIEW", "DECLINED"];
+  if (status === "PAID") return ["SUBMITTED", "APPROVED", "PAID"];
+  return ["SUBMITTED", "APPROVED", "AWAITING_PAYMENT"];
 };
 
-const getTrackerStepIndex = (status, trackerSteps) => {
-  if (status === "APPROVED") {
-    return trackerSteps.indexOf("AWAITING_PAYMENT");
-  }
-
-  const index = trackerSteps.indexOf(status);
-  return index >= 0 ? index : 0;
+const getTrackerStepIndex = (status) => {
+  const map = {
+    SUBMITTED: 0,
+    UNDER_REVIEW: 1,
+    APPROVED: 2,
+    AWAITING_PAYMENT: 2,
+    PAID: 3,
+    DECLINED: 2,
+  };
+  return map[status] ?? 0;
 };
 
 const formatDeclarationNumber = (value) =>
   `#${String(value).padStart(6, "0")}`;
 
 const formatDate = (value) => {
-  if (!value) {
-    return "-";
-  }
-
+  if (!value) return "-";
   return new Date(value).toLocaleDateString("en-GB", {
     day: "2-digit",
     month: "2-digit",
@@ -228,28 +265,20 @@ const formatStatusLabel = (t, status) => {
     AWAITING_PAYMENT: t("Awaiting Payment"),
     PAID: t("Paid"),
   };
-
   return labels[status] || status || "-";
 };
 
 export default ImporterDeclarationDetail;
 
-const PageContainer = styled.div`
-  display: flex;
-  width: 90%;
-  min-height: calc(100vh - 75px);
-  flex-direction: column;
-  padding: 32px 0 40px;
-`;
+/* ─── Tracker ─────────────────────────────────────────────── */
 
 const TrackerContainer = styled.div`
   width: 100%;
-  max-width: 520px;
+  max-width: 560px;
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin: 0 auto 28px;
-  position: relative;
+  margin: 0 auto 32px;
 `;
 
 const TrackerStep = styled.div`
@@ -262,41 +291,47 @@ const TrackerStep = styled.div`
 
 const TrackerLine = styled.div`
   position: absolute;
-  top: 8px;
+  top: 16px;
   right: calc(50% + 16px);
   width: calc(100% - 32px);
-  height: 2px;
-  background: ${({ $complete, $active }) =>
-    $complete || $active ? "#2d9cdb" : "#d9dce8"};
+  height: 3px;
+  border-radius: 2px;
+  background: ${({ $complete }) => ($complete ? "#436c4d" : "#d9dce8")};
 `;
 
 const TrackerMarker = styled.div`
-  width: 16px;
-  height: 16px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
-  border: 3px solid
-    ${({ $complete, $active }) =>
-      $complete || $active ? "#2d9cdb" : "#d9dce8"};
-  background: ${({ $complete, $active }) =>
-    $complete ? "#28b463" : $active ? "#2d9cdb" : "#ffffff"};
+  display: flex;
+  align-items: center;
+  justify-content: center;
   z-index: 1;
+  flex-shrink: 0;
+  background: ${({ $complete, $active, $rejected }) =>
+    $complete ? "#436c4d" : $rejected ? "#e03d3d" : $active ? "#2671d9" : "#fff"};
+  border: ${({ $complete, $active, $rejected }) =>
+    $complete || $active || $rejected ? "none" : "2.5px solid #d9dce8"};
 `;
 
 const TrackerLabel = styled.span`
   margin-top: 10px;
   font-size: 12px;
-  color: #797f94;
   text-align: center;
+  color: #797f94;
 `;
 
-const CardContainer = styled.div`
+/* ─── Declaration card ────────────────────────────────────── */
+
+const DeclarationCard = styled.div`
   width: 100%;
   border-radius: 12px;
   background: #f5f6fa;
-  padding: 18px 20px;
+  border: 1px solid #e8eaf0;
+  padding: 20px 24px;
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 20px;
 `;
 
 const CardHeader = styled.div`
@@ -320,9 +355,10 @@ const CardTitle = styled.h2`
 `;
 
 const StatusBadge = styled.span`
-  padding: 7px 12px;
-  border-radius: 40px;
-  font-size: 14px;
+  padding: 5px 14px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 500;
   white-space: nowrap;
   background: ${({ $status }) => STATUS_STYLES[$status]?.background || "#e8f1ff"};
   color: ${({ $status }) => STATUS_STYLES[$status]?.color || "#2671d9"};
@@ -335,18 +371,33 @@ const CsvButton = styled.button`
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
 `;
 
 const DetailsGrid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 20px;
+  display: flex;
+  align-items: stretch;
+  gap: 0;
 `;
 
 const DetailItem = styled.div`
+  flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
+  padding: 0 24px 0 0;
+
+  &:first-child {
+    padding-left: 0;
+  }
+`;
+
+const DetailDivider = styled.div`
+  width: 1px;
+  background: #d9dce8;
+  margin: 0 24px 0 0;
+  align-self: stretch;
 `;
 
 const DetailLabel = styled.span`
@@ -360,29 +411,25 @@ const DetailValue = styled.span`
   color: #1d2d64;
 `;
 
-const Footer = styled.div`
-  width: 100%;
-  display: flex;
-  justify-content: flex-end;
-  margin-top: auto;
-  padding-top: 32px;
-`;
+/* ─── Payment section ─────────────────────────────────────── */
 
 const PaymentSection = styled.div`
   width: 100%;
-  margin-top: 28px;
+  margin-top: 20px;
 `;
+
+/* ─── Rejection ───────────────────────────────────────────── */
 
 const ReasonSection = styled.div`
   width: 100%;
-  margin-top: 28px;
+  margin-top: 20px;
   display: flex;
   flex-direction: column;
   gap: 12px;
 `;
 
 const ReasonTitle = styled.h3`
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 700;
   color: #1d2d64;
 `;
@@ -394,20 +441,63 @@ const ReasonCard = styled.div`
   background: #fff6f6;
   padding: 18px 20px;
   color: #7a2f2f;
-  font-size: 15px;
+  font-size: 14px;
   line-height: 1.6;
   white-space: pre-wrap;
 `;
 
-const BackButton = styled.button`
+/* ─── Footer ──────────────────────────────────────────────── */
+
+const Footer = styled.div`
+  width: 100%;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 12px;
+  margin-top: auto;
+  padding-top: 32px;
+`;
+
+const PrimaryButton = styled.button`
   cursor: pointer;
-  padding: 12px 24px;
-  color: #ffffff;
+  padding: 12px 28px;
+  color: #fff;
   border-radius: 999px;
-  border: 1px solid #2671d9;
+  border: none;
   background: #2671d9;
   font-size: 14px;
   font-weight: 600;
+  white-space: nowrap;
+
+  &:hover {
+    background: #1d5cb5;
+  }
+`;
+
+const OutlineButton = styled.button`
+  cursor: pointer;
+  padding: 11px 24px;
+  color: #1d2025;
+  border-radius: 999px;
+  border: 1.5px solid #d4d6df;
+  background: #fff;
+  font-size: 14px;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
+
+  &:hover {
+    background: #f5f7fb;
+  }
+`;
+
+const PageContainer = styled.div`
+  display: flex;
+  width: 90%;
+  min-height: calc(100vh - 75px);
+  flex-direction: column;
+  padding: 32px 0 40px;
 `;
 
 const PageState = styled.div`

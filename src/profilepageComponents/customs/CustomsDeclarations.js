@@ -5,6 +5,7 @@ import chevronSVG from "../../assets/chevron-down.svg";
 import emptySVG from "../../assets/noRegistered.svg";
 import searchSVG from "../../assets/search3.svg";
 import eyeSVG from "../../assets/eye.svg";
+import Popup from "../Popup";
 import {
   adjustDeclarationValue,
   approveDeclaration,
@@ -74,6 +75,7 @@ const CustomsDeclarations = () => {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isDetailLoading, setIsDetailLoading] = useState(false);
   const [openMenuId, setOpenMenuId] = useState(null);
+  const [menuPosition, setMenuPosition] = useState({ top: 0, right: 0 });
   const [selectedRows, setSelectedRows] = useState(new Set());
 
   // Adjust panel state
@@ -95,7 +97,6 @@ const CustomsDeclarations = () => {
 
   const menuRef = useRef(null);
 
-  // Close dropdown on outside click
   useEffect(() => {
     if (!openMenuId) return;
     const handleOutside = (e) => {
@@ -103,8 +104,13 @@ const CustomsDeclarations = () => {
         setOpenMenuId(null);
       }
     };
+    const handleScroll = () => setOpenMenuId(null);
     document.addEventListener("mousedown", handleOutside);
-    return () => document.removeEventListener("mousedown", handleOutside);
+    window.addEventListener("scroll", handleScroll, true);
+    return () => {
+      document.removeEventListener("mousedown", handleOutside);
+      window.removeEventListener("scroll", handleScroll, true);
+    };
   }, [openMenuId]);
 
   const loadDeclarations = useCallback(async () => {
@@ -201,7 +207,14 @@ const CustomsDeclarations = () => {
     setIsDetailLoading(false);
   };
 
-  const handleActionClick = async (row) => {
+  const handleActionClick = async (e, row) => {
+    if (openMenuId === row.id) {
+      setOpenMenuId(null);
+      return;
+    }
+
+    const rect = e.currentTarget.getBoundingClientRect();
+
     if (
       row.declarationType === DECLARATION_TYPES.IMPORTER &&
       row.status === "SUBMITTED"
@@ -226,7 +239,11 @@ const CustomsDeclarations = () => {
       }
     }
 
-    setOpenMenuId(openMenuId === row.id ? null : row.id);
+    setMenuPosition({
+      top: rect.bottom + 6,
+      right: window.innerWidth - rect.right,
+    });
+    setOpenMenuId(row.id);
   };
 
   const openAdjustPanel = (row) => {
@@ -554,18 +571,18 @@ const CustomsDeclarations = () => {
                           </StatusBadge>
                         </Td>
                         <Td>
-                          <ActionCell
-                            ref={openMenuId === row.id ? menuRef : null}
-                          >
+                          <ActionCell>
                             <ActionButton
                               type="button"
-                              onClick={() => handleActionClick(row)}
+                              onClick={(e) => handleActionClick(e, row)}
                             >
                               &#8942;
                             </ActionButton>
                             {openMenuId === row.id && (
                               <ActionMenu
-                                $openUpwards={index >= declarations.length - 2}
+                                ref={menuRef}
+                                $top={menuPosition.top}
+                                $right={menuPosition.right}
                               >
                                 <ActionMenuButton
                                   type="button"
@@ -951,56 +968,15 @@ const CustomsDeclarations = () => {
       )}
 
       {isRejectOpen && rejectRow && (
-        <RejectOverlay onClick={closeRejectModal}>
-          <RejectModalCard onClick={(event) => event.stopPropagation()}>
-            <RejectIconCircle>
-              <RejectIconLine />
-              <RejectIconLine $reverse />
-            </RejectIconCircle>
-
-            <RejectModalTitle>
-              {t("Are you sure you want to reject this declaration?")}
-            </RejectModalTitle>
-
-            <RejectFieldLabel>
-              {t("Rejection Reason")}
-              <AdjustRequired>*</AdjustRequired>
-            </RejectFieldLabel>
-            <RejectFieldHint>{t("Add Reason")}</RejectFieldHint>
-            <RejectTextarea
-              placeholder={t("Reason goes here")}
-              value={rejectReason}
-              onChange={(event) => setRejectReason(event.target.value)}
-              rows={4}
-            />
-
-            {rejectError && (
-              <AdjustErrorToast style={{ marginTop: "18px", marginBottom: "0" }}>
-                <AdjustErrorIcon>&#x2715;</AdjustErrorIcon>
-                {rejectError}
-                <AdjustToastClose
-                  type="button"
-                  onClick={() => setRejectError(null)}
-                >
-                  &#x2715;
-                </AdjustToastClose>
-              </AdjustErrorToast>
-            )}
-
-            <RejectFooter>
-              <RejectPrimaryButton
-                type="button"
-                onClick={handleConfirmReject}
-                disabled={isRejecting || !rejectReason.trim()}
-              >
-                {isRejecting ? t("Rejecting...") : t("Reject")}
-              </RejectPrimaryButton>
-              <RejectSecondaryButton type="button" onClick={closeRejectModal}>
-                {t("Cancel")}
-              </RejectSecondaryButton>
-            </RejectFooter>
-          </RejectModalCard>
-        </RejectOverlay>
+        <Popup
+          purpose="rejectDeclaration"
+          onClose={closeRejectModal}
+          onAction={handleConfirmReject}
+          reason={rejectReason}
+          onReasonChange={(e) => setRejectReason(e.target.value)}
+          reasonError={rejectError}
+          busy={isRejecting}
+        />
       )}
     </PageContainer>
   );
@@ -1435,27 +1411,25 @@ const ActionButton = styled.button`
 `;
 
 const ActionMenu = styled.div`
-  position: absolute;
-  right: 0;
-  top: ${({ $openUpwards }) =>
-    $openUpwards ? "auto" : "calc(100% + 6px)"};
-  bottom: ${({ $openUpwards }) =>
-    $openUpwards ? "calc(100% + 6px)" : "auto"};
-  min-width: 160px;
+  position: fixed;
+  top: ${({ $top }) => $top}px;
+  right: ${({ $right }) => $right}px;
+  width: max-content;
   border-radius: 12px;
   border: 1px solid #e6e8f0;
   background: #fff;
   box-shadow: 0 12px 32px rgba(17, 24, 39, 0.12);
   padding: 8px;
-  z-index: 5;
+  z-index: 100;
 `;
 
 const ActionMenuButton = styled.button`
+  display: block;
   width: 100%;
   border: none;
   background: transparent;
   text-align: left;
-  padding: 12px 14px;
+  padding: 10px 14px;
   border-radius: 0;
   cursor: pointer;
   border-bottom: 1px solid #edf0f7;
@@ -1779,120 +1753,5 @@ const AdjustPrimaryButton = styled.button`
   }
 `;
 
-const RejectOverlay = styled.div`
-  position: fixed;
-  inset: 0;
-  background: rgba(13, 18, 28, 0.42);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 24px;
-  z-index: 40;
-`;
-
-const RejectModalCard = styled.div`
-  width: min(100%, 520px);
-  border-radius: 20px;
-  background: #fff;
-  padding: 32px;
-  box-shadow: 0 24px 60px rgba(17, 24, 39, 0.18);
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-`;
-
-const RejectIconCircle = styled.div`
-  width: 64px;
-  height: 64px;
-  border-radius: 50%;
-  background: #f21717;
-  margin: 0 auto 24px;
-  position: relative;
-`;
-
-const RejectIconLine = styled.span`
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 24px;
-  height: 2px;
-  background: #fff;
-  border-radius: 999px;
-  transform: translate(-50%, -50%) rotate(${({ $reverse }) => ($reverse ? "-45deg" : "45deg")});
-`;
-
-const RejectModalTitle = styled.h3`
-  font-size: 22px;
-  line-height: 1.35;
-  font-weight: 700;
-  color: #2671d9;
-  text-align: center;
-  margin: 0 0 20px;
-`;
-
-const RejectFieldLabel = styled.label`
-  font-size: 14px;
-  font-weight: 700;
-  color: #1d2025;
-  margin-bottom: 6px;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-`;
-
-const RejectFieldHint = styled.span`
-  font-size: 13px;
-  color: #6f7897;
-  margin-bottom: 8px;
-`;
-
-const RejectTextarea = styled(AdjustTextarea)`
-  min-height: 118px;
-  resize: none;
-`;
-
-const RejectFooter = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  margin-top: 20px;
-`;
-
-const RejectPrimaryButton = styled.button`
-  width: 100%;
-  padding: 14px;
-  border-radius: 999px;
-  border: none;
-  background: #f21717;
-  color: #fff;
-  font-size: 15px;
-  font-weight: 600;
-  cursor: pointer;
-
-  &:hover:not(:disabled) {
-    background: #d91313;
-  }
-
-  &:disabled {
-    opacity: 0.55;
-    cursor: not-allowed;
-  }
-`;
-
-const RejectSecondaryButton = styled.button`
-  width: 100%;
-  padding: 14px;
-  border-radius: 999px;
-  border: 1.5px solid #23315d;
-  background: #fff;
-  color: #23315d;
-  font-size: 15px;
-  font-weight: 600;
-  cursor: pointer;
-
-  &:hover {
-    background: #f7f8fc;
-  }
-`;
 
 export default CustomsDeclarations;
