@@ -1000,13 +1000,20 @@ const formatMoney = (value) =>
     maximumFractionDigits: 2,
   }).format(Number(value || 0));
 
-const formatStatusLabel = (status) =>
-  status
-    ? status
-        .split("_")
-        .map((part) => part.charAt(0) + part.slice(1).toLowerCase())
-        .join(" ")
-    : "-";
+const formatStatusLabel = (status) => {
+  if (!status) {
+    return "-";
+  }
+
+  if (status === "DECLINED") {
+    return "Rejected";
+  }
+
+  return status
+    .split("_")
+    .map((part) => part.charAt(0) + part.slice(1).toLowerCase())
+    .join(" ");
+};
 
 const formatImeis = (imeis) => (imeis ? imeis.split("|").join("\n") : "-");
 
