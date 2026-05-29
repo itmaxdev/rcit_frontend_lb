@@ -183,6 +183,56 @@ export const approveDeclaration = async (declarationType, declarationId) => {
   }
 };
 
+export const generateInvoice = async (declarationType, declarationId) => {
+  try {
+    const token = getToken();
+    const response = await makeAuthenticatedRequest(
+      `${CUSTOMS_API_BASE_URL}/declarations/${declarationType}/${declarationId}/generate-invoice`,
+      {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    if (!response?.ok) {
+      const errorData = response ? await response.json() : null;
+      throw new Error(errorData?.message || "Failed to generate invoice");
+    }
+
+    return response.json();
+  } catch (error) {
+    console.error("Error generating invoice:", error);
+    return null;
+  }
+};
+
+export const releaseInvoice = async (declarationType, declarationId) => {
+  try {
+    const token = getToken();
+    const response = await makeAuthenticatedRequest(
+      `${CUSTOMS_API_BASE_URL}/declarations/${declarationType}/${declarationId}/release-invoice`,
+      {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    if (!response?.ok) {
+      const errorData = response ? await response.json() : null;
+      throw new Error(errorData?.message || "Failed to release invoice");
+    }
+
+    return response.json();
+  } catch (error) {
+    console.error("Error releasing invoice:", error);
+    return null;
+  }
+};
+
 export const rejectDeclaration = async (declarationType, declarationId, reason) => {
   try {
     const token = getToken();

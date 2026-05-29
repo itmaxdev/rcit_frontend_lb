@@ -156,7 +156,11 @@ const DeclareDevicesImp = () => {
   };
 
   const handlePopupAction = () => {
-    navigate("/profile/role_importer/DeclareDevices");
+    if (uploadID) {
+      navigate(`/profile/role_importer/DeclareDevices/${uploadID}`);
+    } else {
+      navigate("/profile/role_importer/DeclareDevices");
+    }
     setPopupOpen(false);
   };
 

@@ -127,7 +127,9 @@ const ImporterDeclarationDetail = () => {
   const trackerSteps = getTrackerSteps(currentStatus);
   const currentStepIndex = getTrackerStepIndex(currentStatus);
   const isPaid = currentStatus === "PAID";
-  const showInvoice = shouldLoadInvoice(currentStatus);
+  const showInvoice =
+    shouldLoadInvoice(currentStatus) &&
+    !(currentStatus === "AWAITING_PAYMENT" && showPaymentSummary);
   const showProceedToPayment =
     currentStatus === "AWAITING_PAYMENT" &&
     invoice?.invoiceStatus !== "PAID" &&
@@ -235,6 +237,15 @@ const ImporterDeclarationDetail = () => {
         </InvoiceSection>
       )}
 
+      {currentStatus === "APPROVED" && (
+        <PendingMessageCard>
+          <PendingMessageTitle>{t("Pending Invoice Generation")}</PendingMessageTitle>
+          <PendingMessageText>
+            {t("Your declaration has been approved and is waiting for customs to generate the invoice.")}
+          </PendingMessageText>
+        </PendingMessageCard>
+      )}
+
       {showPayment && (
         <PaymentSection>
           <PaymentSummary
@@ -261,12 +272,6 @@ const ImporterDeclarationDetail = () => {
           <ReasonCard>{declaration.rejectionReason}</ReasonCard>
         </ReasonSection>
       )}
-
-      <Footer>
-        <PrimaryButton type="button" onClick={handleBack}>
-          {t("Back to Dashboard")}
-        </PrimaryButton>
-      </Footer>
     </PageContainer>
   );
 };
@@ -497,6 +502,32 @@ const InvoiceStateCard = styled.div`
   font-size: 14px;
 `;
 
+const PendingMessageCard = styled.div`
+  width: 100%;
+  margin-top: 20px;
+  border-radius: 16px;
+  border: 1px solid #dbe8ff;
+  background: #f5f9ff;
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+`;
+
+const PendingMessageTitle = styled.h3`
+  font-size: 16px;
+  font-weight: 700;
+  color: #1d2d64;
+  margin: 0;
+`;
+
+const PendingMessageText = styled.p`
+  font-size: 14px;
+  color: #616a85;
+  line-height: 1.6;
+  margin: 0;
+`;
+
 /* ─── Rejection ───────────────────────────────────────────── */
 
 const ReasonSection = styled.div`
@@ -523,34 +554,6 @@ const ReasonCard = styled.div`
   font-size: 14px;
   line-height: 1.6;
   white-space: pre-wrap;
-`;
-
-/* ─── Footer ──────────────────────────────────────────────── */
-
-const Footer = styled.div`
-  width: 100%;
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
-  gap: 12px;
-  margin-top: auto;
-  padding-top: 32px;
-`;
-
-const PrimaryButton = styled.button`
-  cursor: pointer;
-  padding: 12px 28px;
-  color: #fff;
-  border-radius: 999px;
-  border: none;
-  background: #2671d9;
-  font-size: 14px;
-  font-weight: 600;
-  white-space: nowrap;
-
-  &:hover {
-    background: #1d5cb5;
-  }
 `;
 
 const OutlineButton = styled.button`

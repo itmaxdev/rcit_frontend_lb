@@ -14,7 +14,7 @@ import {
   clearImporterUploadData,
   fetchClearableImporterUpload,
 } from "../../functions/registered";
-import { STATUS_STYLES, StatusBadge, StatusIcon, StatusDot, StatusSvg } from "../statusBadge";
+import { StatusBadge, StatusIcon } from "../statusBadge";
 
 const ImporterDeclarations = () => {
   const { t } = useTranslation();
@@ -320,7 +320,7 @@ const ImporterDeclarations = () => {
                                     <span>{t("View Details")}</span>
                                   </ActionLabel>
                                 </ActionMenuButton>
-                                {currentStatus === "AWAITING_PAYMENT" && (
+                                {(currentStatus === "AWAITING_PAYMENT" || currentStatus === "PAID") && (
                                   <ActionMenuButton
                                     type="button"
                                     onClick={() => {

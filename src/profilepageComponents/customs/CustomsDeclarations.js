@@ -14,10 +14,12 @@ import {
   fetchCustomsDeclarationDetail,
   fetchCustomsDeclarationInvoice,
   fetchCustomsDeclarations,
+  generateInvoice,
+  releaseInvoice,
   rejectDeclaration,
   startCustomsDeclarationReview,
 } from "../../functions/customs";
-import { STATUS_STYLES, StatusBadge, StatusIcon, StatusDot, StatusSvg } from "../statusBadge";
+import { StatusBadge, StatusIcon } from "../statusBadge";
 
 const DECLARATION_TYPES = {
   IMPORTER: "IMPORTER",
@@ -40,6 +42,7 @@ const CustomsDeclarations = () => {
   const [isDetailLoading, setIsDetailLoading] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState(null);
   const [isInvoiceLoading, setIsInvoiceLoading] = useState(false);
+  const [pendingInvoiceReleaseRow, setPendingInvoiceReleaseRow] = useState(null);
   const [openMenuId, setOpenMenuId] = useState(null);
   const [menuPosition, setMenuPosition] = useState({ top: 0, right: 0 });
   const [selectedRows, setSelectedRows] = useState(new Set());
@@ -223,9 +226,31 @@ const CustomsDeclarations = () => {
     );
     setSelectedInvoice(invoice);
     setIsInvoiceLoading(false);
+    return invoice;
   };
 
-  const closeInvoice = () => {
+  const closeInvoice = async () => {
+    if (pendingInvoiceReleaseRow) {
+      const releasedRow = await releaseInvoice(
+        pendingInvoiceReleaseRow.declarationType,
+        pendingInvoiceReleaseRow.id
+      );
+
+      if (releasedRow) {
+        setDeclarations((prev) =>
+          prev.map((item) =>
+            item.id === pendingInvoiceReleaseRow.id &&
+            item.declarationType === pendingInvoiceReleaseRow.declarationType
+              ? releasedRow
+              : item
+          )
+        );
+      } else {
+        setTableActionError(t("Failed to move declaration to awaiting payment. Please try again."));
+      }
+
+      setPendingInvoiceReleaseRow(null);
+    }
     setSelectedInvoice(null);
     setIsInvoiceLoading(false);
   };
@@ -366,7 +391,6 @@ const CustomsDeclarations = () => {
       )
     );
     closeAdjustPanel();
-    await openInvoice(result);
   };
 
   const handleReject = async () => {
@@ -688,7 +712,6 @@ const CustomsDeclarations = () => {
                                               : item
                                           )
                                         );
-                                        await openInvoice(result);
                                       } else {
                                         setTableActionError(t("Failed to approve declaration. Please try again."));
                                       }
@@ -709,6 +732,74 @@ const CustomsDeclarations = () => {
                                         />
                                       </ActionSvg>
                                       <span>{t("Approve")}</span>
+                                    </ActionLabel>
+                                  </ActionMenuButton>
+                                )}
+                                {canGenerateInvoice(row) && (
+                                  <ActionMenuButton
+                                    type="button"
+                                    onClick={async () => {
+                                      setOpenMenuId(null);
+                                      setTableActionError(null);
+                                      setPendingInvoiceReleaseRow(null);
+                                      const result = await generateInvoice(
+                                        row.declarationType,
+                                        row.id
+                                      );
+                                      if (result) {
+                                        setDeclarations((prev) =>
+                                          prev.map((item) =>
+                                            item.id === row.id &&
+                                            item.declarationType === row.declarationType
+                                              ? result
+                                              : item
+                                          )
+                                        );
+                                        setPendingInvoiceReleaseRow(result);
+                                        const invoice = await openInvoice(result);
+                                        if (!invoice) {
+                                          setPendingInvoiceReleaseRow(null);
+                                        }
+                                      } else {
+                                        setTableActionError(t("Failed to generate invoice. Please try again."));
+                                      }
+                                    }}
+                                  >
+                                    <ActionLabel>
+                                      <ActionSvg
+                                        viewBox="0 0 20 20"
+                                        fill="none"
+                                        aria-hidden="true"
+                                      >
+                                        <rect
+                                          x="3.5"
+                                          y="2.5"
+                                          width="13"
+                                          height="15"
+                                          rx="2"
+                                          stroke="#1D2025"
+                                          strokeWidth="1.5"
+                                        />
+                                        <path
+                                          d="M6.5 7H13.5"
+                                          stroke="#1D2025"
+                                          strokeWidth="1.5"
+                                          strokeLinecap="round"
+                                        />
+                                        <path
+                                          d="M6.5 10.5H13.5"
+                                          stroke="#1D2025"
+                                          strokeWidth="1.5"
+                                          strokeLinecap="round"
+                                        />
+                                        <path
+                                          d="M6.5 14H10.5"
+                                          stroke="#1D2025"
+                                          strokeWidth="1.5"
+                                          strokeLinecap="round"
+                                        />
+                                      </ActionSvg>
+                                      <span>{t("Generate Invoice")}</span>
                                     </ActionLabel>
                                   </ActionMenuButton>
                                 )}
@@ -1297,9 +1388,19 @@ const canApproveDeclaration = (row) =>
   row.declarationType === DECLARATION_TYPES.IMPORTER &&
   row.status === "UNDER_REVIEW";
 
+const canGenerateInvoice = (row) =>
+  row.declarationType === DECLARATION_TYPES.IMPORTER &&
+  row.status === "APPROVED" &&
+  !row.invoiceGenerated;
+
 const canViewInvoice = (row) =>
   row.declarationType === DECLARATION_TYPES.IMPORTER &&
-  (row.status === "APPROVED" || row.status === "PAID" || row.status === "CLOSED");
+  (
+    row.status === "AWAITING_PAYMENT" ||
+    row.status === "PAID" ||
+    row.status === "CLOSED" ||
+    (row.status === "APPROVED" && row.invoiceGenerated)
+  );
 
 const canCloseDeclaration = (row) =>
   row.declarationType === DECLARATION_TYPES.IMPORTER &&
@@ -1738,39 +1839,6 @@ const DrawerHeader = styled.div`
   align-items: center;
   justify-content: space-between;
   margin-bottom: 24px;
-`;
-
-const DrawerItemsScrollWrapper = styled.div`
-  overflow-x: auto;
-`;
-
-const DrawerItemsTable = styled.table`
-  width: 100%;
-  border-collapse: collapse;
-  min-width: 420px;
-`;
-
-const DrawerItemsTh = styled.th`
-  text-align: left;
-  color: #6f7897;
-  font-size: 12px;
-  font-weight: 600;
-  padding: 10px 12px;
-  background: #f7f8fc;
-  border-bottom: 1px solid #edf0f7;
-`;
-
-const DrawerItemsTd = styled.td`
-  padding: 10px 12px;
-  font-size: 13px;
-  color: #1d2025;
-  border-bottom: 1px solid #edf0f7;
-  vertical-align: middle;
-  white-space: ${({ $preserveLines }) => ($preserveLines ? "pre-line" : "normal")};
-
-  tr:last-child & {
-    border-bottom: none;
-  }
 `;
 
 const DrawerTitle = styled.h2`

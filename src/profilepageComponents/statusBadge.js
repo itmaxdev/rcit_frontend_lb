@@ -87,7 +87,7 @@ export const StatusIcon = ({ status }) => {
 
   if (icon === "flag") {
     return (
-      <img src={flag} />
+      <img src={flag} alt="" />
     );
   }
 
