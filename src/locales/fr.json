@@ -348,6 +348,8 @@
   "Invoice generated. Awaiting payment.": "Facture générée. En attente de paiement.",
   "Thank you. Payment received": "Merci. Paiement reçu",
   "Proceed to Payment": "Procéder au paiement",
+  "Set as Closed": "Définir comme clôturée",
+  "Failed to close declaration. Please try again.": "Impossible de clôturer la déclaration. Veuillez réessayer.",
   "Failed to load invoice. Please try again.": "Impossible de charger la facture. Veuillez réessayer.",
   "Adjusted value must be a whole number.": "La valeur ajustée doit être un nombre entier."
 }

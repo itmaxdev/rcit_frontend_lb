@@ -354,6 +354,8 @@
   "Invoice generated. Awaiting payment.": "Invoice generated. Awaiting payment.",
   "Thank you. Payment received": "Thank you. Payment received",
   "Proceed to Payment": "Proceed to Payment",
+  "Set as Closed": "Set as Closed",
+  "Failed to close declaration. Please try again.": "Failed to close declaration. Please try again.",
   "Failed to load invoice. Please try again.": "Failed to load invoice. Please try again.",
   "NoDevices_Title1": "No registered devices yet.",
   "NoDevices_Title2": "Start your device registration process!",

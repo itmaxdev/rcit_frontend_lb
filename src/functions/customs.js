@@ -209,3 +209,28 @@ export const rejectDeclaration = async (declarationType, declarationId, reason) 
     return null;
   }
 };
+
+export const closeDeclaration = async (declarationType, declarationId) => {
+  try {
+    const token = getToken();
+    const response = await makeAuthenticatedRequest(
+      `${CUSTOMS_API_BASE_URL}/declarations/${declarationType}/${declarationId}/close`,
+      {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    if (!response?.ok) {
+      const errorData = response ? await response.json() : null;
+      throw new Error(errorData?.message || "Failed to close declaration");
+    }
+
+    return response.json();
+  } catch (error) {
+    console.error("Error closing declaration:", error);
+    return null;
+  }
+};

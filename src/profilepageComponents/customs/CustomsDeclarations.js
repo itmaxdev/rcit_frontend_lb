@@ -9,6 +9,7 @@ import Popup from "../Popup";
 import {
   adjustDeclarationValue,
   approveDeclaration,
+  closeDeclaration,
   fetchCustomsDeclarationDetail,
   fetchCustomsDeclarationInvoice,
   fetchCustomsDeclarations,
@@ -57,6 +58,12 @@ const STATUS_STYLES = {
     color: "#516275",
     icon: "check",
     iconColor: "#1c9d4b",
+  },
+  CLOSED: {
+    background: "#eef2f8",
+    color: "#516275",
+    icon: "lock",
+    iconColor: "#516275",
   },
 };
 
@@ -735,6 +742,54 @@ const CustomsDeclarations = () => {
                                     </ActionLabel>
                                   </ActionMenuButton>
                                 )}
+                                {canCloseDeclaration(row) && (
+                                  <ActionMenuButton
+                                    type="button"
+                                    onClick={async () => {
+                                      setOpenMenuId(null);
+                                      const result = await closeDeclaration(
+                                        row.declarationType,
+                                        row.id
+                                      );
+                                      if (result) {
+                                        setDeclarations((previousRows) =>
+                                          previousRows.map((item) =>
+                                            item.id === row.id && item.declarationType === row.declarationType
+                                              ? result
+                                              : item
+                                          )
+                                        );
+                                      } else {
+                                        setTableActionError(t("Failed to close declaration. Please try again."));
+                                      }
+                                    }}
+                                  >
+                                    <ActionLabel>
+                                      <ActionSvg
+                                        viewBox="0 0 20 20"
+                                        fill="none"
+                                        aria-hidden="true"
+                                      >
+                                        <rect
+                                          x="4.5"
+                                          y="8.5"
+                                          width="11"
+                                          height="8"
+                                          rx="2"
+                                          stroke="#1D2025"
+                                          strokeWidth="1.5"
+                                        />
+                                        <path
+                                          d="M7 8.5V6.8C7 5.14 8.34 3.8 10 3.8C11.66 3.8 13 5.14 13 6.8V8.5"
+                                          stroke="#1D2025"
+                                          strokeWidth="1.5"
+                                          strokeLinecap="round"
+                                        />
+                                      </ActionSvg>
+                                      <span>{t("Set as Closed")}</span>
+                                    </ActionLabel>
+                                  </ActionMenuButton>
+                                )}
                                 {canRejectDeclaration(row) && (
                                   <ActionMenuButton
                                     type="button"
@@ -1144,6 +1199,10 @@ const formatStatusLabel = (status) => {
     return "Rejected";
   }
 
+  if (status === "CLOSED") {
+    return "Closed";
+  }
+
   return status
     .split("_")
     .map((part) => part.charAt(0) + part.slice(1).toLowerCase())
@@ -1169,7 +1228,11 @@ const canApproveDeclaration = (row) =>
 
 const canViewInvoice = (row) =>
   row.declarationType === DECLARATION_TYPES.IMPORTER &&
-  (row.status === "APPROVED" || row.status === "PAID");
+  (row.status === "APPROVED" || row.status === "PAID" || row.status === "CLOSED");
+
+const canCloseDeclaration = (row) =>
+  row.declarationType === DECLARATION_TYPES.IMPORTER &&
+  row.status === "PAID";
 
 const canRejectDeclaration = (row) =>
   row.declarationType === DECLARATION_TYPES.IMPORTER &&
@@ -1262,6 +1325,28 @@ const renderStatusIcon = (status) => {
         <path
           d="M5.2 3.8H11.4L10.1 6.1L11.4 8.4H5.2V3.8Z"
           fill={style.iconColor}
+        />
+      </StatusSvg>
+    );
+  }
+
+  if (style.icon === "lock") {
+    return (
+      <StatusSvg viewBox="0 0 16 16" fill="none" aria-hidden="true">
+        <rect
+          x="4"
+          y="7"
+          width="8"
+          height="6"
+          rx="1.6"
+          stroke={style.iconColor}
+          strokeWidth="1.4"
+        />
+        <path
+          d="M5.8 7V5.8C5.8 4.59 6.79 3.6 8 3.6C9.21 3.6 10.2 4.59 10.2 5.8V7"
+          stroke={style.iconColor}
+          strokeWidth="1.4"
+          strokeLinecap="round"
         />
       </StatusSvg>
     );
