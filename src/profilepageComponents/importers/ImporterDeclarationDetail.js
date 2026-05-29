@@ -5,8 +5,10 @@ import { useNavigate, useParams } from "react-router-dom";
 import {
   downloadFullFile,
   fetchImporterDeclarationById,
+  fetchImporterDeclarationInvoice,
   initiateDeclarationPayment,
 } from "../../functions/impDeclare";
+import ImporterInvoicePreview from "./ImporterInvoicePreview";
 import PaymentSummary from "../paymentSummary";
 
 const STATUS_STYLES = {
@@ -25,15 +27,53 @@ const ImporterDeclarationDetail = () => {
   const navigate = useNavigate();
   const { declarationId } = useParams();
   const [declaration, setDeclaration] = useState(null);
+  const [invoice, setInvoice] = useState(null);
+  const [invoiceLoading, setInvoiceLoading] = useState(false);
+  const [invoiceError, setInvoiceError] = useState("");
+  const [showPaymentSummary, setShowPaymentSummary] = useState(false);
   const [loading, setLoading] = useState(true);
   const [paymentBusy, setPaymentBusy] = useState(false);
+
+  const loadInvoice = useCallback(async (uploadId, status) => {
+    if (!shouldLoadInvoice(status)) {
+      setInvoice(null);
+      setInvoiceError("");
+      setInvoiceLoading(false);
+      setShowPaymentSummary(false);
+      return null;
+    }
+
+    setInvoiceLoading(true);
+    setInvoiceError("");
+    const response = await fetchImporterDeclarationInvoice(uploadId);
+    setInvoice(response);
+    setInvoiceLoading(false);
+
+    if (!response) {
+      setInvoiceError(t("Failed to load invoice. Please try again."));
+      setShowPaymentSummary(false);
+      return null;
+    }
+
+    return response;
+  }, [t]);
 
   const loadDeclaration = useCallback(async () => {
     setLoading(true);
     const response = await fetchImporterDeclarationById(declarationId);
     setDeclaration(response);
+    if (!response) {
+      setInvoice(null);
+      setInvoiceError("");
+      setShowPaymentSummary(false);
+      setLoading(false);
+      return;
+    }
+
+    const status = response.importerStatus || response.customsStatus || "SUBMITTED";
+    await loadInvoice(response.id, status);
     setLoading(false);
-  }, [declarationId]);
+  }, [declarationId, loadInvoice]);
 
   useEffect(() => {
     loadDeclaration();
@@ -64,7 +104,10 @@ const ImporterDeclarationDetail = () => {
       global.alert2?.(
         t("You have successfully completed the payment"),
         "",
-        async () => { await loadDeclaration(); }
+        async () => {
+          setShowPaymentSummary(false);
+          await loadDeclaration();
+        }
       );
       return;
     }
@@ -92,7 +135,12 @@ const ImporterDeclarationDetail = () => {
   const trackerSteps = getTrackerSteps(currentStatus);
   const currentStepIndex = getTrackerStepIndex(currentStatus);
   const isPaid = currentStatus === "PAID";
-  const hasPayment = isPaid || currentStatus === "AWAITING_PAYMENT" || currentStatus === "APPROVED";
+  const showInvoice = shouldLoadInvoice(currentStatus);
+  const showProceedToPayment =
+    currentStatus === "AWAITING_PAYMENT" &&
+    invoice?.invoiceStatus !== "PAID" &&
+    !showPaymentSummary;
+  const showPayment = currentStatus === "AWAITING_PAYMENT" && showPaymentSummary && !!invoice;
   const showCardStatus =
     currentStatus !== "AWAITING_PAYMENT" && currentStatus !== "PAID";
 
@@ -170,22 +218,47 @@ const ImporterDeclarationDetail = () => {
         </DetailsGrid>
       </DeclarationCard>
 
-      {hasPayment && (
+      {showInvoice && (
+        <InvoiceSection>
+          {invoiceLoading ? (
+            <InvoiceStateCard>{t("Loading")}</InvoiceStateCard>
+          ) : invoiceError ? (
+            <InvoiceStateCard>
+              <div>{invoiceError}</div>
+              <OutlineButton
+                type="button"
+                onClick={() => loadInvoice(declaration.id, currentStatus)}
+              >
+                {t("Retry")}
+              </OutlineButton>
+            </InvoiceStateCard>
+          ) : invoice ? (
+            <ImporterInvoicePreview
+              invoice={invoice}
+              showProceedButton={showProceedToPayment}
+              onProceedToPayment={() => setShowPaymentSummary(true)}
+              proceedBusy={paymentBusy}
+            />
+          ) : null}
+        </InvoiceSection>
+      )}
+
+      {showPayment && (
         <PaymentSection>
           <PaymentSummary
             data={{
-              totalDeclaredValue: declaration.totalDeclaredValue,
-              totalApprovedValue: declaration.totalApprovedValue,
-              totalCustomsDuty: declaration.totalCustomsDuty,
-              totalPayable: declaration.totalFees,
-              vatAmount: declaration.vatAmount,
-              dutyPercentage: declaration.dutyPercentage,
-              vatPercentage: declaration.vatPercentage,
-              usdToLbpRate: declaration.usdToLbpRate,
+              totalApprovedValue: invoice.approvedValueUsd,
+              totalCustomsDuty: invoice.customsDutyUsd,
+              totalWithDuty: invoice.totalWithDutyUsd,
+              totalPayable: invoice.totalPayableUsd,
+              vatAmount: invoice.vatAmountUsd,
+              dutyPercentage: invoice.dutyPercentage,
+              vatPercentage: invoice.vatPercentage,
+              usdToLbpRate: invoice.usdToLbpRate,
             }}
             busy={paymentBusy}
             onPay={handlePay}
-            paid={isPaid}
+            paid={isPaid || invoice?.invoiceStatus === "PAID"}
           />
         </PaymentSection>
       )}
@@ -198,35 +271,9 @@ const ImporterDeclarationDetail = () => {
       )}
 
       <Footer>
-        {isPaid ? (
-          <>
-            <OutlineButton type="button" onClick={handleViewCsv}>
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{ marginRight: 6 }}>
-                <path
-                  d="M8 2.667V10M8 10L5.333 7.333M8 10L10.667 7.333"
-                  stroke="currentColor"
-                  strokeWidth="1.4"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-                <path
-                  d="M2.667 12H13.333"
-                  stroke="currentColor"
-                  strokeWidth="1.4"
-                  strokeLinecap="round"
-                />
-              </svg>
-              {t("Download Invoice")}
-            </OutlineButton>
-            <PrimaryButton type="button" onClick={handleBack}>
-              {t("Back to Dashboard")}
-            </PrimaryButton>
-          </>
-        ) : (
-          <PrimaryButton type="button" onClick={handleBack}>
-            {t("Back to Dashboard")}
-          </PrimaryButton>
-        )}
+        <PrimaryButton type="button" onClick={handleBack}>
+          {t("Back to Dashboard")}
+        </PrimaryButton>
       </Footer>
     </PageContainer>
   );
@@ -234,6 +281,9 @@ const ImporterDeclarationDetail = () => {
 
 const getTrackerSteps = (status) => {
   if (status === "DECLINED") return ["SUBMITTED", "UNDER_REVIEW", "DECLINED"];
+  if (status === "SUBMITTED" || status === "UNDER_REVIEW") {
+    return ["SUBMITTED", "UNDER_REVIEW", "AWAITING_PAYMENT"];
+  }
   if (status === "PAID") return ["SUBMITTED", "APPROVED", "PAID"];
   return ["SUBMITTED", "APPROVED", "AWAITING_PAYMENT"];
 };
@@ -242,13 +292,16 @@ const getTrackerStepIndex = (status) => {
   const map = {
     SUBMITTED: 0,
     UNDER_REVIEW: 1,
-    APPROVED: 2,
+    APPROVED: 1,
     AWAITING_PAYMENT: 2,
-    PAID: 3,
+    PAID: 2,
     DECLINED: 2,
   };
   return map[status] ?? 0;
 };
+
+const shouldLoadInvoice = (status) =>
+  status === "AWAITING_PAYMENT" || status === "PAID";
 
 const formatDeclarationNumber = (value) =>
   `#${String(value).padStart(6, "0")}`;
@@ -438,6 +491,27 @@ const DetailValue = styled.span`
 const PaymentSection = styled.div`
   width: 100%;
   margin-top: 20px;
+`;
+
+const InvoiceSection = styled.div`
+  width: 100%;
+  margin-top: 20px;
+`;
+
+const InvoiceStateCard = styled.div`
+  width: 100%;
+  min-height: 180px;
+  border-radius: 18px;
+  border: 1px solid #edf0f7;
+  background: #fff;
+  box-shadow: 0 20px 45px rgba(17, 24, 39, 0.06);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  color: #616a85;
+  font-size: 14px;
 `;
 
 /* ─── Rejection ───────────────────────────────────────────── */

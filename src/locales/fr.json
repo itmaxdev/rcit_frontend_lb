@@ -347,5 +347,7 @@
   "Customs Directorate": "Direction des douanes",
   "Invoice generated. Awaiting payment.": "Facture générée. En attente de paiement.",
   "Thank you. Payment received": "Merci. Paiement reçu",
+  "Proceed to Payment": "Procéder au paiement",
+  "Failed to load invoice. Please try again.": "Impossible de charger la facture. Veuillez réessayer.",
   "Adjusted value must be a whole number.": "La valeur ajustée doit être un nombre entier."
 }

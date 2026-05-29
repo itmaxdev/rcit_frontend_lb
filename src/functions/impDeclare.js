@@ -129,6 +129,30 @@ export const fetchImporterDeclarationById = async (uploadId) => {
   }
 };
 
+export const fetchImporterDeclarationInvoice = async (uploadId) => {
+  const token = getToken();
+  const url = `${DECLARATIONS_URL}/${uploadId}/invoice`;
+
+  try {
+    const response = await makeAuthenticatedRequest(url, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (!response?.ok) {
+      const errorData = response ? await response.json() : null;
+      throw new Error(errorData?.message || "Failed to fetch importer invoice");
+    }
+
+    return response.json();
+  } catch (error) {
+    console.error("Error fetching importer invoice:", error);
+    return null;
+  }
+};
+
 export const initiateDeclarationPayment = async (uploadId) => {
   const token = getToken();
   const url = `${DECLARATIONS_URL}/${uploadId}/payments`;

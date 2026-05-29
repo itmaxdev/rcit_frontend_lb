@@ -396,7 +396,7 @@ const ImporterDeclarations = () => {
                                           fill="#1D2025"
                                         />
                                       </ActionSvg>
-                                      <span>{t("Proceed to Payment")}</span>
+                                      <span>{t("View Invoice")}</span>
                                     </ActionLabel>
                                   </ActionMenuButton>
                                 )}
