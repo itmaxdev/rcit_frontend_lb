@@ -10,6 +10,7 @@ import {
   adjustDeclarationValue,
   approveDeclaration,
   fetchCustomsDeclarationDetail,
+  fetchCustomsDeclarationInvoice,
   fetchCustomsDeclarations,
   rejectDeclaration,
   startCustomsDeclarationReview,
@@ -72,8 +73,9 @@ const CustomsDeclarations = () => {
   const [declarations, setDeclarations] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [selectedDeclaration, setSelectedDeclaration] = useState(null);
-  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isDetailLoading, setIsDetailLoading] = useState(false);
+  const [selectedInvoice, setSelectedInvoice] = useState(null);
+  const [isInvoiceLoading, setIsInvoiceLoading] = useState(false);
   const [openMenuId, setOpenMenuId] = useState(null);
   const [menuPosition, setMenuPosition] = useState({ top: 0, right: 0 });
   const [selectedRows, setSelectedRows] = useState(new Set());
@@ -152,7 +154,7 @@ const CustomsDeclarations = () => {
     setCurrentPage(0);
     setOpenMenuId(null);
     setSelectedDeclaration(null);
-    setIsDrawerOpen(false);
+    setSelectedInvoice(null);
     setSelectedRows(new Set());
   };
 
@@ -197,7 +199,6 @@ const CustomsDeclarations = () => {
 
   const openDetails = async (row) => {
     setOpenMenuId(null);
-    setIsDrawerOpen(true);
     setIsDetailLoading(true);
     const detail = await fetchCustomsDeclarationDetail(
       row.declarationType,
@@ -205,6 +206,29 @@ const CustomsDeclarations = () => {
     );
     setSelectedDeclaration(detail);
     setIsDetailLoading(false);
+  };
+
+  const closeDetails = () => {
+    setSelectedDeclaration(null);
+    setIsDetailLoading(false);
+  };
+
+  const openInvoice = async (row) => {
+    if (!row) return;
+    setOpenMenuId(null);
+    setIsInvoiceLoading(true);
+    setSelectedInvoice(null);
+    const invoice = await fetchCustomsDeclarationInvoice(
+      row.declarationType,
+      row.id
+    );
+    setSelectedInvoice(invoice);
+    setIsInvoiceLoading(false);
+  };
+
+  const closeInvoice = () => {
+    setSelectedInvoice(null);
+    setIsInvoiceLoading(false);
   };
 
   const handleActionClick = async (e, row) => {
@@ -343,6 +367,7 @@ const CustomsDeclarations = () => {
       )
     );
     closeAdjustPanel();
+    await openInvoice(result);
   };
 
   const handleReject = async () => {
@@ -545,8 +570,22 @@ const CustomsDeclarations = () => {
                     </tr>
                   ) : (
                     declarations.map((row, index) => (
-                      <TableRow key={rowKey(row)}>
-                        <Td>
+                      <TableRow
+                        key={rowKey(row)}
+                        $selected={
+                          selectedDeclaration?.id === row.id &&
+                          selectedDeclaration?.declarationType === row.declarationType
+                        }
+                        tabIndex={0}
+                        onClick={() => openDetails(row)}
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter" || event.key === " ") {
+                            event.preventDefault();
+                            openDetails(row);
+                          }
+                        }}
+                      >
+                        <Td onClick={(event) => event.stopPropagation()}>
                           <StyledCheckbox
                             type="checkbox"
                             aria-label={`select ${row.declarationNumber}`}
@@ -570,7 +609,7 @@ const CustomsDeclarations = () => {
                             {formatStatusLabel(row.status)}
                           </StatusBadge>
                         </Td>
-                        <Td>
+                        <Td onClick={(event) => event.stopPropagation()}>
                           <ActionCell>
                             <ActionButton
                               type="button"
@@ -642,6 +681,7 @@ const CustomsDeclarations = () => {
                                               : item
                                           )
                                         );
+                                        await openInvoice(result);
                                       } else {
                                         setTableActionError(t("Failed to approve declaration. Please try again."));
                                       }
@@ -662,6 +702,36 @@ const CustomsDeclarations = () => {
                                         />
                                       </ActionSvg>
                                       <span>{t("Approve")}</span>
+                                    </ActionLabel>
+                                  </ActionMenuButton>
+                                )}
+                                {canViewInvoice(row) && (
+                                  <ActionMenuButton
+                                    type="button"
+                                    onClick={() => openInvoice(row)}
+                                  >
+                                    <ActionLabel>
+                                      <ActionSvg
+                                        viewBox="0 0 20 20"
+                                        fill="none"
+                                        aria-hidden="true"
+                                      >
+                                        <path
+                                          d="M2.5 10C4.3 6.8 6.9 5.1 10 5.1C13.1 5.1 15.7 6.8 17.5 10C15.7 13.2 13.1 14.9 10 14.9C6.9 14.9 4.3 13.2 2.5 10Z"
+                                          stroke="#1D2025"
+                                          strokeWidth="1.5"
+                                          strokeLinecap="round"
+                                          strokeLinejoin="round"
+                                        />
+                                        <circle
+                                          cx="10"
+                                          cy="10"
+                                          r="2.2"
+                                          stroke="#1D2025"
+                                          strokeWidth="1.5"
+                                        />
+                                      </ActionSvg>
+                                      <span>{t("View Invoice")}</span>
                                     </ActionLabel>
                                   </ActionMenuButton>
                                 )}
@@ -703,113 +773,170 @@ const CustomsDeclarations = () => {
                 </tbody>
               </Table>
             </TableWrapper>
+
+            {(isDetailLoading || selectedDeclaration) && (
+              <InlineDetailsCard>
+                <InlineDetailsHeader>
+                  <DrawerTitle>{t("Declaration Items")}</DrawerTitle>
+                  <CloseDrawerButton type="button" onClick={closeDetails}>
+                    &#x2715;
+                  </CloseDrawerButton>
+                </InlineDetailsHeader>
+
+                {isDetailLoading ? (
+                  <DrawerLoading>{t("Loading")}</DrawerLoading>
+                ) : !selectedDeclaration ? (
+                  <DrawerLoading>{t("No data available")}</DrawerLoading>
+                ) : (
+                  <ItemsTable>
+                    <thead>
+                      <tr>
+                        <Th>{t("IMEIs")}</Th>
+                        <Th>{t("Brand")}</Th>
+                        <Th>{t("Model")}</Th>
+                        <Th>{t("Nbr of IMEIs")}</Th>
+                        <Th>{t("Device Status")}</Th>
+                        <Th>{t("Declared Value (USD)")}</Th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {selectedDeclaration.items.map((item) => (
+                        <tr key={item.id}>
+                          <Td $preserveLines>{formatImeis(item.imeis)}</Td>
+                          <Td>{item.brand || "-"}</Td>
+                          <Td>{item.model || "-"}</Td>
+                          <Td>{item.imeiCount}</Td>
+                          <Td>{formatStatusLabel(item.status)}</Td>
+                          <Td>{formatMoney(item.declaredValueUsd)}</Td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </ItemsTable>
+                )}
+              </InlineDetailsCard>
+            )}
           </>
-        )}
-      </ContentCard>
+      )}
+    </ContentCard>
 
-      {/* Detail drawer */}
-      {isDrawerOpen && (
-        <DrawerOverlay onClick={() => setIsDrawerOpen(false)}>
-          <DrawerPanel onClick={(event) => event.stopPropagation()}>
-            <DrawerHeader>
-              <DrawerTitle>{t("Declaration Details")}</DrawerTitle>
-              <CloseDrawerButton
-                type="button"
-                onClick={() => setIsDrawerOpen(false)}
-              >
-                &#x2715;
-              </CloseDrawerButton>
-            </DrawerHeader>
-
-            {isDetailLoading ? (
+      {(isInvoiceLoading || selectedInvoice) && (
+        <InvoiceOverlay onClick={closeInvoice}>
+          <InvoicePanel onClick={(e) => e.stopPropagation()}>
+            {isInvoiceLoading ? (
               <DrawerLoading>{t("Loading")}</DrawerLoading>
-            ) : !selectedDeclaration ? (
+            ) : !selectedInvoice ? (
               <DrawerLoading>{t("No data available")}</DrawerLoading>
             ) : (
               <>
-                <SummaryGrid>
-                  <SummaryItem>
-                    <SummaryLabel>{t("Submitter")}</SummaryLabel>
-                    <SummaryValue>{selectedDeclaration.submitterName}</SummaryValue>
-                  </SummaryItem>
-                  <SummaryItem>
-                    <SummaryLabel>{t("Email")}</SummaryLabel>
-                    <SummaryValue>{selectedDeclaration.submitterEmail || "-"}</SummaryValue>
-                  </SummaryItem>
-                  <SummaryItem>
-                    <SummaryLabel>{t("Declaration Nbr.")}</SummaryLabel>
-                    <SummaryValue>{selectedDeclaration.declarationNumber}</SummaryValue>
-                  </SummaryItem>
-                  <SummaryItem>
-                    <SummaryLabel>{t("Declaration Date")}</SummaryLabel>
-                    <SummaryValue>{formatDate(selectedDeclaration.declarationDate)}</SummaryValue>
-                  </SummaryItem>
-                  <SummaryItem>
-                    <SummaryLabel>{t("Devices Count")}</SummaryLabel>
-                    <SummaryValue>{selectedDeclaration.devicesCount}</SummaryValue>
-                  </SummaryItem>
-                  <SummaryItem>
-                    <SummaryLabel>{t("Price Source")}</SummaryLabel>
-                    <SummaryValue>{selectedDeclaration.priceSource}</SummaryValue>
-                  </SummaryItem>
-                  <SummaryItem>
-                    <SummaryLabel>{t("Declared Total (USD)")}</SummaryLabel>
-                    <SummaryValue>{formatMoney(selectedDeclaration.declaredTotalUsd)}</SummaryValue>
-                  </SummaryItem>
-                  <SummaryItem>
-                    <SummaryLabel>{t("Estimated Value (USD)")}</SummaryLabel>
-                    <SummaryValue>{formatMoney(selectedDeclaration.estimatedValueUsd)}</SummaryValue>
-                  </SummaryItem>
-                  <SummaryItem>
-                    <SummaryLabel>{t("Variance")}</SummaryLabel>
-                    <SummaryValue>
-                      <VarianceValue value={Number(selectedDeclaration.variancePercent || 0)} />
-                    </SummaryValue>
-                  </SummaryItem>
-                  <SummaryItem>
-                    <SummaryLabel>{t("Status")}</SummaryLabel>
-                    <SummaryValue>
-                      <StatusBadge $status={selectedDeclaration.status}>
-                        {renderStatusIcon(selectedDeclaration.status)}
-                        {formatStatusLabel(selectedDeclaration.status)}
-                      </StatusBadge>
-                    </SummaryValue>
-                  </SummaryItem>
-                  <SummaryItem $fullWidth>
-                    <SummaryLabel>{t("Source Reference")}</SummaryLabel>
-                    <SummaryValue>{selectedDeclaration.sourceReference || "-"}</SummaryValue>
-                  </SummaryItem>
-                </SummaryGrid>
+                <InvoiceCloseButton type="button" onClick={closeInvoice}>
+                  &#x2715;
+                </InvoiceCloseButton>
 
-                <ItemsTitle>{t("Declaration Items")}</ItemsTitle>
-                <ItemsTable>
-                  <thead>
-                    <tr>
-                      <Th>{t("IMEIs")}</Th>
-                      <Th>{t("Brand")}</Th>
-                      <Th>{t("Model")}</Th>
-                      <Th>{t("Nbr of IMEIs")}</Th>
-                      <Th>{t("Device Status")}</Th>
-                      <Th>{t("Declared Value (USD)")}</Th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {selectedDeclaration.items.map((item) => (
-                      <tr key={item.id}>
-                        <Td $preserveLines>{formatImeis(item.imeis)}</Td>
-                        <Td>{item.brand || "-"}</Td>
-                        <Td>{item.model || "-"}</Td>
-                        <Td>{item.imeiCount}</Td>
-                        <Td>{formatStatusLabel(item.status)}</Td>
-                        <Td>{formatMoney(item.declaredValueUsd)}</Td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </ItemsTable>
+                <InvoiceHeaderBlock>
+                  <InvoiceLeftHeader>
+                    <InvoiceSeal aria-hidden="true">
+                      <svg viewBox="0 0 72 72" fill="none">
+                        <path d="M36 10L43.5 22.5L58 24L47.5 33.5L50.5 47.5L36 40L21.5 47.5L24.5 33.5L14 24L28.5 22.5L36 10Z" fill="#6EA8FF"/>
+                        <circle cx="36" cy="36" r="18" stroke="#6EA8FF" strokeWidth="2.5"/>
+                        <path d="M36 24V48" stroke="#6EA8FF" strokeWidth="2.5" strokeLinecap="round"/>
+                        <path d="M28 32H44" stroke="#6EA8FF" strokeWidth="2.5" strokeLinecap="round"/>
+                        <path d="M28 40H44" stroke="#6EA8FF" strokeWidth="2.5" strokeLinecap="round"/>
+                      </svg>
+                    </InvoiceSeal>
+                    <InvoiceIssuerBlock>
+                      <InvoiceIssuerCountry>{t("Republic of Lebanon")}</InvoiceIssuerCountry>
+                      <InvoiceIssuerTitle>{t("Ministry of Finance")}</InvoiceIssuerTitle>
+                      <InvoiceIssuerSubtitle>{t("Customs Directorate")}</InvoiceIssuerSubtitle>
+                    </InvoiceIssuerBlock>
+                  </InvoiceLeftHeader>
+
+                  <InvoiceRightHeader>
+                    <InvoiceHeading>{t("Invoice")}</InvoiceHeading>
+                    <InvoiceNumber>{selectedInvoice.invoiceNumber}</InvoiceNumber>
+                  </InvoiceRightHeader>
+                </InvoiceHeaderBlock>
+
+                <InvoiceMetaGrid>
+                  <InvoiceMetaItem>
+                    <InvoiceMetaLabel>{t("Declaration No.")}</InvoiceMetaLabel>
+                    <InvoiceMetaValue>{selectedInvoice.declarationNumber}</InvoiceMetaValue>
+                  </InvoiceMetaItem>
+                  <InvoiceMetaItem>
+                    <InvoiceMetaLabel>{t("Devices Count")}</InvoiceMetaLabel>
+                    <InvoiceMetaValue>{selectedInvoice.devicesCount}</InvoiceMetaValue>
+                  </InvoiceMetaItem>
+                  <InvoiceMetaItem>
+                    <InvoiceMetaLabel>{t("Importer")}</InvoiceMetaLabel>
+                    <InvoiceMetaValue>{selectedInvoice.importerName}</InvoiceMetaValue>
+                  </InvoiceMetaItem>
+                  <InvoiceMetaItem>
+                    <InvoiceMetaLabel>{t("Issue Date")}</InvoiceMetaLabel>
+                    <InvoiceMetaValue>{formatDate(selectedInvoice.issueDate)}</InvoiceMetaValue>
+                  </InvoiceMetaItem>
+                  <InvoiceMetaItem>
+                    <InvoiceMetaLabel>{t("Currency")}</InvoiceMetaLabel>
+                    <InvoiceMetaValue>{selectedInvoice.currency}</InvoiceMetaValue>
+                  </InvoiceMetaItem>
+                  <InvoiceMetaItem>
+                    <InvoiceMetaLabel>{t("Declaration Date")}</InvoiceMetaLabel>
+                    <InvoiceMetaValue>{formatDate(selectedInvoice.declarationDate)}</InvoiceMetaValue>
+                  </InvoiceMetaItem>
+                  <InvoiceMetaItem>
+                    <InvoiceMetaLabel>{t("Payment Status")}</InvoiceMetaLabel>
+                    <InvoiceMetaValue>
+                      <InvoiceStatusBadge $paid={selectedInvoice.invoiceStatus === "PAID"}>
+                        {formatInvoiceStatusLabel(t, selectedInvoice.invoiceStatus)}
+                      </InvoiceStatusBadge>
+                    </InvoiceMetaValue>
+                  </InvoiceMetaItem>
+                </InvoiceMetaGrid>
+
+                <InvoiceSummaryCard>
+                  <InvoiceSummaryRow>
+                    <span>{t("Total Approved Value")}</span>
+                    <span>{formatInvoiceMoney(selectedInvoice.approvedValueUsd)}</span>
+                  </InvoiceSummaryRow>
+                  <InvoiceSummaryRow>
+                    <span>
+                      {t("Total Customs Duty")} ({Number(selectedInvoice.dutyPercentage || 0).toFixed(0)}%)
+                    </span>
+                    <strong>{formatInvoiceMoney(selectedInvoice.customsDutyUsd)}</strong>
+                  </InvoiceSummaryRow>
+                  <InvoiceSummaryRow>
+                    <span>{t("Total (Approved Value + Customs Duty)")}</span>
+                    <span>{formatInvoiceMoney(selectedInvoice.totalWithDutyUsd)}</span>
+                  </InvoiceSummaryRow>
+                  <InvoiceSummaryRow $last>
+                    <span>{t("VAT")} ({Number(selectedInvoice.vatPercentage || 0).toFixed(0)}%)</span>
+                    <strong>+{formatInvoiceMoney(selectedInvoice.vatAmountUsd)}</strong>
+                  </InvoiceSummaryRow>
+                </InvoiceSummaryCard>
+
+                <InvoiceTotalBox>
+                  <InvoiceTotalLeft>
+                    <strong>{t("TOTAL PAYABLE")}</strong>{" "}
+                    <InvoiceTotalSub>({t("TOTAL CUSTOMS DUTY + VAT")})</InvoiceTotalSub>
+                  </InvoiceTotalLeft>
+                  <InvoiceTotalRight>
+                    <InvoiceTotalAmount>{formatInvoiceMoney(selectedInvoice.totalPayableUsd)}</InvoiceTotalAmount>
+                    <InvoiceTotalApprox>
+                      ≈ {(Number(selectedInvoice.totalPayableUsd || 0) * Number(selectedInvoice.usdToLbpRate || 0)).toLocaleString()} LBP
+                    </InvoiceTotalApprox>
+                    <InvoiceTotalRate>
+                      {t("Exchange Rate")}: {Number(selectedInvoice.usdToLbpRate || 0).toLocaleString()} USD/LBP
+                    </InvoiceTotalRate>
+                  </InvoiceTotalRight>
+                </InvoiceTotalBox>
+
+                <InvoiceFooterNote>
+                  {selectedInvoice.invoiceStatus === "PAID"
+                    ? t("Thank you. Payment received")
+                    : t("Invoice generated. Awaiting payment.")}
+                </InvoiceFooterNote>
               </>
             )}
-          </DrawerPanel>
-        </DrawerOverlay>
+          </InvoicePanel>
+        </InvoiceOverlay>
       )}
 
       {/* Adjust consignment values panel */}
@@ -1000,6 +1127,14 @@ const formatMoney = (value) =>
     maximumFractionDigits: 2,
   }).format(Number(value || 0));
 
+const formatInvoiceMoney = (value) =>
+  new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(Number(value || 0));
+
 const formatStatusLabel = (status) => {
   if (!status) {
     return "-";
@@ -1015,6 +1150,13 @@ const formatStatusLabel = (status) => {
     .join(" ");
 };
 
+const formatInvoiceStatusLabel = (t, status) => {
+  if (status === "PAID") {
+    return t("Paid");
+  }
+  return t("Awaiting Payment");
+};
+
 const formatImeis = (imeis) => (imeis ? imeis.split("|").join("\n") : "-");
 
 const canAdjustDeclaration = (row) =>
@@ -1024,6 +1166,10 @@ const canAdjustDeclaration = (row) =>
 const canApproveDeclaration = (row) =>
   row.declarationType === DECLARATION_TYPES.IMPORTER &&
   row.status === "UNDER_REVIEW";
+
+const canViewInvoice = (row) =>
+  row.declarationType === DECLARATION_TYPES.IMPORTER &&
+  (row.status === "APPROVED" || row.status === "PAID");
 
 const canRejectDeclaration = (row) =>
   row.declarationType === DECLARATION_TYPES.IMPORTER &&
@@ -1331,9 +1477,17 @@ const NameCell = styled(Td)`
 
 const TableRow = styled.tr`
   transition: background 0.15s ease;
+  cursor: pointer;
+
+  background: ${({ $selected }) => ($selected ? "#fafbff" : "transparent")};
 
   &:hover {
     background: #fafbff;
+  }
+
+  &:focus-visible {
+    outline: 2px solid #2671d9;
+    outline-offset: -2px;
   }
 `;
 
@@ -1498,6 +1652,20 @@ const DrawerHeader = styled.div`
   margin-bottom: 24px;
 `;
 
+const InlineDetailsCard = styled.div`
+  width: 100%;
+  border-top: 1px solid #edf0f7;
+  padding-top: 24px;
+`;
+
+const InlineDetailsHeader = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 24px;
+`;
+
 const DrawerTitle = styled.h2`
   font-size: 22px;
   color: #1d2025;
@@ -1517,35 +1685,223 @@ const DrawerLoading = styled.div`
   padding: 24px 0;
 `;
 
-const SummaryGrid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 18px 16px;
-  margin-bottom: 28px;
+const InvoiceOverlay = styled.div`
+  position: fixed;
+  inset: 0;
+  background: rgba(13, 18, 28, 0.28);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 25;
 `;
 
-const SummaryItem = styled.div`
+const InvoicePanel = styled.div`
+  position: relative;
+  width: min(980px, calc(100vw - 48px));
+  max-height: calc(100vh - 48px);
+  background: #fff;
+  border-radius: 18px;
+  padding: 22px 24px 18px;
+  border: 1px solid #edf0f7;
+  overflow-y: auto;
+  box-shadow: 0 24px 60px rgba(17, 24, 39, 0.12);
+  margin: 24px;
+`;
+
+const InvoiceCloseButton = styled.button`
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  border: none;
+  background: transparent;
+  font-size: 20px;
+  cursor: pointer;
+  color: #8b92a8;
+  line-height: 1;
+`;
+
+const InvoiceLeftHeader = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+`;
+
+const InvoiceRightHeader = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  grid-column: ${({ $fullWidth }) => ($fullWidth ? "1 / -1" : "auto")};
+  align-items: flex-end;
+  gap: 2px;
 `;
 
-const SummaryLabel = styled.span`
+const InvoiceSeal = styled.div`
+  width: 46px;
+  height: 46px;
+  flex-shrink: 0;
+
+  svg {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+`;
+
+const InvoiceIssuerBlock = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+`;
+
+const InvoiceIssuerCountry = styled.span`
+  color: #8a93ad;
   font-size: 13px;
-  color: #6f7897;
+  line-height: 1.2;
 `;
 
-const SummaryValue = styled.div`
+const InvoiceIssuerTitle = styled.span`
+  color: #1d2025;
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1.2;
+`;
+
+const InvoiceIssuerSubtitle = styled.span`
+  color: #1d2025;
   font-size: 15px;
-  color: #1d2025;
-  font-weight: 500;
+  font-weight: 600;
+  line-height: 1.2;
 `;
 
-const ItemsTitle = styled.h3`
-  font-size: 18px;
+const InvoiceHeaderBlock = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #edf0f7;
+  margin-bottom: 10px;
+`;
+
+const InvoiceHeading = styled.h2`
+  font-size: 17px;
   color: #1d2025;
-  margin-bottom: 8px;
+  margin: 0;
+  font-weight: 700;
+  line-height: 1.2;
+`;
+
+const InvoiceNumber = styled.div`
+  font-size: 17px;
+  font-weight: 700;
+  color: #1d2025;
+  text-align: right;
+  line-height: 1.2;
+`;
+
+const InvoiceMetaGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px 26px;
+  padding: 10px 0 16px;
+  border-bottom: 1px solid #edf0f7;
+  margin-bottom: 16px;
+`;
+
+const InvoiceMetaItem = styled.div`
+  min-width: 0;
+`;
+
+const InvoiceMetaLabel = styled.div`
+  color: #7d86a3;
+  font-size: 12px;
+  margin-bottom: 4px;
+`;
+
+const InvoiceMetaValue = styled.div`
+  color: #1d2025;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.2;
+`;
+
+const InvoiceStatusBadge = styled.span`
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  background: ${({ $paid }) => ($paid ? "#eef6ef" : "#e8f1ff")};
+  color: ${({ $paid }) => ($paid ? "#1c9d4b" : "#2671d9")};
+`;
+
+const InvoiceSummaryCard = styled.div`
+  border-radius: 0;
+  background: transparent;
+  padding: 0;
+  margin-bottom: 14px;
+`;
+
+const InvoiceSummaryRow = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding: 15px 4px;
+  color: #1d2025;
+  font-size: 14px;
+  border-bottom: ${({ $last }) => ($last ? "none" : "1px solid #edf0f7")};
+`;
+
+const InvoiceTotalBox = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: #f7fbf7;
+  border: none;
+`;
+
+const InvoiceTotalLeft = styled.div`
+  color: #1d2025;
+  font-size: 13px;
+`;
+
+const InvoiceTotalSub = styled.span`
+  color: #3f7f50;
+  font-size: 13px;
+  font-weight: 400;
+`;
+
+const InvoiceTotalRight = styled.div`
+  text-align: right;
+`;
+
+const InvoiceTotalAmount = styled.div`
+  color: #1b5e20;
+  font-size: 24px;
+  font-weight: 800;
+  line-height: 1.1;
+`;
+
+const InvoiceTotalApprox = styled.div`
+  color: #6f7897;
+  font-size: 11px;
+  margin-top: 3px;
+`;
+
+const InvoiceTotalRate = styled.div`
+  color: #98a0b7;
+  font-size: 10px;
+  margin-top: 2px;
+`;
+
+const InvoiceFooterNote = styled.div`
+  color: #a0a7bd;
+  font-size: 12px;
+  margin-top: 12px;
 `;
 
 /* Adjust panel specific styles */

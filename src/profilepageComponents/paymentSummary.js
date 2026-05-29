@@ -170,8 +170,8 @@ const PayStatusBadge = styled.span`
   border-radius: 999px;
   font-size: 13px;
   font-weight: 500;
-  background: ${({ $paid }) => ($paid ? "#eef6ef" : "#fff0e6")};
-  color: ${({ $paid }) => ($paid ? "#1c9d4b" : "#d55d00")};
+  background: ${({ $paid }) => ($paid ? "#eef6ef" : "#e8f1ff")};
+  color: ${({ $paid }) => ($paid ? "#1c9d4b" : "#2671d9")};
 `;
 
 const SummaryBox = styled.div`

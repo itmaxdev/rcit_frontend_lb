@@ -338,5 +338,14 @@
   "Rejecting...": "Rejet en cours...",
   "Clear Data": "Effacer les données",
   "ClearData_Confirmation": "Cela supprimera les données de la déclaration enregistrée et soumise afin de pouvoir téléverser à nouveau le même fichier. Voulez-vous continuer ?",
+  "View Invoice": "Voir la facture",
+  "Issue Date": "Date d'émission",
+  "Currency": "Devise",
+  "Payment Status": "Statut du paiement",
+  "Republic of Lebanon": "République libanaise",
+  "Ministry of Finance": "Ministère des Finances",
+  "Customs Directorate": "Direction des douanes",
+  "Invoice generated. Awaiting payment.": "Facture générée. En attente de paiement.",
+  "Thank you. Payment received": "Merci. Paiement reçu",
   "Adjusted value must be a whole number.": "La valeur ajustée doit être un nombre entier."
 }

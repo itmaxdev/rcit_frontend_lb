@@ -70,6 +70,34 @@ export const fetchCustomsDeclarationDetail = async (
   }
 };
 
+export const fetchCustomsDeclarationInvoice = async (
+  declarationType,
+  declarationId
+) => {
+  try {
+    const token = getToken();
+    const response = await makeAuthenticatedRequest(
+      `${CUSTOMS_API_BASE_URL}/declarations/${declarationType}/${declarationId}/invoice`,
+      {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    if (!response?.ok) {
+      const errorData = response ? await response.json() : null;
+      throw new Error(errorData?.message || "Failed to fetch declaration invoice");
+    }
+
+    return response.json();
+  } catch (error) {
+    console.error("Error fetching customs declaration invoice:", error);
+    return null;
+  }
+};
+
 export const startCustomsDeclarationReview = async (
   declarationType,
   declarationId

@@ -18,6 +18,8 @@ const STATUS_STYLES = {
   PAID: { background: "#eef6ef", color: "#1c9d4b" },
 };
 
+const TRACKER_COMPLETE_COLOR = "#1c9d4b";
+
 const ImporterDeclarationDetail = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -91,6 +93,8 @@ const ImporterDeclarationDetail = () => {
   const currentStepIndex = getTrackerStepIndex(currentStatus);
   const isPaid = currentStatus === "PAID";
   const hasPayment = isPaid || currentStatus === "AWAITING_PAYMENT" || currentStatus === "APPROVED";
+  const showCardStatus =
+    currentStatus !== "AWAITING_PAYMENT" && currentStatus !== "PAID";
 
   return (
     <PageContainer>
@@ -137,9 +141,11 @@ const ImporterDeclarationDetail = () => {
             <CardTitle>
               {t("Declaration")} {declaration.id}
             </CardTitle>
-            <StatusBadge $status={currentStatus}>
-              {formatStatusLabel(t, currentStatus)}
-            </StatusBadge>
+            {showCardStatus && (
+              <StatusBadge $status={currentStatus}>
+                {formatStatusLabel(t, currentStatus)}
+              </StatusBadge>
+            )}
           </CardTitleGroup>
           <CsvButton type="button" onClick={handleViewCsv}>
             {t("View CSV")}
@@ -291,17 +297,18 @@ const TrackerStep = styled.div`
 
 const TrackerLine = styled.div`
   position: absolute;
-  top: 16px;
-  right: calc(50% + 16px);
-  width: calc(100% - 32px);
+  top: 14px;
+  right: calc(50% + 14px);
+  width: calc(100% - 28px);
   height: 3px;
   border-radius: 2px;
-  background: ${({ $complete }) => ($complete ? "#436c4d" : "#d9dce8")};
+  background: ${({ $complete }) =>
+    $complete ? TRACKER_COMPLETE_COLOR : "#d9dce8"};
 `;
 
 const TrackerMarker = styled.div`
-  width: 32px;
-  height: 32px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -309,9 +316,24 @@ const TrackerMarker = styled.div`
   z-index: 1;
   flex-shrink: 0;
   background: ${({ $complete, $active, $rejected }) =>
-    $complete ? "#436c4d" : $rejected ? "#e03d3d" : $active ? "#2671d9" : "#fff"};
+    $complete ? TRACKER_COMPLETE_COLOR : $rejected ? "#e03d3d" : "#fff"};
   border: ${({ $complete, $active, $rejected }) =>
-    $complete || $active || $rejected ? "none" : "2.5px solid #d9dce8"};
+    $complete || $rejected
+      ? "none"
+      : $active
+        ? "2px solid #2671d9"
+        : "2px solid #d9dce8"};
+  position: relative;
+
+  &::after {
+    content: ${({ $active, $rejected }) =>
+      $active && !$rejected ? '""' : "none"};
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: #2671d9;
+    display: block;
+  }
 `;
 
 const TrackerLabel = styled.span`
