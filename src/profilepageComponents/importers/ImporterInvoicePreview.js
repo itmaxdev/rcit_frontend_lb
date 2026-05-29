@@ -1,6 +1,8 @@
 import React from "react";
 import styled from "styled-components";
 import { useTranslation } from "react-i18next";
+import { StatusBadge } from "../statusBadge";
+import ministryLogo from "../../assets/ministry_logo.jpeg";
 
 const ImporterInvoicePreview = ({
   invoice,
@@ -20,14 +22,8 @@ const ImporterInvoicePreview = ({
     <InvoiceCard>
       <InvoiceHeaderBlock>
         <InvoiceLeftHeader>
-          <InvoiceSeal aria-hidden="true">
-            <svg viewBox="0 0 72 72" fill="none">
-              <path d="M36 10L43.5 22.5L58 24L47.5 33.5L50.5 47.5L36 40L21.5 47.5L24.5 33.5L14 24L28.5 22.5L36 10Z" fill="#6EA8FF"/>
-              <circle cx="36" cy="36" r="18" stroke="#6EA8FF" strokeWidth="2.5"/>
-              <path d="M36 24V48" stroke="#6EA8FF" strokeWidth="2.5" strokeLinecap="round"/>
-              <path d="M28 32H44" stroke="#6EA8FF" strokeWidth="2.5" strokeLinecap="round"/>
-              <path d="M28 40H44" stroke="#6EA8FF" strokeWidth="2.5" strokeLinecap="round"/>
-            </svg>
+          <InvoiceSeal>
+            <img src={ministryLogo} alt="Ministry of Finance" />
           </InvoiceSeal>
           <InvoiceIssuerBlock>
             <InvoiceIssuerCountry>{t("Republic of Lebanon")}</InvoiceIssuerCountry>
@@ -70,9 +66,9 @@ const ImporterInvoicePreview = ({
         <InvoiceMetaItem>
           <InvoiceMetaLabel>{t("Payment Status")}</InvoiceMetaLabel>
           <InvoiceMetaValue>
-            <InvoiceStatusBadge $paid={isPaid}>
+            <StatusBadge $status={isPaid ? "PAID" : "AWAITING_PAYMENT"}>
               {formatInvoiceStatusLabel(t, invoice.invoiceStatus)}
-            </InvoiceStatusBadge>
+            </StatusBadge>
           </InvoiceMetaValue>
         </InvoiceMetaItem>
       </InvoiceMetaGrid>
@@ -201,13 +197,14 @@ const InvoiceRightHeader = styled.div`
 `;
 
 const InvoiceSeal = styled.div`
-  width: 46px;
-  height: 46px;
+  width: 60px;
+  height: 60px;
   flex-shrink: 0;
 
-  svg {
+  img {
     width: 100%;
     height: 100%;
+    object-fit: contain;
     display: block;
   }
 `;
@@ -280,16 +277,6 @@ const InvoiceMetaValue = styled.div`
   line-height: 1.2;
 `;
 
-const InvoiceStatusBadge = styled.span`
-  display: inline-flex;
-  align-items: center;
-  padding: 4px 10px;
-  border-radius: 999px;
-  font-size: 12px;
-  font-weight: 600;
-  background: ${({ $paid }) => ($paid ? "#eef6ef" : "#e8f1ff")};
-  color: ${({ $paid }) => ($paid ? "#1c9d4b" : "#2671d9")};
-`;
 
 const InvoiceSummaryCard = styled.div`
   background: transparent;

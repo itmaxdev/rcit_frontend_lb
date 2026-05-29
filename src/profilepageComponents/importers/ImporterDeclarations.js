@@ -14,45 +14,7 @@ import {
   clearImporterUploadData,
   fetchClearableImporterUpload,
 } from "../../functions/registered";
-
-const STATUS_STYLES = {
-  SUBMITTED: {
-    background: "#e8f1ff",
-    color: "#2671d9",
-    icon: "dot",
-    iconColor: "#2671d9",
-  },
-  UNDER_REVIEW: {
-    background: "#fff3df",
-    color: "#f19a15",
-    icon: "clock",
-    iconColor: "#f19a15",
-  },
-  APPROVED: {
-    background: "#e5f6e7",
-    color: "#1c9d4b",
-    icon: "check",
-    iconColor: "#1c9d4b",
-  },
-  DECLINED: {
-    background: "#ffe8e8",
-    color: "#e03d3d",
-    icon: "cross",
-    iconColor: "#e03d3d",
-  },
-  AWAITING_PAYMENT: {
-    background: "#fff0e6",
-    color: "#d55d00",
-    icon: "flag",
-    iconColor: "#e03d3d",
-  },
-  PAID: {
-    background: "#eef6ef",
-    color: "#1c9d4b",
-    icon: "check",
-    iconColor: "#1c9d4b",
-  },
-};
+import { STATUS_STYLES, StatusBadge, StatusIcon, StatusDot, StatusSvg } from "../statusBadge";
 
 const ImporterDeclarations = () => {
   const { t } = useTranslation();
@@ -447,71 +409,6 @@ const ImporterDeclarations = () => {
   );
 };
 
-const StatusIcon = ({ status }) => {
-  const iconColor = STATUS_STYLES[status]?.iconColor || "#2671d9";
-  const icon = STATUS_STYLES[status]?.icon || "dot";
-
-  if (icon === "check") {
-    return (
-      <StatusSvg fill="none" viewBox="0 0 16 16" aria-hidden="true">
-        <path
-          d="M3 8.5L6.5 12L13 5"
-          stroke={iconColor}
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-      </StatusSvg>
-    );
-  }
-
-  if (icon === "cross") {
-    return (
-      <StatusSvg viewBox="0 0 16 16" aria-hidden="true">
-        <path
-          d="M4.3 4.3L11.7 11.7M11.7 4.3L4.3 11.7"
-          stroke={iconColor}
-          strokeWidth="1.8"
-          strokeLinecap="round"
-        />
-      </StatusSvg>
-    );
-  }
-
-  if (icon === "clock") {
-    return (
-      <StatusSvg viewBox="0 0 16 16" aria-hidden="true">
-        <circle cx="8" cy="8" r="5.2" stroke={iconColor} strokeWidth="1.6" fill="none" />
-        <path
-          d="M8 5.2V8.3L10.1 9.4"
-          stroke={iconColor}
-          strokeWidth="1.6"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-      </StatusSvg>
-    );
-  }
-
-  if (icon === "flag") {
-    return (
-      <StatusSvg viewBox="0 0 16 16" aria-hidden="true">
-        <path
-          d="M4 3.5V12.5"
-          stroke={iconColor}
-          strokeWidth="1.6"
-          strokeLinecap="round"
-        />
-        <path
-          d="M4.8 4.2H11.5L9.8 6.3L11.5 8.4H4.8V4.2Z"
-          fill={iconColor}
-        />
-      </StatusSvg>
-    );
-  }
-
-  return <StatusDot $color={iconColor} />;
-};
 
 const formatDeclarationNumber = (value) =>
   `#${String(value).padStart(6, "0")}`;
@@ -724,32 +621,6 @@ const StyledCheckbox = styled.input`
   flex-shrink: 0;
 `;
 
-const StatusBadge = styled.span`
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 7px 12px;
-  border-radius: 999px;
-  white-space: nowrap;
-  font-size: 12px;
-  font-weight: 500;
-  background: ${({ $status }) => STATUS_STYLES[$status]?.background || "#e8f1ff"};
-  color: ${({ $status }) => STATUS_STYLES[$status]?.color || "#2671d9"};
-`;
-
-const StatusDot = styled.span`
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: ${({ $color }) => $color};
-  flex-shrink: 0;
-`;
-
-const StatusSvg = styled.svg`
-  width: 16px;
-  height: 16px;
-  flex-shrink: 0;
-`;
 
 const ActionCell = styled.div`
   position: relative;

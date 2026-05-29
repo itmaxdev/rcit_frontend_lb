@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import styled from "styled-components";
 import { useTranslation } from "react-i18next";
+import { StatusBadge } from "./statusBadge";
 
 import cardsImg from "../assets/cards.png";
 import libanPostImg from "../assets/libanpost.png";
@@ -31,9 +32,9 @@ const PaymentSummary = ({ data, busy, onPay, paid = false }) => {
       <CardTopRow>
         <CardTitle>{t("PAYMENT SUMMARY")}</CardTitle>
         {paid ? (
-          <PayStatusBadge $paid>{t("Paid Successfully")}</PayStatusBadge>
+          <StatusBadge $status="PAID">{t("Paid Successfully")}</StatusBadge>
         ) : (
-          <PayStatusBadge>{t("Awaiting Payment")}</PayStatusBadge>
+          <StatusBadge $status="AWAITING_PAYMENT">{t("Awaiting Payment")}</StatusBadge>
         )}
       </CardTopRow>
 
@@ -165,14 +166,6 @@ const CardTitle = styled.h3`
   margin: 0;
 `;
 
-const PayStatusBadge = styled.span`
-  padding: 5px 14px;
-  border-radius: 999px;
-  font-size: 13px;
-  font-weight: 500;
-  background: ${({ $paid }) => ($paid ? "#eef6ef" : "#e8f1ff")};
-  color: ${({ $paid }) => ($paid ? "#1c9d4b" : "#2671d9")};
-`;
 
 const SummaryBox = styled.div`
   background: #f8faf9;

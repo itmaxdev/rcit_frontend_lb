@@ -2,9 +2,10 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import styled from "styled-components";
 import { useTranslation } from "react-i18next";
 import chevronSVG from "../../assets/chevron-down.svg";
-import emptySVG from "../../assets/noRegistered.svg";
+import noDeclarations from "../../assets/noDeclarations.png";
 import searchSVG from "../../assets/search3.svg";
 import eyeSVG from "../../assets/eye.svg";
+import ministryLogo from "../../assets/ministry_logo.jpeg";
 import Popup from "../Popup";
 import {
   adjustDeclarationValue,
@@ -16,55 +17,11 @@ import {
   rejectDeclaration,
   startCustomsDeclarationReview,
 } from "../../functions/customs";
+import { STATUS_STYLES, StatusBadge, StatusIcon, StatusDot, StatusSvg } from "../statusBadge";
 
 const DECLARATION_TYPES = {
   IMPORTER: "IMPORTER",
   INDIVIDUAL: "INDIVIDUAL",
-};
-
-const STATUS_STYLES = {
-  SUBMITTED: {
-    background: "#e8f1ff",
-    color: "#2671d9",
-    icon: "dot",
-    iconColor: "#2671d9",
-  },
-  UNDER_REVIEW: {
-    background: "#fff3df",
-    color: "#f19a15",
-    icon: "clock",
-    iconColor: "#f19a15",
-  },
-  APPROVED: {
-    background: "#e5f6e7",
-    color: "#1c9d4b",
-    icon: "check",
-    iconColor: "#1c9d4b",
-  },
-  DECLINED: {
-    background: "#ffe8e8",
-    color: "#e03d3d",
-    icon: "cross",
-    iconColor: "#e03d3d",
-  },
-  AWAITING_PAYMENT: {
-    background: "#fff0e6",
-    color: "#d55d00",
-    icon: "flag",
-    iconColor: "#e03d3d",
-  },
-  PAID: {
-    background: "#eef6ef",
-    color: "#516275",
-    icon: "check",
-    iconColor: "#1c9d4b",
-  },
-  CLOSED: {
-    background: "#eef2f8",
-    color: "#516275",
-    icon: "lock",
-    iconColor: "#516275",
-  },
 };
 
 const rowKey = (row) => `${row.declarationType}-${row.id}`;
@@ -86,6 +43,15 @@ const CustomsDeclarations = () => {
   const [openMenuId, setOpenMenuId] = useState(null);
   const [menuPosition, setMenuPosition] = useState({ top: 0, right: 0 });
   const [selectedRows, setSelectedRows] = useState(new Set());
+
+  // Details drawer state
+  const [isDetailsDrawerOpen, setIsDetailsDrawerOpen] = useState(false);
+  const [detailsDrawerRow, setDetailsDrawerRow] = useState(null);
+
+  // Inline row expansion state
+  const [expandedRowKey, setExpandedRowKey] = useState(null);
+  const [expandedDetail, setExpandedDetail] = useState(null);
+  const [expandedDetailLoading, setExpandedDetailLoading] = useState(false);
 
   // Adjust panel state
   const [isAdjustOpen, setIsAdjustOpen] = useState(false);
@@ -156,11 +122,15 @@ const CustomsDeclarations = () => {
   );
 
   const handleTabChange = (tab) => {
-    setTableActionError(null)
+    setTableActionError(null);
     setActiveTab(tab);
     setCurrentPage(0);
     setOpenMenuId(null);
     setSelectedDeclaration(null);
+    setDetailsDrawerRow(null);
+    setIsDetailsDrawerOpen(false);
+    setExpandedRowKey(null);
+    setExpandedDetail(null);
     setSelectedInvoice(null);
     setSelectedRows(new Set());
   };
@@ -206,7 +176,9 @@ const CustomsDeclarations = () => {
 
   const openDetails = async (row) => {
     setOpenMenuId(null);
+    setDetailsDrawerRow(row);
     setIsDetailLoading(true);
+    setIsDetailsDrawerOpen(true);
     const detail = await fetchCustomsDeclarationDetail(
       row.declarationType,
       row.id
@@ -217,7 +189,27 @@ const CustomsDeclarations = () => {
 
   const closeDetails = () => {
     setSelectedDeclaration(null);
+    setDetailsDrawerRow(null);
     setIsDetailLoading(false);
+    setIsDetailsDrawerOpen(false);
+  };
+
+  const toggleRowExpansion = async (row) => {
+    const key = rowKey(row);
+    if (expandedRowKey === key) {
+      setExpandedRowKey(null);
+      setExpandedDetail(null);
+      return;
+    }
+    setExpandedRowKey(key);
+    setExpandedDetail(null);
+    setExpandedDetailLoading(true);
+    const detail = await fetchCustomsDeclarationDetail(
+      row.declarationType,
+      row.id
+    );
+    setExpandedDetail(detail);
+    setExpandedDetailLoading(false);
   };
 
   const openInvoice = async (row) => {
@@ -489,7 +481,7 @@ const CustomsDeclarations = () => {
 
         {totalElements === 0 && !isLoading ? (
           <EmptyState>
-            <EmptyImage src={emptySVG} alt="No declarations" />
+            <EmptyImage src={noDeclarations} alt="No declarations" />
             <EmptyTitle>{emptyStateTitle}</EmptyTitle>
             <EmptyText>{t("Customs_NoDeclarationsSubtitle")}</EmptyText>
           </EmptyState>
@@ -547,6 +539,7 @@ const CustomsDeclarations = () => {
               <Table>
                 <thead>
                   <tr>
+                    <Th style={{ width: "32px", padding: "0" }} />
                     <Th>
                       <StyledCheckbox
                         type="checkbox"
@@ -573,25 +566,32 @@ const CustomsDeclarations = () => {
                 <tbody>
                   {isLoading ? (
                     <tr>
-                      <LoadingCell colSpan="11">{t("Loading")}</LoadingCell>
+                      <LoadingCell colSpan="12">{t("Loading")}</LoadingCell>
                     </tr>
                   ) : (
-                    declarations.map((row, index) => (
+                    declarations.map((row) => {
+                      const key = rowKey(row);
+                      const isExpanded = expandedRowKey === key;
+                      return (
+                      <React.Fragment key={key}>
                       <TableRow
-                        key={rowKey(row)}
-                        $selected={
-                          selectedDeclaration?.id === row.id &&
-                          selectedDeclaration?.declarationType === row.declarationType
-                        }
+                        $selected={isExpanded}
                         tabIndex={0}
-                        onClick={() => openDetails(row)}
+                        onClick={() => toggleRowExpansion(row)}
                         onKeyDown={(event) => {
                           if (event.key === "Enter" || event.key === " ") {
                             event.preventDefault();
-                            openDetails(row);
+                            toggleRowExpansion(row);
                           }
                         }}
                       >
+                        <Td style={{ width: "32px", padding: "14px 8px 14px 14px" }}>
+                          <ExpandChevron $expanded={isExpanded}>
+                            <svg viewBox="0 0 16 16" fill="none" width="16" height="16">
+                              <path d="M4 6L8 10L12 6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                            </svg>
+                          </ExpandChevron>
+                        </Td>
                         <Td onClick={(event) => event.stopPropagation()}>
                           <StyledCheckbox
                             type="checkbox"
@@ -612,7 +612,7 @@ const CustomsDeclarations = () => {
                         <Td>{row.priceSource}</Td>
                         <Td>
                           <StatusBadge $status={row.status}>
-                            {renderStatusIcon(row.status)}
+                            <StatusIcon status={row.status} />
                             {formatStatusLabel(row.status)}
                           </StatusBadge>
                         </Td>
@@ -823,53 +823,53 @@ const CustomsDeclarations = () => {
                           </ActionCell>
                         </Td>
                       </TableRow>
-                    ))
+                      {isExpanded && (
+                        <tr>
+                          <ExpandedTd colSpan="12">
+                            {expandedDetailLoading ? (
+                              <ExpandedLoading>{t("Loading")}</ExpandedLoading>
+                            ) : expandedDetail?.items?.length > 0 ? (
+                              <ExpandedContent>
+                                <ExpandedSectionLabel>{t("Declaration Items")}</ExpandedSectionLabel>
+                                <ExpandedItemsTable>
+                                  <thead>
+                                    <tr>
+                                      <ExpandedTh>{t("Brand")}</ExpandedTh>
+                                      <ExpandedTh>{t("Model")}</ExpandedTh>
+                                      <ExpandedTh>{t("IMEIs")}</ExpandedTh>
+                                      <ExpandedTh>{t("Nbr of IMEIs")}</ExpandedTh>
+                                      <ExpandedTh>{t("Device Status")}</ExpandedTh>
+                                      <ExpandedTh>{t("Declared Value (USD)")}</ExpandedTh>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {expandedDetail.items.map((item) => (
+                                      <tr key={item.id}>
+                                        <ExpandedBodyTd>{item.brand || "-"}</ExpandedBodyTd>
+                                        <ExpandedBodyTd>{item.model || "-"}</ExpandedBodyTd>
+                                        <ExpandedBodyTd $preserveLines>{formatImeis(item.imeis)}</ExpandedBodyTd>
+                                        <ExpandedBodyTd>{item.imeiCount}</ExpandedBodyTd>
+                                        <ExpandedBodyTd>{formatStatusLabel(item.status)}</ExpandedBodyTd>
+                                        <ExpandedBodyTd>{formatMoney(item.declaredValueUsd)}</ExpandedBodyTd>
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </ExpandedItemsTable>
+                              </ExpandedContent>
+                            ) : (
+                              <ExpandedLoading>{t("No items available")}</ExpandedLoading>
+                            )}
+                          </ExpandedTd>
+                        </tr>
+                      )}
+                      </React.Fragment>
+                      );
+                    })
                   )}
                 </tbody>
               </Table>
             </TableWrapper>
 
-            {(isDetailLoading || selectedDeclaration) && (
-              <InlineDetailsCard>
-                <InlineDetailsHeader>
-                  <DrawerTitle>{t("Declaration Items")}</DrawerTitle>
-                  <CloseDrawerButton type="button" onClick={closeDetails}>
-                    &#x2715;
-                  </CloseDrawerButton>
-                </InlineDetailsHeader>
-
-                {isDetailLoading ? (
-                  <DrawerLoading>{t("Loading")}</DrawerLoading>
-                ) : !selectedDeclaration ? (
-                  <DrawerLoading>{t("No data available")}</DrawerLoading>
-                ) : (
-                  <ItemsTable>
-                    <thead>
-                      <tr>
-                        <Th>{t("IMEIs")}</Th>
-                        <Th>{t("Brand")}</Th>
-                        <Th>{t("Model")}</Th>
-                        <Th>{t("Nbr of IMEIs")}</Th>
-                        <Th>{t("Device Status")}</Th>
-                        <Th>{t("Declared Value (USD)")}</Th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {selectedDeclaration.items.map((item) => (
-                        <tr key={item.id}>
-                          <Td $preserveLines>{formatImeis(item.imeis)}</Td>
-                          <Td>{item.brand || "-"}</Td>
-                          <Td>{item.model || "-"}</Td>
-                          <Td>{item.imeiCount}</Td>
-                          <Td>{formatStatusLabel(item.status)}</Td>
-                          <Td>{formatMoney(item.declaredValueUsd)}</Td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </ItemsTable>
-                )}
-              </InlineDetailsCard>
-            )}
           </>
       )}
     </ContentCard>
@@ -889,14 +889,8 @@ const CustomsDeclarations = () => {
 
                 <InvoiceHeaderBlock>
                   <InvoiceLeftHeader>
-                    <InvoiceSeal aria-hidden="true">
-                      <svg viewBox="0 0 72 72" fill="none">
-                        <path d="M36 10L43.5 22.5L58 24L47.5 33.5L50.5 47.5L36 40L21.5 47.5L24.5 33.5L14 24L28.5 22.5L36 10Z" fill="#6EA8FF"/>
-                        <circle cx="36" cy="36" r="18" stroke="#6EA8FF" strokeWidth="2.5"/>
-                        <path d="M36 24V48" stroke="#6EA8FF" strokeWidth="2.5" strokeLinecap="round"/>
-                        <path d="M28 32H44" stroke="#6EA8FF" strokeWidth="2.5" strokeLinecap="round"/>
-                        <path d="M28 40H44" stroke="#6EA8FF" strokeWidth="2.5" strokeLinecap="round"/>
-                      </svg>
+                    <InvoiceSeal>
+                      <img src={ministryLogo} alt="Ministry of Finance" />
                     </InvoiceSeal>
                     <InvoiceIssuerBlock>
                       <InvoiceIssuerCountry>{t("Republic of Lebanon")}</InvoiceIssuerCountry>
@@ -939,9 +933,9 @@ const CustomsDeclarations = () => {
                   <InvoiceMetaItem>
                     <InvoiceMetaLabel>{t("Payment Status")}</InvoiceMetaLabel>
                     <InvoiceMetaValue>
-                      <InvoiceStatusBadge $paid={selectedInvoice.invoiceStatus === "PAID"}>
+                      <StatusBadge $status={selectedInvoice.invoiceStatus === "PAID" ? "PAID" : "AWAITING_PAYMENT"}>
                         {formatInvoiceStatusLabel(t, selectedInvoice.invoiceStatus)}
-                      </InvoiceStatusBadge>
+                      </StatusBadge>
                     </InvoiceMetaValue>
                   </InvoiceMetaItem>
                 </InvoiceMetaGrid>
@@ -1026,7 +1020,7 @@ const CustomsDeclarations = () => {
                 <AdjustDetailLabel>{t("Status")}</AdjustDetailLabel>
                 <AdjustDetailValue>
                   <StatusBadge $status={adjustRow.status}>
-                    {renderStatusIcon(adjustRow.status)}
+                    <StatusIcon status={adjustRow.status} />
                     {formatStatusLabel(adjustRow.status)}
                   </StatusBadge>
                 </AdjustDetailValue>
@@ -1149,6 +1143,83 @@ const CustomsDeclarations = () => {
         </DrawerOverlay>
       )}
 
+      {isDetailsDrawerOpen && (
+        <DrawerOverlay onClick={closeDetails}>
+          <DrawerPanel onClick={(e) => e.stopPropagation()}>
+            <DrawerHeader>
+              <DrawerTitle style={{ color: "#2671d9" }}>
+                {t("Declaration Details")}
+              </DrawerTitle>
+              <CloseDrawerButton type="button" onClick={closeDetails}>
+                &#x2715;
+              </CloseDrawerButton>
+            </DrawerHeader>
+
+            {isDetailLoading ? (
+              <DrawerLoading>{t("Loading")}</DrawerLoading>
+            ) : !detailsDrawerRow ? (
+              <DrawerLoading>{t("No data available")}</DrawerLoading>
+            ) : (
+              <>
+                <AdjustSection>
+                  <AdjustSectionTitle>{t("Declaration Info")}</AdjustSectionTitle>
+                  <AdjustDetailGrid>
+                    <AdjustDetailLabel>{t("Declaration No.")}</AdjustDetailLabel>
+                    <AdjustDetailValue>{detailsDrawerRow.declarationNumber}</AdjustDetailValue>
+
+                    <AdjustDetailLabel>{t("Importer")}</AdjustDetailLabel>
+                    <AdjustDetailValue>{detailsDrawerRow.submitterName}</AdjustDetailValue>
+
+                    <AdjustDetailLabel>{t("Declaration Date")}</AdjustDetailLabel>
+                    <AdjustDetailValue>{formatDate(detailsDrawerRow.declarationDate)}</AdjustDetailValue>
+
+                    <AdjustDetailLabel>{t("Devices Count")}</AdjustDetailLabel>
+                    <AdjustDetailValue>{detailsDrawerRow.devicesCount}</AdjustDetailValue>
+
+                    <AdjustDetailLabel>{t("Status")}</AdjustDetailLabel>
+                    <AdjustDetailValue>
+                      <StatusBadge $status={detailsDrawerRow.status}>
+                        <StatusIcon status={detailsDrawerRow.status} />
+                        {formatStatusLabel(detailsDrawerRow.status)}
+                      </StatusBadge>
+                    </AdjustDetailValue>
+                  </AdjustDetailGrid>
+                </AdjustSection>
+
+                <AdjustSection>
+                  <AdjustSectionTitle>{t("Value Summary (USD)")}</AdjustSectionTitle>
+                  <AdjustDetailGrid>
+                    <AdjustDetailLabel>{t("Declared Value")}</AdjustDetailLabel>
+                    <AdjustDetailValue>{formatMoney(detailsDrawerRow.declaredTotalUsd)}</AdjustDetailValue>
+
+                    <AdjustDetailLabel>{t("Estimated Value")}</AdjustDetailLabel>
+                    <AdjustDetailValue>{formatMoney(detailsDrawerRow.estimatedValueUsd)}</AdjustDetailValue>
+
+                    {detailsDrawerRow.approvedPriceUsd != null && (
+                      <>
+                        <AdjustDetailLabel>{t("Adjusted Value")}</AdjustDetailLabel>
+                        <AdjustDetailValue>
+                          <strong>{formatMoney(detailsDrawerRow.approvedPriceUsd)}</strong>
+                        </AdjustDetailValue>
+                      </>
+                    )}
+                  </AdjustDetailGrid>
+                </AdjustSection>
+
+                {detailsDrawerRow.rejectionReason && (
+                  <AdjustSection>
+                    <AdjustSectionTitle>{t("Rejection Reason")}</AdjustSectionTitle>
+                    <AdjustReasonText>{detailsDrawerRow.rejectionReason}</AdjustReasonText>
+                  </AdjustSection>
+                )}
+
+                
+              </>
+            )}
+          </DrawerPanel>
+        </DrawerOverlay>
+      )}
+
       {isRejectOpen && rejectRow && (
         <Popup
           purpose="rejectDeclaration"
@@ -1248,112 +1319,6 @@ const VarianceValue = ({ value }) => {
   );
 };
 
-const renderStatusIcon = (status) => {
-  const style = STATUS_STYLES[status];
-
-  if (!style?.icon) {
-    return null;
-  }
-
-  if (style.icon === "dot") {
-    return <StatusDot $color={style.iconColor} />;
-  }
-
-  if (style.icon === "clock") {
-    return (
-      <StatusSvg viewBox="0 0 16 16" fill="none" aria-hidden="true">
-        <circle
-          cx="8"
-          cy="8"
-          r="6"
-          stroke={style.iconColor}
-          strokeWidth="1.4"
-        />
-        <path
-          d="M8 4.8V8.2L10.3 9.5"
-          stroke={style.iconColor}
-          strokeWidth="1.4"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-      </StatusSvg>
-    );
-  }
-
-  if (style.icon === "check") {
-    return (
-      <StatusSvg viewBox="0 0 16 16" fill="none" aria-hidden="true">
-        <path
-          d="M3.5 8.3L6.5 11.1L12.5 4.9"
-          stroke={style.iconColor}
-          strokeWidth="1.7"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-      </StatusSvg>
-    );
-  }
-
-  if (style.icon === "cross") {
-    return (
-      <StatusSvg viewBox="0 0 16 16" fill="none" aria-hidden="true">
-        <path
-          d="M4.5 4.5L11.5 11.5"
-          stroke={style.iconColor}
-          strokeWidth="1.7"
-          strokeLinecap="round"
-        />
-        <path
-          d="M11.5 4.5L4.5 11.5"
-          stroke={style.iconColor}
-          strokeWidth="1.7"
-          strokeLinecap="round"
-        />
-      </StatusSvg>
-    );
-  }
-
-  if (style.icon === "flag") {
-    return (
-      <StatusSvg viewBox="0 0 16 16" fill="none" aria-hidden="true">
-        <path
-          d="M4.5 13.2V3.2"
-          stroke={style.iconColor}
-          strokeWidth="1.4"
-          strokeLinecap="round"
-        />
-        <path
-          d="M5.2 3.8H11.4L10.1 6.1L11.4 8.4H5.2V3.8Z"
-          fill={style.iconColor}
-        />
-      </StatusSvg>
-    );
-  }
-
-  if (style.icon === "lock") {
-    return (
-      <StatusSvg viewBox="0 0 16 16" fill="none" aria-hidden="true">
-        <rect
-          x="4"
-          y="7"
-          width="8"
-          height="6"
-          rx="1.6"
-          stroke={style.iconColor}
-          strokeWidth="1.4"
-        />
-        <path
-          d="M5.8 7V5.8C5.8 4.59 6.79 3.6 8 3.6C9.21 3.6 10.2 4.59 10.2 5.8V7"
-          stroke={style.iconColor}
-          strokeWidth="1.4"
-          strokeLinecap="round"
-        />
-      </StatusSvg>
-    );
-  }
-
-  return null;
-};
 
 const PageContainer = styled.div`
   display: flex;
@@ -1532,8 +1497,72 @@ const Table = styled.table`
   }
 `;
 
-const ItemsTable = styled(Table)`
-  margin-top: 12px;
+const ExpandChevron = styled.span`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #9098a9;
+  transition: transform 0.2s ease, color 0.15s ease;
+  transform: ${({ $expanded }) => ($expanded ? "rotate(180deg)" : "rotate(0deg)")};
+  ${({ $expanded }) => $expanded && "color: #2671d9;"}
+`;
+
+const ExpandedTd = styled.td`
+  padding: 0;
+  background: #f8faff;
+  border-top: 2px solid #d6e4ff;
+  border-bottom: 2px solid #d6e4ff;
+`;
+
+const ExpandedContent = styled.div`
+  padding: 20px 24px 20px 40px;
+`;
+
+const ExpandedSectionLabel = styled.h4`
+  font-size: 13px;
+  font-weight: 700;
+  color: #1d2d64;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  margin: 0 0 14px;
+`;
+
+const ExpandedItemsTable = styled.table`
+  width: 100%;
+  border-collapse: collapse;
+  background: #fff;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid #e8eaf0;
+`;
+
+const ExpandedTh = styled.th`
+  text-align: left;
+  color: #6f7897;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 10px 14px;
+  background: #f4f6fb;
+  border-bottom: 1px solid #e8eaf0;
+`;
+
+const ExpandedBodyTd = styled.td`
+  padding: 11px 14px;
+  font-size: 13px;
+  color: #1d2025;
+  border-bottom: 1px solid #edf0f7;
+  vertical-align: middle;
+  white-space: ${({ $preserveLines }) => ($preserveLines ? "pre-line" : "normal")};
+
+  tr:last-child & {
+    border-bottom: none;
+  }
+`;
+
+const ExpandedLoading = styled.div`
+  padding: 20px 24px;
+  color: #9098a9;
+  font-size: 13px;
 `;
 
 const Th = styled.th`
@@ -1564,10 +1593,10 @@ const TableRow = styled.tr`
   transition: background 0.15s ease;
   cursor: pointer;
 
-  background: ${({ $selected }) => ($selected ? "#fafbff" : "transparent")};
+  background: ${({ $selected }) => ($selected ? "#f0f5ff" : "transparent")};
 
   &:hover {
-    background: #fafbff;
+    background: ${({ $selected }) => ($selected ? "#f0f5ff" : "#fafbff")};
   }
 
   &:focus-visible {
@@ -1590,32 +1619,6 @@ const StyledCheckbox = styled.input`
   flex-shrink: 0;
 `;
 
-const StatusBadge = styled.span`
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  border-radius: 999px;
-  padding: 7px 12px;
-  font-size: 12px;
-  font-weight: 500;
-  white-space: nowrap;
-  background: ${({ $status }) => STATUS_STYLES[$status]?.background || "#eef1f8"};
-  color: ${({ $status }) => STATUS_STYLES[$status]?.color || "#1d2025"};
-`;
-
-const StatusDot = styled.span`
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: ${({ $color }) => $color};
-  flex-shrink: 0;
-`;
-
-const StatusSvg = styled.svg`
-  width: 14px;
-  height: 14px;
-  flex-shrink: 0;
-`;
 
 const VarianceContainer = styled.div`
   display: inline-flex;
@@ -1737,18 +1740,37 @@ const DrawerHeader = styled.div`
   margin-bottom: 24px;
 `;
 
-const InlineDetailsCard = styled.div`
-  width: 100%;
-  border-top: 1px solid #edf0f7;
-  padding-top: 24px;
+const DrawerItemsScrollWrapper = styled.div`
+  overflow-x: auto;
 `;
 
-const InlineDetailsHeader = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 24px;
+const DrawerItemsTable = styled.table`
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 420px;
+`;
+
+const DrawerItemsTh = styled.th`
+  text-align: left;
+  color: #6f7897;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 10px 12px;
+  background: #f7f8fc;
+  border-bottom: 1px solid #edf0f7;
+`;
+
+const DrawerItemsTd = styled.td`
+  padding: 10px 12px;
+  font-size: 13px;
+  color: #1d2025;
+  border-bottom: 1px solid #edf0f7;
+  vertical-align: middle;
+  white-space: ${({ $preserveLines }) => ($preserveLines ? "pre-line" : "normal")};
+
+  tr:last-child & {
+    border-bottom: none;
+  }
 `;
 
 const DrawerTitle = styled.h2`
@@ -1820,13 +1842,14 @@ const InvoiceRightHeader = styled.div`
 `;
 
 const InvoiceSeal = styled.div`
-  width: 46px;
-  height: 46px;
+  width: 60px;
+  height: 60px;
   flex-shrink: 0;
 
-  svg {
+  img {
     width: 100%;
     height: 100%;
+    object-fit: contain;
     display: block;
   }
 `;
@@ -1909,16 +1932,6 @@ const InvoiceMetaValue = styled.div`
   line-height: 1.2;
 `;
 
-const InvoiceStatusBadge = styled.span`
-  display: inline-flex;
-  align-items: center;
-  padding: 4px 10px;
-  border-radius: 999px;
-  font-size: 12px;
-  font-weight: 600;
-  background: ${({ $paid }) => ($paid ? "#eef6ef" : "#e8f1ff")};
-  color: ${({ $paid }) => ($paid ? "#1c9d4b" : "#2671d9")};
-`;
 
 const InvoiceSummaryCard = styled.div`
   border-radius: 0;
