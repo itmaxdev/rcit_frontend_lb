@@ -10,15 +10,7 @@ import {
 } from "../../functions/impDeclare";
 import ImporterInvoicePreview from "./ImporterInvoicePreview";
 import PaymentSummary from "../paymentSummary";
-
-const STATUS_STYLES = {
-  SUBMITTED: { background: "#e8f1ff", color: "#2671d9" },
-  UNDER_REVIEW: { background: "#fff3df", color: "#f19a15" },
-  APPROVED: { background: "#e5f6e7", color: "#1c9d4b" },
-  DECLINED: { background: "#ffe8e8", color: "#e03d3d" },
-  AWAITING_PAYMENT: { background: "#fff0e6", color: "#d55d00" },
-  PAID: { background: "#eef6ef", color: "#1c9d4b" },
-};
+import { StatusBadge } from "../statusBadge";
 
 const TRACKER_COMPLETE_COLOR = "#1c9d4b";
 
@@ -429,15 +421,6 @@ const CardTitle = styled.h2`
   color: #1d2d64;
 `;
 
-const StatusBadge = styled.span`
-  padding: 5px 14px;
-  border-radius: 999px;
-  font-size: 13px;
-  font-weight: 500;
-  white-space: nowrap;
-  background: ${({ $status }) => STATUS_STYLES[$status]?.background || "#e8f1ff"};
-  color: ${({ $status }) => STATUS_STYLES[$status]?.color || "#2671d9"};
-`;
 
 const CsvButton = styled.button`
   border: none;
