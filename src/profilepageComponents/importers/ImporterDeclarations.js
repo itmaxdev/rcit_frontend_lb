@@ -129,6 +129,12 @@ const ImporterDeclarations = () => {
     navigate(`/profile/role_importer/DeclareDevices/${uploadId}`);
   };
 
+  const handleOpenInvoice = (uploadId) => {
+    navigate(`/profile/role_importer/DeclareDevices/${uploadId}`, {
+      state: { openInvoice: true },
+    });
+  };
+
   const handleClearData = async () => {
     if (!clearableUpload?.uploadId) {
       return;
@@ -361,7 +367,7 @@ const ImporterDeclarations = () => {
                                     type="button"
                                     onClick={() => {
                                       setOpenMenuId(null);
-                                      handleOpenDeclaration(declaration.id);
+                                      handleOpenInvoice(declaration.id);
                                     }}
                                   >
                                     <ActionLabel>

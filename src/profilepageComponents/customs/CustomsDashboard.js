@@ -267,7 +267,9 @@ const CustomsDashboard = () => {
                             <td>{formatDate(row.declarationDate)}</td>
                             <td>{row.devicesCount}</td>
                             <td>{formatMoney(row.declaredTotalUsd)}</td>
-                            <td>{formatMoney(row.estimatedValueUsd)}</td>
+                            <td>
+                              <AdjustedEstimatedValue row={row} />
+                            </td>
                             <td>
                               <VarianceValue value={Number(row.variancePercent || 0)} />
                             </td>
@@ -377,6 +379,24 @@ const getDisplayStatus = (row) => {
     return "PENDING_APPROVAL";
   }
   return row?.status;
+};
+
+const hasAdjustedApprovedValue = (row) =>
+  row?.declarationType === "IMPORTER" &&
+  row?.approvedPriceUsd != null &&
+  Boolean(row?.adjustmentReason?.trim());
+
+const AdjustedEstimatedValue = ({ row }) => {
+  if (!hasAdjustedApprovedValue(row)) {
+    return formatMoney(row?.estimatedValueUsd);
+  }
+
+  return (
+    <AdjustedValueStack>
+      <OriginalValueText>{formatMoney(row?.estimatedValueUsd)}</OriginalValueText>
+      <AdjustedValueText>{formatMoney(row?.approvedPriceUsd)}</AdjustedValueText>
+    </AdjustedValueStack>
+  );
 };
 
 const formatStatusLabel = (status) => {
@@ -905,6 +925,26 @@ const RecentTable = styled.table`
     font-size: 14px;
     vertical-align: middle;
   }
+`;
+
+const AdjustedValueStack = styled.div`
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+  line-height: 1.15;
+`;
+
+const OriginalValueText = styled.span`
+  color: #98a0b7;
+  font-size: 12px;
+  text-decoration: line-through;
+`;
+
+const AdjustedValueText = styled.span`
+  color: #1c9d4b;
+  font-size: 14px;
+  font-weight: 700;
 `;
 
 const InlineActionButton = styled.button`
