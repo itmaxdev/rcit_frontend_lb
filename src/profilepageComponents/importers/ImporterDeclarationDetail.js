@@ -122,21 +122,22 @@ const ImporterDeclarationDetail = () => {
     );
   }
 
-  const currentStatus =
+  const rawStatus =
     declaration.importerStatus || declaration.customsStatus || "SUBMITTED";
+  const currentStatus = getDisplayStatus(declaration);
   const trackerSteps = getTrackerSteps(currentStatus);
   const currentStepIndex = getTrackerStepIndex(currentStatus);
-  const isPaid = currentStatus === "PAID";
+  const isPaid = rawStatus === "PAID";
   const showInvoice =
-    shouldLoadInvoice(currentStatus) &&
-    !(currentStatus === "AWAITING_PAYMENT" && showPaymentSummary);
+    shouldLoadInvoice(rawStatus) &&
+    !(rawStatus === "AWAITING_PAYMENT" && showPaymentSummary);
   const showProceedToPayment =
-    currentStatus === "AWAITING_PAYMENT" &&
+    rawStatus === "AWAITING_PAYMENT" &&
     invoice?.invoiceStatus !== "PAID" &&
     !showPaymentSummary;
-  const showPayment = currentStatus === "AWAITING_PAYMENT" && showPaymentSummary && !!invoice;
+  const showPayment = rawStatus === "AWAITING_PAYMENT" && showPaymentSummary && !!invoice;
   const showCardStatus =
-    currentStatus !== "AWAITING_PAYMENT" && currentStatus !== "PAID";
+    rawStatus !== "AWAITING_PAYMENT" && rawStatus !== "PAID";
 
   return (
     <PageContainer>
@@ -212,6 +213,38 @@ const ImporterDeclarationDetail = () => {
         </DetailsGrid>
       </DeclarationCard>
 
+      {declaration.items?.length > 0 && (
+        <ItemsSection>
+          <ItemsTitle>{t("Declaration Items")}</ItemsTitle>
+          <ItemsTableWrapper>
+            <ItemsTable>
+              <thead>
+                <tr>
+                  <th>{t("Brand")}</th>
+                  <th>{t("Model")}</th>
+                  <th>{t("IMEIs")}</th>
+                  <th>{t("Nbr of IMEIs")}</th>
+                  <th>{t("Device Status")}</th>
+                  <th>{t("Declared Value (USD)")}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {declaration.items.map((item, index) => (
+                  <tr key={`${item.brand}-${item.model}-${index}`}>
+                    <td>{item.brand || "-"}</td>
+                    <td>{item.model || "-"}</td>
+                    <ImeisCell>{item.imeis || "-"}</ImeisCell>
+                    <td>{item.imeiCount ?? 0}</td>
+                    <td>{item.deviceStatus || "-"}</td>
+                    <td>{formatMoney(item.declaredValueUsd)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </ItemsTable>
+          </ItemsTableWrapper>
+        </ItemsSection>
+      )}
+
       {showInvoice && (
         <InvoiceSection>
           {invoiceLoading ? (
@@ -237,7 +270,7 @@ const ImporterDeclarationDetail = () => {
         </InvoiceSection>
       )}
 
-      {currentStatus === "APPROVED" && (
+      {rawStatus === "APPROVED" && (
         <PendingMessageCard>
           <PendingMessageTitle>{t("Pending Invoice Generation")}</PendingMessageTitle>
           <PendingMessageText>
@@ -266,7 +299,7 @@ const ImporterDeclarationDetail = () => {
         </PaymentSection>
       )}
 
-      {currentStatus === "DECLINED" && declaration.rejectionReason && (
+      {rawStatus === "DECLINED" && declaration.rejectionReason && (
         <ReasonSection>
           <ReasonTitle>{t("Rejection Reason")}</ReasonTitle>
           <ReasonCard>{declaration.rejectionReason}</ReasonCard>
@@ -281,6 +314,9 @@ const getTrackerSteps = (status) => {
   if (status === "SUBMITTED" || status === "UNDER_REVIEW") {
     return ["SUBMITTED", "UNDER_REVIEW", "AWAITING_PAYMENT"];
   }
+  if (status === "PENDING_APPROVAL") {
+    return ["SUBMITTED", "PENDING_APPROVAL", "AWAITING_PAYMENT"];
+  }
   if (status === "PAID") return ["SUBMITTED", "APPROVED", "PAID"];
   return ["SUBMITTED", "APPROVED", "AWAITING_PAYMENT"];
 };
@@ -289,6 +325,7 @@ const getTrackerStepIndex = (status) => {
   const map = {
     SUBMITTED: 0,
     UNDER_REVIEW: 1,
+    PENDING_APPROVAL: 1,
     APPROVED: 1,
     AWAITING_PAYMENT: 2,
     PAID: 2,
@@ -316,6 +353,7 @@ const formatStatusLabel = (t, status) => {
   const labels = {
     SUBMITTED: t("Submitted"),
     UNDER_REVIEW: t("Under Review"),
+    PENDING_APPROVAL: t("Pending Approval"),
     APPROVED: t("Approved"),
     DECLINED: t("Rejected"),
     AWAITING_PAYMENT: t("Awaiting Payment"),
@@ -323,6 +361,27 @@ const formatStatusLabel = (t, status) => {
   };
   return labels[status] || status || "-";
 };
+
+const getDisplayStatus = (declaration) => {
+  const rawStatus =
+    declaration.importerStatus || declaration.customsStatus || "SUBMITTED";
+
+  if (
+    rawStatus === "UNDER_REVIEW" &&
+    declaration.totalApprovedValue != null &&
+    declaration.adjustmentReason?.trim()
+  ) {
+    return "PENDING_APPROVAL";
+  }
+
+  return rawStatus;
+};
+
+const formatMoney = (value) =>
+  Number(value || 0).toLocaleString(undefined, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
 
 export default ImporterDeclarationDetail;
 
@@ -484,6 +543,71 @@ const PaymentSection = styled.div`
 const InvoiceSection = styled.div`
   width: 100%;
   margin-top: 20px;
+`;
+
+const ItemsSection = styled.div`
+  width: 100%;
+  margin-top: 20px;
+  border-radius: 14px;
+  border: 1px solid #e8eaf0;
+  background: #f5f6fa;
+  padding: 18px 20px 20px;
+`;
+
+const ItemsTitle = styled.h3`
+  margin: 0 0 14px;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #263765;
+`;
+
+const ItemsTableWrapper = styled.div`
+  overflow-x: auto;
+  border-radius: 14px;
+  background: #fff;
+`;
+
+const ItemsTable = styled.table`
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  min-width: 860px;
+
+  thead th {
+    padding: 16px 14px;
+    background: #eef2fb;
+    color: #6c799c;
+    font-size: 14px;
+    font-weight: 500;
+    text-align: left;
+  }
+
+  thead th:first-child {
+    border-top-left-radius: 14px;
+  }
+
+  thead th:last-child {
+    border-top-right-radius: 14px;
+  }
+
+  tbody td {
+    padding: 16px 14px;
+    border-bottom: 1px solid #edf0f7;
+    color: #30384f;
+    font-size: 14px;
+    vertical-align: top;
+  }
+
+  tbody tr:last-child td {
+    border-bottom: none;
+  }
+`;
+
+const ImeisCell = styled.td`
+  white-space: pre-line;
+  line-height: 1.45;
 `;
 
 const InvoiceStateCard = styled.div`

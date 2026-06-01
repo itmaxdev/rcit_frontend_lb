@@ -17,7 +17,7 @@ const Header = () => {
   const { accountType } = useContext(Context);
 
   const segments = location.pathname.split("/").filter(Boolean);
-  const title = getHeaderTitle(t, segments);
+  const title = getHeaderTitle(t, segments, accountType);
 
   return (
     <HeaderContainer>
@@ -56,10 +56,14 @@ const Header = () => {
 
 export default Header;
 
-const getHeaderTitle = (t, segments) => {
+const getHeaderTitle = (t, segments, accountType) => {
   const lastSegment = segments[segments.length - 1] || "";
   const previousSegment = segments[segments.length - 2] || "";
   const isNumericSegment = /^\d+$/.test(lastSegment);
+
+  if (accountType === ROLE_CUSTOMS && lastSegment === "Declaration") {
+    return t("Sidebar_Declarations");
+  }
 
   if (previousSegment === "UserDetails") {
     return t("Sidebar_UserDetails");

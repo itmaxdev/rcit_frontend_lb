@@ -2,7 +2,7 @@
 import React, { useContext, useState } from "react";
 import styled from "styled-components";
 import { useTranslation } from "react-i18next";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { Context } from "../Context";
 
 import logoWhite from "../assets/logoWhite.svg";
@@ -25,6 +25,7 @@ import {
 const Sidebar = ({ basePath }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const location = useLocation();
   const [closed, setClosed] = useState(false);
   const { triggerLogOut, accountType } = useContext(Context);
 
@@ -46,7 +47,12 @@ const Sidebar = ({ basePath }) => {
       : accountType === ROLE_CUSTOMS
       ? [
           { icon: dashboardSvg, label: "Dashboard", disabled: false },
-          { icon: declareDevicesSvg, label: "Declaration", disabled: false },
+          {
+            icon: declareDevicesSvg,
+            label: "Declaration",
+            translationKey: "Declarations",
+            disabled: false,
+          },
         ]
       : [
           { icon: dashboardSvg, label: "Dashboard", disabled: true },
@@ -84,6 +90,18 @@ const Sidebar = ({ basePath }) => {
     }
   };
 
+  const isTabActive = (tab) => {
+    if (tab.function) {
+      return false;
+    }
+
+    const tabPath = `${basePath}${tab.label}`;
+    return (
+      location.pathname === tabPath ||
+      location.pathname.startsWith(`${tabPath}/`)
+    );
+  };
+
   return (
     <SidebarContainer>
       <Header closed={closed}>
@@ -105,10 +123,13 @@ const Sidebar = ({ basePath }) => {
           <Tab
             key={index}
             disabled={tab.disabled}
+            $active={isTabActive(tab)}
             onClick={() => handleTabClick(tab)}
           >
             <TabIcon src={tab.icon} alt={tab.label} />
-            <TabText closed={closed}>{t("Sidebar_" + tab.label)}</TabText>
+            <TabText closed={closed}>
+              {t("Sidebar_" + (tab.translationKey || tab.label))}
+            </TabText>
           </Tab>
         ))}
       </MainTabs>
@@ -120,6 +141,7 @@ const Sidebar = ({ basePath }) => {
           <Tab
             key={index}
             disabled={tab.disabled}
+            $active={isTabActive(tab)}
             onClick={() => handleTabClick(tab)}
           >
             <TabIcon src={tab.icon} alt={tab.label} />
@@ -197,12 +219,20 @@ const Tab = styled.div`
   padding: 10px;
   cursor: ${({ disabled }) => (disabled ? "not-allowed" : "pointer")};
   border-radius: 10px;
-  transition: background-color 0.2s;
+  transition: background-color 0.2s, box-shadow 0.2s;
   opacity: ${({ disabled }) => (disabled ? 0.3 : 1)};
+  background-color: ${({ $active }) =>
+    $active ? "rgba(144, 152, 160, 0.28)" : "transparent"};
+  box-shadow: ${({ $active }) =>
+    $active ? "inset 0 0 0 1px rgba(255, 255, 255, 0.08)" : "none"};
 
   &:hover {
-    background-color: ${({ disabled }) =>
-      disabled ? "inherit" : "rgba(144, 152, 160, 0.2)"};
+    background-color: ${({ disabled, $active }) =>
+      disabled
+        ? "inherit"
+        : $active
+          ? "rgba(144, 152, 160, 0.34)"
+          : "rgba(144, 152, 160, 0.2)"};
   }
 `;
 

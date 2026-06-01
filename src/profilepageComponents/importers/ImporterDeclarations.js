@@ -8,6 +8,7 @@ import searchSVG from "../../assets/search3.svg";
 import eyeSVG from "../../assets/eye.svg";
 import {
   downloadFullFile,
+  fetchImporterDeclarationById,
   fetchImporterDeclarations,
 } from "../../functions/impDeclare";
 import {
@@ -27,6 +28,9 @@ const ImporterDeclarations = () => {
   const [openMenuId, setOpenMenuId] = useState(null);
   const [menuPosition, setMenuPosition] = useState({ top: 0, right: 0 });
   const [selectedRows, setSelectedRows] = useState(new Set());
+  const [expandedRowId, setExpandedRowId] = useState(null);
+  const [expandedDetail, setExpandedDetail] = useState(null);
+  const [expandedDetailLoading, setExpandedDetailLoading] = useState(false);
 
   const menuRef = useRef(null);
 
@@ -80,7 +84,7 @@ const ImporterDeclarations = () => {
       const declarationNumber = formatDeclarationNumber(declaration.id).toLowerCase();
       const status = formatStatusLabel(
         t,
-        declaration.importerStatus || declaration.customsStatus || "SUBMITTED"
+        getDisplayStatus(declaration)
       ).toLowerCase();
       const filename = (declaration.originalFilename || "").toLowerCase();
 
@@ -145,6 +149,21 @@ const ImporterDeclarations = () => {
   const handleViewCsv = async (uploadId) => {
     await downloadFullFile(uploadId);
   };
+
+  const toggleRowExpansion = useCallback(async (declaration) => {
+    if (expandedRowId === declaration.id) {
+      setExpandedRowId(null);
+      setExpandedDetail(null);
+      return;
+    }
+
+    setExpandedRowId(declaration.id);
+    setExpandedDetail(null);
+    setExpandedDetailLoading(true);
+    const detail = await fetchImporterDeclarationById(declaration.id);
+    setExpandedDetail(detail);
+    setExpandedDetailLoading(false);
+  }, [expandedRowId]);
 
   if (!loading && declarations.length === 0) {
     if (loadError) {
@@ -223,6 +242,7 @@ const ImporterDeclarations = () => {
             <Table>
               <thead>
                 <tr>
+                  <Th style={{ width: "32px", padding: "0" }} />
                   <Th>
                     <StyledCheckbox
                       type="checkbox"
@@ -245,20 +265,36 @@ const ImporterDeclarations = () => {
               <tbody>
                 {filteredDeclarations.length === 0 ? (
                   <tr>
-                    <EmptyTableCell colSpan="7">
+                    <EmptyTableCell colSpan="8">
                       {t("ImporterDeclarations_NoSearchResults")}
                     </EmptyTableCell>
                   </tr>
                 ) : (
-                  filteredDeclarations.map((declaration, index) => {
-                    const currentStatus =
-                      declaration.importerStatus ||
-                      declaration.customsStatus ||
-                      "SUBMITTED";
+                  filteredDeclarations.map((declaration) => {
+                    const currentStatus = getDisplayStatus(declaration);
+                    const isExpanded = expandedRowId === declaration.id;
 
                     return (
-                      <TableRow key={declaration.id}>
-                        <Td>
+                      <React.Fragment key={declaration.id}>
+                      <TableRow
+                        $selected={isExpanded}
+                        tabIndex={0}
+                        onClick={() => toggleRowExpansion(declaration)}
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter" || event.key === " ") {
+                            event.preventDefault();
+                            toggleRowExpansion(declaration);
+                          }
+                        }}
+                      >
+                        <Td style={{ width: "32px", padding: "14px 8px 14px 14px" }}>
+                          <ExpandChevron $expanded={isExpanded}>
+                            <svg viewBox="0 0 16 16" fill="none" width="16" height="16">
+                              <path d="M4 6L8 10L12 6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                            </svg>
+                          </ExpandChevron>
+                        </Td>
+                        <Td onClick={(event) => event.stopPropagation()}>
                           <StyledCheckbox
                             type="checkbox"
                             aria-label={`select ${formatDeclarationNumber(declaration.id)}`}
@@ -278,7 +314,7 @@ const ImporterDeclarations = () => {
                           </StatusBadge>
                         </Td>
                         <Td>{formatMoney(declaration.totalCustomsDuty)}</Td>
-                        <Td>
+                        <Td onClick={(event) => event.stopPropagation()}>
                           <ActionCell>
                             <ActionButton
                               type="button"
@@ -397,6 +433,46 @@ const ImporterDeclarations = () => {
                           </ActionCell>
                         </Td>
                       </TableRow>
+                      {isExpanded && (
+                        <tr>
+                          <ExpandedTd colSpan="8">
+                            {expandedDetailLoading ? (
+                              <ExpandedLoading>{t("Loading")}</ExpandedLoading>
+                            ) : expandedDetail?.items?.length > 0 ? (
+                              <ExpandedContent>
+                                <ExpandedSectionLabel>{t("Declaration Items")}</ExpandedSectionLabel>
+                                <ExpandedItemsTable>
+                                  <thead>
+                                    <tr>
+                                      <ExpandedTh>{t("Brand")}</ExpandedTh>
+                                      <ExpandedTh>{t("Model")}</ExpandedTh>
+                                      <ExpandedTh>{t("IMEIs")}</ExpandedTh>
+                                      <ExpandedTh>{t("Nbr of IMEIs")}</ExpandedTh>
+                                      <ExpandedTh>{t("Device Status")}</ExpandedTh>
+                                      <ExpandedTh>{t("Declared Value (USD)")}</ExpandedTh>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {expandedDetail.items.map((item, index) => (
+                                      <tr key={`${item.brand}-${item.model}-${index}`}>
+                                        <ExpandedBodyTd>{item.brand || "-"}</ExpandedBodyTd>
+                                        <ExpandedBodyTd>{item.model || "-"}</ExpandedBodyTd>
+                                        <ExpandedBodyTd $preserveLines>{item.imeis || "-"}</ExpandedBodyTd>
+                                        <ExpandedBodyTd>{item.imeiCount ?? 0}</ExpandedBodyTd>
+                                        <ExpandedBodyTd>{item.deviceStatus || "-"}</ExpandedBodyTd>
+                                        <ExpandedBodyTd>{formatMoney(item.declaredValueUsd)}</ExpandedBodyTd>
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </ExpandedItemsTable>
+                              </ExpandedContent>
+                            ) : (
+                              <ExpandedLoading>{t("No items available")}</ExpandedLoading>
+                            )}
+                          </ExpandedTd>
+                        </tr>
+                      )}
+                      </React.Fragment>
                     );
                   })
                 )}
@@ -439,6 +515,7 @@ const formatStatusLabel = (t, status) => {
   const labels = {
     SUBMITTED: t("Submitted"),
     UNDER_REVIEW: t("Under Review"),
+    PENDING_APPROVAL: t("Pending Approval"),
     APPROVED: t("Approved"),
     DECLINED: t("Rejected"),
     AWAITING_PAYMENT: t("Awaiting Payment"),
@@ -446,6 +523,21 @@ const formatStatusLabel = (t, status) => {
   };
 
   return labels[status] || status;
+};
+
+const getDisplayStatus = (declaration) => {
+  const rawStatus =
+    declaration.importerStatus || declaration.customsStatus || "SUBMITTED";
+
+  if (
+    rawStatus === "UNDER_REVIEW" &&
+    declaration.totalApprovedValue != null &&
+    declaration.adjustmentReason?.trim()
+  ) {
+    return "PENDING_APPROVAL";
+  }
+
+  return rawStatus;
 };
 
 export default ImporterDeclarations;
@@ -594,9 +686,11 @@ const Th = styled.th`
 
 const TableRow = styled.tr`
   transition: background 0.15s ease;
+  cursor: pointer;
+  background: ${({ $selected }) => ($selected ? "#f5f6fa" : "#fff")};
 
   &:hover {
-    background: #fafbff;
+    background: ${({ $selected }) => ($selected ? "#f5f6fa" : "#fafbff")};
   }
 `;
 
@@ -619,6 +713,15 @@ const StyledCheckbox = styled.input`
   cursor: pointer;
   accent-color: #2671d9;
   flex-shrink: 0;
+`;
+
+const ExpandChevron = styled.span`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: ${({ $expanded }) => ($expanded ? "#2671d9" : "#7a84a0")};
+  transform: rotate(${({ $expanded }) => ($expanded ? "180deg" : "0deg")});
+  transition: transform 0.2s ease, color 0.2s ease;
 `;
 
 
@@ -711,6 +814,73 @@ const EmptyTableCell = styled.td`
   text-align: center;
   color: #797f94;
   border-top: 1px solid #edf0f7;
+`;
+
+const ExpandedTd = styled.td`
+  padding: 0;
+  border-top: 1px solid #cfd7f3;
+  background: #f5f6fa;
+`;
+
+const ExpandedContent = styled.div`
+  padding: 18px 20px 20px;
+`;
+
+const ExpandedLoading = styled.div`
+  padding: 24px 20px;
+  color: #797f94;
+  font-size: 14px;
+`;
+
+const ExpandedSectionLabel = styled.h3`
+  margin: 0 0 14px;
+  color: #263765;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+`;
+
+const ExpandedItemsTable = styled.table`
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  background: #fff;
+  border-radius: 14px;
+  overflow: hidden;
+
+  thead th {
+    padding: 16px 14px;
+    background: #eef2fb;
+    color: #6c799c;
+    font-size: 14px;
+    font-weight: 500;
+    text-align: left;
+  }
+
+  thead th:first-child {
+    border-top-left-radius: 14px;
+  }
+
+  thead th:last-child {
+    border-top-right-radius: 14px;
+  }
+`;
+
+const ExpandedTh = styled.th``;
+
+const ExpandedBodyTd = styled.td`
+  padding: 16px 14px;
+  border-bottom: 1px solid #edf0f7;
+  color: #30384f;
+  font-size: 14px;
+  vertical-align: top;
+  white-space: ${({ $preserveLines }) => ($preserveLines ? "pre-line" : "normal")};
+  line-height: ${({ $preserveLines }) => ($preserveLines ? 1.45 : "normal")};
+
+  ${ExpandedItemsTable} tbody tr:last-child & {
+    border-bottom: none;
+  }
 `;
 
 const EmptyStateContainer = styled.div`
