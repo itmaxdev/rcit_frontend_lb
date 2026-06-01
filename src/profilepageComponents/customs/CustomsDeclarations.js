@@ -14,8 +14,6 @@ import {
   fetchCustomsDeclarationDetail,
   fetchCustomsDeclarationInvoice,
   fetchCustomsDeclarations,
-  generateInvoice,
-  releaseInvoice,
   rejectDeclaration,
   startCustomsDeclarationReview,
 } from "../../functions/customs";
@@ -30,6 +28,7 @@ const rowKey = (row) => `${row.declarationType}-${row.id}`;
 
 const CustomsDeclarations = () => {
   const { t } = useTranslation();
+  const invoiceContentRef = useRef(null);
   const [activeTab, setActiveTab] = useState(DECLARATION_TYPES.IMPORTER);
   const [searchInput, setSearchInput] = useState("");
   const [appliedSearch, setAppliedSearch] = useState("");
@@ -42,7 +41,7 @@ const CustomsDeclarations = () => {
   const [isDetailLoading, setIsDetailLoading] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState(null);
   const [isInvoiceLoading, setIsInvoiceLoading] = useState(false);
-  const [pendingInvoiceReleaseRow, setPendingInvoiceReleaseRow] = useState(null);
+  const [invoiceDialogTitle, setInvoiceDialogTitle] = useState("");
   const [openMenuId, setOpenMenuId] = useState(null);
   const [menuPosition, setMenuPosition] = useState({ top: 0, right: 0 });
   const [selectedRows, setSelectedRows] = useState(new Set());
@@ -67,6 +66,9 @@ const CustomsDeclarations = () => {
   const [showAdjustToast, setShowAdjustToast] = useState(false);
   const [adjustError, setAdjustError] = useState(null);
   const [tableActionError, setTableActionError] = useState(null);
+  const [isApproveOpen, setIsApproveOpen] = useState(false);
+  const [approveRow, setApproveRow] = useState(null);
+  const [approveFromAdjust, setApproveFromAdjust] = useState(false);
   const [isRejectOpen, setIsRejectOpen] = useState(false);
   const [rejectRow, setRejectRow] = useState(null);
   const [rejectReason, setRejectReason] = useState("");
@@ -215,44 +217,237 @@ const CustomsDeclarations = () => {
     setExpandedDetailLoading(false);
   };
 
-  const openInvoice = async (row) => {
+  const openInvoice = async (row, title = "") => {
     if (!row) return;
     setOpenMenuId(null);
     setIsInvoiceLoading(true);
     setSelectedInvoice(null);
+    setInvoiceDialogTitle(title);
     const invoice = await fetchCustomsDeclarationInvoice(
       row.declarationType,
       row.id
     );
     setSelectedInvoice(invoice);
     setIsInvoiceLoading(false);
+    if (!invoice) {
+      setInvoiceDialogTitle("");
+    }
     return invoice;
   };
 
   const closeInvoice = async () => {
-    if (pendingInvoiceReleaseRow) {
-      const releasedRow = await releaseInvoice(
-        pendingInvoiceReleaseRow.declarationType,
-        pendingInvoiceReleaseRow.id
-      );
-
-      if (releasedRow) {
-        setDeclarations((prev) =>
-          prev.map((item) =>
-            item.id === pendingInvoiceReleaseRow.id &&
-            item.declarationType === pendingInvoiceReleaseRow.declarationType
-              ? releasedRow
-              : item
-          )
-        );
-      } else {
-        setTableActionError(t("Failed to move declaration to awaiting payment. Please try again."));
-      }
-
-      setPendingInvoiceReleaseRow(null);
-    }
     setSelectedInvoice(null);
     setIsInvoiceLoading(false);
+    setInvoiceDialogTitle("");
+  };
+
+  const handleDownloadInvoice = () => {
+    if (!invoiceContentRef.current || !selectedInvoice) return;
+
+    const invoiceMarkup = invoiceContentRef.current.innerHTML;
+    const invoiceDocument = `<!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8" />
+          <title>${selectedInvoice.invoiceNumber || t("Invoice")}</title>
+          <style>
+            body {
+              margin: 0;
+              padding: 24px;
+              background: #ffffff;
+              color: #1d2025;
+              font-family: Arial, sans-serif;
+            }
+            .invoice-print-root {
+              max-width: 980px;
+              margin: 0 auto;
+            }
+            .invoice-dialog-title {
+              margin: 6px 0 20px;
+              font-size: 30px;
+              font-weight: 700;
+              color: #233260;
+              line-height: 1.2;
+            }
+            .invoice-header {
+              display: flex;
+              align-items: center;
+              justify-content: space-between;
+              gap: 24px;
+              padding-bottom: 16px;
+              border-bottom: 1px solid #edf0f7;
+              margin-bottom: 10px;
+            }
+            .invoice-left-header {
+              display: flex;
+              align-items: center;
+              gap: 14px;
+            }
+            .invoice-seal {
+              width: 60px;
+              height: 60px;
+              flex-shrink: 0;
+            }
+            .invoice-seal img {
+              width: 100%;
+              height: 100%;
+              object-fit: contain;
+              display: block;
+            }
+            .invoice-issuer-country {
+              color: #8a93ad;
+              font-size: 13px;
+              line-height: 1.2;
+            }
+            .invoice-issuer-title {
+              color: #1d2025;
+              font-size: 17px;
+              font-weight: 700;
+              line-height: 1.2;
+            }
+            .invoice-issuer-subtitle {
+              color: #1d2025;
+              font-size: 15px;
+              font-weight: 600;
+              line-height: 1.2;
+            }
+            .invoice-right-header {
+              display: flex;
+              flex-direction: column;
+              align-items: flex-end;
+              gap: 2px;
+            }
+            .invoice-heading,
+            .invoice-number {
+              font-size: 17px;
+              font-weight: 700;
+              color: #1d2025;
+              line-height: 1.2;
+              text-align: right;
+              margin: 0;
+            }
+            .invoice-meta-grid {
+              display: grid;
+              grid-template-columns: repeat(3, minmax(0, 1fr));
+              gap: 10px 26px;
+              padding: 10px 0 16px;
+              border-bottom: 1px solid #edf0f7;
+              margin-bottom: 16px;
+            }
+            .invoice-meta-label {
+              color: #7d86a3;
+              font-size: 12px;
+              margin-bottom: 6px;
+            }
+            .invoice-meta-value {
+              color: #1e2a5a;
+              font-size: 14px;
+              font-weight: 700;
+            }
+            .invoice-badge {
+              display: inline-flex;
+              align-items: center;
+              gap: 6px;
+              border-radius: 999px;
+              padding: 7px 14px;
+              font-size: 13px;
+              font-weight: 500;
+            }
+            .invoice-badge.awaiting {
+              background: #ffecee;
+              color: #ef3d35;
+            }
+            .invoice-badge.paid {
+              background: #ebf9ef;
+              color: #0da44b;
+            }
+            .invoice-summary-card {
+              border-radius: 12px;
+              background: #fff;
+              border: 1px solid #edf0f7;
+              padding: 0 18px;
+              margin-bottom: 14px;
+            }
+            .invoice-summary-row {
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              gap: 16px;
+              padding: 15px 4px;
+              color: #1d2025;
+              font-size: 14px;
+              border-bottom: 1px solid #edf0f7;
+            }
+            .invoice-summary-row.last {
+              border-bottom: none;
+            }
+            .invoice-summary-row strong {
+              font-weight: 700;
+            }
+            .invoice-total-box {
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              gap: 16px;
+              padding: 14px 16px;
+              border-radius: 12px;
+              background: #f7fbf7;
+            }
+            .invoice-total-left {
+              color: #1d2025;
+              font-size: 13px;
+            }
+            .invoice-total-sub {
+              color: #3f7f50;
+              font-size: 13px;
+              font-weight: 400;
+            }
+            .invoice-total-right {
+              text-align: right;
+            }
+            .invoice-total-amount {
+              color: #1b5e20;
+              font-size: 24px;
+              font-weight: 800;
+              line-height: 1.1;
+            }
+            .invoice-total-approx {
+              color: #6f7897;
+              font-size: 11px;
+              margin-top: 3px;
+            }
+            .invoice-total-rate {
+              color: #98a0b7;
+              font-size: 10px;
+              margin-top: 2px;
+            }
+            .invoice-footer-note {
+              color: #a0a7bd;
+              font-size: 12px;
+              margin-top: 12px;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="invoice-print-root">${invoiceMarkup}</div>
+        </body>
+      </html>`;
+
+    const blob = new Blob([invoiceDocument], { type: "text/html;charset=utf-8" });
+    const blobUrl = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = blobUrl;
+    link.download = `${selectedInvoice.invoiceNumber || "invoice"}.html`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(blobUrl);
+
+    setTimeout(() => {
+      setSelectedInvoice(null);
+      setIsInvoiceLoading(false);
+      setInvoiceDialogTitle("");
+    }, 0);
   };
 
   const handleActionClick = async (e, row) => {
@@ -305,6 +500,22 @@ const CustomsDeclarations = () => {
     setShowAdjustToast(false);
     setAdjustError(null);
     setIsAdjustOpen(true);
+  };
+
+  const openApproveModal = (row, fromAdjust = false) => {
+    if (!row) return;
+    setOpenMenuId(null);
+    setTableActionError(null);
+    setAdjustError(null);
+    setApproveRow(row);
+    setApproveFromAdjust(fromAdjust);
+    setIsApproveOpen(true);
+  };
+
+  const closeApproveModal = () => {
+    setIsApproveOpen(false);
+    setApproveRow(null);
+    setApproveFromAdjust(false);
   };
 
   const closeAdjustPanel = () => {
@@ -371,26 +582,53 @@ const CustomsDeclarations = () => {
 
   const handleApprove = async () => {
     if (!adjustRow) return;
+    openApproveModal(adjustRow, true);
+  };
+
+  const handleConfirmApprove = async () => {
+    if (!approveRow) return;
+
     setIsActioning(true);
+    setTableActionError(null);
     setAdjustError(null);
+
     const result = await approveDeclaration(
-      adjustRow.declarationType,
-      adjustRow.id
+      approveRow.declarationType,
+      approveRow.id
     );
+
     setIsActioning(false);
+
     if (!result) {
-      setAdjustError(t("Failed to approve declaration. Please try again."));
+      if (approveFromAdjust) {
+        setAdjustError(t("Failed to approve declaration. Please try again."));
+      } else {
+        setTableActionError(t("Failed to approve declaration. Please try again."));
+      }
       return;
     }
+
     setDeclarations((prev) =>
       prev.map((item) =>
-        item.id === adjustRow.id &&
-        item.declarationType === adjustRow.declarationType
+        item.id === approveRow.id &&
+        item.declarationType === approveRow.declarationType
           ? result
           : item
       )
     );
-    closeAdjustPanel();
+
+    if (approveFromAdjust) {
+      closeAdjustPanel();
+    }
+
+    closeApproveModal();
+
+    const invoice = await openInvoice(result, t("Invoice Generated"));
+    if (!invoice) {
+      setTableActionError(
+        t("Invoice was generated, but it could not be opened. You can view it from the actions menu.")
+      );
+    }
   };
 
   const handleReject = async () => {
@@ -635,9 +873,9 @@ const CustomsDeclarations = () => {
                         </Td>
                         <Td>{row.priceSource}</Td>
                         <Td>
-                          <StatusBadge $status={row.status}>
-                            <StatusIcon status={row.status} />
-                            {formatStatusLabel(row.status)}
+                          <StatusBadge $status={getDisplayStatus(row)}>
+                            <StatusIcon status={getDisplayStatus(row)} />
+                            {formatStatusLabel(getDisplayStatus(row))}
                           </StatusBadge>
                         </Td>
                         <Td onClick={(event) => event.stopPropagation()}>
@@ -696,26 +934,7 @@ const CustomsDeclarations = () => {
                                 {canApproveDeclaration(row) && (
                                   <ActionMenuButton
                                     type="button"
-                                    onClick={async () => {
-                                      setOpenMenuId(null);
-                                      setTableActionError(null);
-                                      const result = await approveDeclaration(
-                                        row.declarationType,
-                                        row.id
-                                      );
-                                      if (result) {
-                                        setDeclarations((prev) =>
-                                          prev.map((item) =>
-                                            item.id === row.id &&
-                                            item.declarationType === row.declarationType
-                                              ? result
-                                              : item
-                                          )
-                                        );
-                                      } else {
-                                        setTableActionError(t("Failed to approve declaration. Please try again."));
-                                      }
-                                    }}
+                                    onClick={() => openApproveModal(row)}
                                   >
                                     <ActionLabel>
                                       <ActionSvg
@@ -732,74 +951,6 @@ const CustomsDeclarations = () => {
                                         />
                                       </ActionSvg>
                                       <span>{t("Approve")}</span>
-                                    </ActionLabel>
-                                  </ActionMenuButton>
-                                )}
-                                {canGenerateInvoice(row) && (
-                                  <ActionMenuButton
-                                    type="button"
-                                    onClick={async () => {
-                                      setOpenMenuId(null);
-                                      setTableActionError(null);
-                                      setPendingInvoiceReleaseRow(null);
-                                      const result = await generateInvoice(
-                                        row.declarationType,
-                                        row.id
-                                      );
-                                      if (result) {
-                                        setDeclarations((prev) =>
-                                          prev.map((item) =>
-                                            item.id === row.id &&
-                                            item.declarationType === row.declarationType
-                                              ? result
-                                              : item
-                                          )
-                                        );
-                                        setPendingInvoiceReleaseRow(result);
-                                        const invoice = await openInvoice(result);
-                                        if (!invoice) {
-                                          setPendingInvoiceReleaseRow(null);
-                                        }
-                                      } else {
-                                        setTableActionError(t("Failed to generate invoice. Please try again."));
-                                      }
-                                    }}
-                                  >
-                                    <ActionLabel>
-                                      <ActionSvg
-                                        viewBox="0 0 20 20"
-                                        fill="none"
-                                        aria-hidden="true"
-                                      >
-                                        <rect
-                                          x="3.5"
-                                          y="2.5"
-                                          width="13"
-                                          height="15"
-                                          rx="2"
-                                          stroke="#1D2025"
-                                          strokeWidth="1.5"
-                                        />
-                                        <path
-                                          d="M6.5 7H13.5"
-                                          stroke="#1D2025"
-                                          strokeWidth="1.5"
-                                          strokeLinecap="round"
-                                        />
-                                        <path
-                                          d="M6.5 10.5H13.5"
-                                          stroke="#1D2025"
-                                          strokeWidth="1.5"
-                                          strokeLinecap="round"
-                                        />
-                                        <path
-                                          d="M6.5 14H10.5"
-                                          stroke="#1D2025"
-                                          strokeWidth="1.5"
-                                          strokeLinecap="round"
-                                        />
-                                      </ActionSvg>
-                                      <span>{t("Generate Invoice")}</span>
                                     </ActionLabel>
                                   </ActionMenuButton>
                                 )}
@@ -977,102 +1128,127 @@ const CustomsDeclarations = () => {
                 <InvoiceCloseButton type="button" onClick={closeInvoice}>
                   &#x2715;
                 </InvoiceCloseButton>
+                <div ref={invoiceContentRef}>
+                  {invoiceDialogTitle && (
+                    <InvoiceDialogTitle className="invoice-dialog-title">
+                      {invoiceDialogTitle}
+                    </InvoiceDialogTitle>
+                  )}
 
-                <InvoiceHeaderBlock>
-                  <InvoiceLeftHeader>
-                    <InvoiceSeal>
-                      <img src={ministryLogo} alt="Ministry of Finance" />
-                    </InvoiceSeal>
-                    <InvoiceIssuerBlock>
-                      <InvoiceIssuerCountry>{t("Republic of Lebanon")}</InvoiceIssuerCountry>
-                      <InvoiceIssuerTitle>{t("Ministry of Finance")}</InvoiceIssuerTitle>
-                      <InvoiceIssuerSubtitle>{t("Customs Directorate")}</InvoiceIssuerSubtitle>
-                    </InvoiceIssuerBlock>
-                  </InvoiceLeftHeader>
+                  <InvoiceHeaderBlock className="invoice-header">
+                    <InvoiceLeftHeader className="invoice-left-header">
+                      <InvoiceSeal className="invoice-seal">
+                        <img src={ministryLogo} alt="Ministry of Finance" />
+                      </InvoiceSeal>
+                      <InvoiceIssuerBlock>
+                        <InvoiceIssuerCountry className="invoice-issuer-country">
+                          {t("Republic of Lebanon")}
+                        </InvoiceIssuerCountry>
+                        <InvoiceIssuerTitle className="invoice-issuer-title">
+                          {t("Ministry of Finance")}
+                        </InvoiceIssuerTitle>
+                        <InvoiceIssuerSubtitle className="invoice-issuer-subtitle">
+                          {t("Customs Directorate")}
+                        </InvoiceIssuerSubtitle>
+                      </InvoiceIssuerBlock>
+                    </InvoiceLeftHeader>
 
-                  <InvoiceRightHeader>
-                    <InvoiceHeading>{t("Invoice")}</InvoiceHeading>
-                    <InvoiceNumber>{selectedInvoice.invoiceNumber}</InvoiceNumber>
-                  </InvoiceRightHeader>
-                </InvoiceHeaderBlock>
+                    <InvoiceRightHeader className="invoice-right-header">
+                      <InvoiceHeading className="invoice-heading">{t("Invoice")}</InvoiceHeading>
+                      <InvoiceNumber className="invoice-number">{selectedInvoice.invoiceNumber}</InvoiceNumber>
+                    </InvoiceRightHeader>
+                  </InvoiceHeaderBlock>
 
-                <InvoiceMetaGrid>
-                  <InvoiceMetaItem>
-                    <InvoiceMetaLabel>{t("Declaration No.")}</InvoiceMetaLabel>
-                    <InvoiceMetaValue>{selectedInvoice.declarationNumber}</InvoiceMetaValue>
-                  </InvoiceMetaItem>
-                  <InvoiceMetaItem>
-                    <InvoiceMetaLabel>{t("Devices Count")}</InvoiceMetaLabel>
-                    <InvoiceMetaValue>{selectedInvoice.devicesCount}</InvoiceMetaValue>
-                  </InvoiceMetaItem>
-                  <InvoiceMetaItem>
-                    <InvoiceMetaLabel>{t("Importer")}</InvoiceMetaLabel>
-                    <InvoiceMetaValue>{selectedInvoice.importerName}</InvoiceMetaValue>
-                  </InvoiceMetaItem>
-                  <InvoiceMetaItem>
-                    <InvoiceMetaLabel>{t("Issue Date")}</InvoiceMetaLabel>
-                    <InvoiceMetaValue>{formatDate(selectedInvoice.issueDate)}</InvoiceMetaValue>
-                  </InvoiceMetaItem>
-                  <InvoiceMetaItem>
-                    <InvoiceMetaLabel>{t("Currency")}</InvoiceMetaLabel>
-                    <InvoiceMetaValue>{selectedInvoice.currency}</InvoiceMetaValue>
-                  </InvoiceMetaItem>
-                  <InvoiceMetaItem>
-                    <InvoiceMetaLabel>{t("Declaration Date")}</InvoiceMetaLabel>
-                    <InvoiceMetaValue>{formatDate(selectedInvoice.declarationDate)}</InvoiceMetaValue>
-                  </InvoiceMetaItem>
-                  <InvoiceMetaItem>
-                    <InvoiceMetaLabel>{t("Payment Status")}</InvoiceMetaLabel>
-                    <InvoiceMetaValue>
-                      <StatusBadge $status={selectedInvoice.invoiceStatus === "PAID" ? "PAID" : "AWAITING_PAYMENT"}>
-                        {formatInvoiceStatusLabel(t, selectedInvoice.invoiceStatus)}
-                      </StatusBadge>
-                    </InvoiceMetaValue>
-                  </InvoiceMetaItem>
-                </InvoiceMetaGrid>
+                  <InvoiceMetaGrid className="invoice-meta-grid">
+                    <InvoiceMetaItem>
+                      <InvoiceMetaLabel className="invoice-meta-label">{t("Declaration No.")}</InvoiceMetaLabel>
+                      <InvoiceMetaValue className="invoice-meta-value">{selectedInvoice.declarationNumber}</InvoiceMetaValue>
+                    </InvoiceMetaItem>
+                    <InvoiceMetaItem>
+                      <InvoiceMetaLabel className="invoice-meta-label">{t("Devices Count")}</InvoiceMetaLabel>
+                      <InvoiceMetaValue className="invoice-meta-value">{selectedInvoice.devicesCount}</InvoiceMetaValue>
+                    </InvoiceMetaItem>
+                    <InvoiceMetaItem>
+                      <InvoiceMetaLabel className="invoice-meta-label">{t("Importer")}</InvoiceMetaLabel>
+                      <InvoiceMetaValue className="invoice-meta-value">{selectedInvoice.importerName}</InvoiceMetaValue>
+                    </InvoiceMetaItem>
+                    <InvoiceMetaItem>
+                      <InvoiceMetaLabel className="invoice-meta-label">{t("Issue Date")}</InvoiceMetaLabel>
+                      <InvoiceMetaValue className="invoice-meta-value">{formatDate(selectedInvoice.issueDate)}</InvoiceMetaValue>
+                    </InvoiceMetaItem>
+                    <InvoiceMetaItem>
+                      <InvoiceMetaLabel className="invoice-meta-label">{t("Currency")}</InvoiceMetaLabel>
+                      <InvoiceMetaValue className="invoice-meta-value">{selectedInvoice.currency}</InvoiceMetaValue>
+                    </InvoiceMetaItem>
+                    <InvoiceMetaItem>
+                      <InvoiceMetaLabel className="invoice-meta-label">{t("Declaration Date")}</InvoiceMetaLabel>
+                      <InvoiceMetaValue className="invoice-meta-value">{formatDate(selectedInvoice.declarationDate)}</InvoiceMetaValue>
+                    </InvoiceMetaItem>
+                <InvoiceMetaItem>
+                  <InvoiceMetaLabel className="invoice-meta-label">{t("Payment Status")}</InvoiceMetaLabel>
+                  <InvoiceMetaValue className="invoice-meta-value">
+                    <StatusBadge
+                          className={`invoice-badge ${selectedInvoice.invoiceStatus === "PAID" ? "paid" : "awaiting"}`}
+                          $status={selectedInvoice.invoiceStatus === "PAID" ? "PAID" : "AWAITING_PAYMENT"}
+                        >
+                          {formatInvoiceStatusLabel(t, selectedInvoice.invoiceStatus)}
+                        </StatusBadge>
+                      </InvoiceMetaValue>
+                    </InvoiceMetaItem>
+                  </InvoiceMetaGrid>
 
-                <InvoiceSummaryCard>
-                  <InvoiceSummaryRow>
-                    <span>{t("Total Approved Value")}</span>
-                    <span>{formatInvoiceMoney(selectedInvoice.approvedValueUsd)}</span>
-                  </InvoiceSummaryRow>
-                  <InvoiceSummaryRow>
-                    <span>
-                      {t("Total Customs Duty")} ({Number(selectedInvoice.dutyPercentage || 0).toFixed(0)}%)
-                    </span>
-                    <strong>{formatInvoiceMoney(selectedInvoice.customsDutyUsd)}</strong>
-                  </InvoiceSummaryRow>
-                  <InvoiceSummaryRow>
-                    <span>{t("Total (Approved Value + Customs Duty)")}</span>
-                    <span>{formatInvoiceMoney(selectedInvoice.totalWithDutyUsd)}</span>
-                  </InvoiceSummaryRow>
-                  <InvoiceSummaryRow $last>
-                    <span>{t("VAT")} ({Number(selectedInvoice.vatPercentage || 0).toFixed(0)}%)</span>
-                    <strong>+{formatInvoiceMoney(selectedInvoice.vatAmountUsd)}</strong>
-                  </InvoiceSummaryRow>
-                </InvoiceSummaryCard>
+                  <InvoiceSummaryCard className="invoice-summary-card">
+                    <InvoiceSummaryRow className="invoice-summary-row">
+                      <span>{t("Total Approved Value")}</span>
+                      <span>{formatInvoiceMoney(selectedInvoice.approvedValueUsd)}</span>
+                    </InvoiceSummaryRow>
+                    <InvoiceSummaryRow className="invoice-summary-row">
+                      <span>
+                        {t("Total Customs Duty")} ({Number(selectedInvoice.dutyPercentage || 0).toFixed(0)}%)
+                      </span>
+                      <strong>{formatInvoiceMoney(selectedInvoice.customsDutyUsd)}</strong>
+                    </InvoiceSummaryRow>
+                    <InvoiceSummaryRow className="invoice-summary-row">
+                      <span>{t("Total (Approved Value + Customs Duty)")}</span>
+                      <span>{formatInvoiceMoney(selectedInvoice.totalWithDutyUsd)}</span>
+                    </InvoiceSummaryRow>
+                    <InvoiceSummaryRow className="invoice-summary-row last" $last>
+                      <span>{t("VAT")} ({Number(selectedInvoice.vatPercentage || 0).toFixed(0)}%)</span>
+                      <strong>+{formatInvoiceMoney(selectedInvoice.vatAmountUsd)}</strong>
+                    </InvoiceSummaryRow>
+                  </InvoiceSummaryCard>
 
-                <InvoiceTotalBox>
-                  <InvoiceTotalLeft>
-                    <strong>{t("TOTAL PAYABLE")}</strong>{" "}
-                    <InvoiceTotalSub>({t("TOTAL CUSTOMS DUTY + VAT")})</InvoiceTotalSub>
-                  </InvoiceTotalLeft>
-                  <InvoiceTotalRight>
-                    <InvoiceTotalAmount>{formatInvoiceMoney(selectedInvoice.totalPayableUsd)}</InvoiceTotalAmount>
-                    <InvoiceTotalApprox>
-                      ≈ {(Number(selectedInvoice.totalPayableUsd || 0) * Number(selectedInvoice.usdToLbpRate || 0)).toLocaleString()} LBP
-                    </InvoiceTotalApprox>
-                    <InvoiceTotalRate>
-                      {t("Exchange Rate")}: {Number(selectedInvoice.usdToLbpRate || 0).toLocaleString()} USD/LBP
-                    </InvoiceTotalRate>
-                  </InvoiceTotalRight>
-                </InvoiceTotalBox>
+                  <InvoiceTotalBox className="invoice-total-box">
+                    <InvoiceTotalLeft className="invoice-total-left">
+                      <strong>{t("TOTAL PAYABLE")}</strong>{" "}
+                      <InvoiceTotalSub className="invoice-total-sub">({t("TOTAL CUSTOMS DUTY + VAT")})</InvoiceTotalSub>
+                    </InvoiceTotalLeft>
+                    <InvoiceTotalRight className="invoice-total-right">
+                      <InvoiceTotalAmount className="invoice-total-amount">{formatInvoiceMoney(selectedInvoice.totalPayableUsd)}</InvoiceTotalAmount>
+                      <InvoiceTotalApprox className="invoice-total-approx">
+                        ≈ {(Number(selectedInvoice.totalPayableUsd || 0) * Number(selectedInvoice.usdToLbpRate || 0)).toLocaleString()} LBP
+                      </InvoiceTotalApprox>
+                      <InvoiceTotalRate className="invoice-total-rate">
+                        {t("Exchange Rate")}: {Number(selectedInvoice.usdToLbpRate || 0).toLocaleString()} USD/LBP
+                      </InvoiceTotalRate>
+                    </InvoiceTotalRight>
+                  </InvoiceTotalBox>
 
-                <InvoiceFooterNote>
-                  {selectedInvoice.invoiceStatus === "PAID"
-                    ? t("Thank you. Payment received")
-                    : t("Invoice generated. Awaiting payment.")}
-                </InvoiceFooterNote>
+                  <InvoiceFooterNote className="invoice-footer-note">
+                    {selectedInvoice.invoiceStatus === "PAID"
+                      ? t("Thank you. Payment received")
+                      : t("Invoice generated. Awaiting payment.")}
+                  </InvoiceFooterNote>
+                </div>
+
+                <InvoiceActions>
+                  <InvoiceSecondaryButton type="button" onClick={closeInvoice}>
+                    {t("Back to Declarations")}
+                  </InvoiceSecondaryButton>
+                  <InvoicePrimaryButton type="button" onClick={handleDownloadInvoice}>
+                    {t("Download Invoice")}
+                  </InvoicePrimaryButton>
+                </InvoiceActions>
               </>
             )}
           </InvoicePanel>
@@ -1109,12 +1285,12 @@ const CustomsDeclarations = () => {
                 <AdjustDetailValue>{adjustRow.devicesCount}</AdjustDetailValue>
 
                 <AdjustDetailLabel>{t("Status")}</AdjustDetailLabel>
-                <AdjustDetailValue>
-                  <StatusBadge $status={adjustRow.status}>
-                    <StatusIcon status={adjustRow.status} />
-                    {formatStatusLabel(adjustRow.status)}
-                  </StatusBadge>
-                </AdjustDetailValue>
+                  <AdjustDetailValue>
+                    <StatusBadge $status={getDisplayStatus(adjustRow)}>
+                      <StatusIcon status={getDisplayStatus(adjustRow)} />
+                      {formatStatusLabel(getDisplayStatus(adjustRow))}
+                    </StatusBadge>
+                  </AdjustDetailValue>
               </AdjustDetailGrid>
             </AdjustSection>
 
@@ -1269,9 +1445,9 @@ const CustomsDeclarations = () => {
 
                     <AdjustDetailLabel>{t("Status")}</AdjustDetailLabel>
                     <AdjustDetailValue>
-                      <StatusBadge $status={detailsDrawerRow.status}>
-                        <StatusIcon status={detailsDrawerRow.status} />
-                        {formatStatusLabel(detailsDrawerRow.status)}
+                      <StatusBadge $status={getDisplayStatus(detailsDrawerRow)}>
+                        <StatusIcon status={getDisplayStatus(detailsDrawerRow)} />
+                        {formatStatusLabel(getDisplayStatus(detailsDrawerRow))}
                       </StatusBadge>
                     </AdjustDetailValue>
                   </AdjustDetailGrid>
@@ -1322,6 +1498,15 @@ const CustomsDeclarations = () => {
           busy={isRejecting}
         />
       )}
+
+      {isApproveOpen && approveRow && (
+        <Popup
+          purpose="approveDeclaration"
+          onClose={closeApproveModal}
+          onAction={handleConfirmApprove}
+          busy={isActioning}
+        />
+      )}
     </PageContainer>
   );
 };
@@ -1357,6 +1542,10 @@ const formatStatusLabel = (status) => {
     return "-";
   }
 
+  if (status === "PENDING_APPROVAL") {
+    return "Pending Approval";
+  }
+
   if (status === "DECLINED") {
     return "Rejected";
   }
@@ -1380,6 +1569,15 @@ const formatInvoiceStatusLabel = (t, status) => {
 
 const formatImeis = (imeis) => (imeis ? imeis.split("|").join("\n") : "-");
 
+const hasPendingApprovalAdjustment = (row) =>
+  row?.declarationType === DECLARATION_TYPES.IMPORTER &&
+  row?.status === "UNDER_REVIEW" &&
+  row?.approvedPriceUsd != null &&
+  Boolean(row?.adjustmentReason?.trim());
+
+const getDisplayStatus = (row) =>
+  hasPendingApprovalAdjustment(row) ? "PENDING_APPROVAL" : row?.status;
+
 const canAdjustDeclaration = (row) =>
   row.declarationType === DECLARATION_TYPES.IMPORTER &&
   row.status === "UNDER_REVIEW";
@@ -1387,11 +1585,6 @@ const canAdjustDeclaration = (row) =>
 const canApproveDeclaration = (row) =>
   row.declarationType === DECLARATION_TYPES.IMPORTER &&
   row.status === "UNDER_REVIEW";
-
-const canGenerateInvoice = (row) =>
-  row.declarationType === DECLARATION_TYPES.IMPORTER &&
-  row.status === "APPROVED" &&
-  !row.invoiceGenerated;
 
 const canViewInvoice = (row) =>
   row.declarationType === DECLARATION_TYPES.IMPORTER &&
@@ -1876,7 +2069,7 @@ const InvoicePanel = styled.div`
   max-height: calc(100vh - 48px);
   background: #fff;
   border-radius: 18px;
-  padding: 22px 24px 18px;
+  padding: 28px 24px 18px;
   border: 1px solid #edf0f7;
   overflow-y: auto;
   box-shadow: 0 24px 60px rgba(17, 24, 39, 0.12);
@@ -1885,14 +2078,22 @@ const InvoicePanel = styled.div`
 
 const InvoiceCloseButton = styled.button`
   position: absolute;
-  top: 18px;
-  right: 18px;
+  top: 16px;
+  right: 16px;
   border: none;
   background: transparent;
   font-size: 20px;
   cursor: pointer;
   color: #8b92a8;
   line-height: 1;
+`;
+
+const InvoiceDialogTitle = styled.h2`
+  margin: 6px 0 20px;
+  font-size: 30px;
+  font-weight: 700;
+  color: #233260;
+  line-height: 1.2;
 `;
 
 const InvoiceLeftHeader = styled.div`
@@ -1907,6 +2108,7 @@ const InvoiceRightHeader = styled.div`
   flex-direction: column;
   align-items: flex-end;
   gap: 2px;
+  padding-right: 32px;
 `;
 
 const InvoiceSeal = styled.div`
@@ -2068,6 +2270,42 @@ const InvoiceFooterNote = styled.div`
   color: #a0a7bd;
   font-size: 12px;
   margin-top: 12px;
+`;
+
+const InvoiceActions = styled.div`
+  display: flex;
+  gap: 16px;
+  margin-top: 18px;
+
+  @media (max-width: 720px) {
+    flex-direction: column;
+  }
+`;
+
+const InvoiceActionButton = styled.button`
+  flex: 1;
+  height: 54px;
+  border-radius: 28px;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+
+  &:hover {
+    opacity: 0.88;
+  }
+`;
+
+const InvoiceSecondaryButton = styled(InvoiceActionButton)`
+  background: #ffffff;
+  color: #20294c;
+  border: 1px solid #20294c;
+`;
+
+const InvoicePrimaryButton = styled(InvoiceActionButton)`
+  background: #2671d9;
+  color: #ffffff;
+  border: 1px solid #2671d9;
 `;
 
 /* Adjust panel specific styles */

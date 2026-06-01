@@ -57,6 +57,12 @@ const Popup = ({ data, purpose, onClose, onAction, reason, onReasonChange, reaso
     actionText = t("Track Devices Status");
     cancelText = t("Go to dashboard");
     isColumn = true;
+  } else if (purpose === "approveDeclaration") {
+    img = userApprove;
+    headerText = t("Are you sure do you want to approve this declaration?");
+    actionText = busy ? t("Approving...") : t("Approve");
+    isColumn = true;
+    isBlueHeader = true;
   } else if (purpose === "rejectDeclaration") {
     img = reject2SVG;
     headerText = t("Are you sure do you want reject this declaration?");
@@ -68,7 +74,7 @@ const Popup = ({ data, purpose, onClose, onAction, reason, onReasonChange, reaso
 
   return (
     <Overlay>
-      <PopupContainer $wide={purpose === "rejectDeclaration"}>
+      <PopupContainer $wide={purpose === "rejectDeclaration" || purpose === "approveDeclaration"}>
         <SVG src={img} alt="Icon" />
         <Header $isBlue={isBlueHeader}>{headerText}</Header>
         {subheaderText && <Subheader>{subheaderText}</Subheader>}

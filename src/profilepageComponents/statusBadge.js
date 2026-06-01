@@ -1,34 +1,36 @@
 import React from "react";
 import styled from "styled-components";
 
-import flag from "../assets/flag.svg";
-
 export const STATUS_STYLES = {
   SUBMITTED: {
-    background: "rgba(22, 114, 192, 0.07)",
-    color: "#1672C0",
+    background: "#eef5ff",
+    color: "#1f78d8",
   },
   UNDER_REVIEW: {
-    background: "rgba(255, 149, 0, 0.07)",
-    color: "#FF9500",
+    background: "#fff5e8",
+    color: "#ff9800",
+  },
+  PENDING_APPROVAL: {
+    background: "#fff5e8",
+    color: "#ff9800",
   },
   APPROVED: {
-    background: "rgba(0, 149, 63, 0.07)",
-    color: "#00953F",
+    background: "#ebf9ef",
+    color: "#0da44b",
   },
   DECLINED: {
-    background: "rgba(222, 22, 22, 0.07)",
-    color: "#DE1616",
+    background: "#ffecee",
+    color: "#ef3d35",
   },
   AWAITING_PAYMENT: {
-    background: "rgba(222, 22, 22, 0.07)",
-    color: "#DE1616",
+    background: "#fff5e8",
+    color: "#ff9800",
     icon: "flag",
-    iconColor: "#e03d3d",
+    iconColor: "#ff9800",
   },
   PAID: {
-    background: "#eef6ef",
-    color: "#516275",
+    background: "#ebf9ef",
+    color: "#0da44b",
   },
   CLOSED: {
     background: "#eef2f8",
@@ -87,7 +89,18 @@ export const StatusIcon = ({ status }) => {
 
   if (icon === "flag") {
     return (
-      <img src={flag} alt="" />
+      <StatusSvg viewBox="0 0 16 16" fill="none" aria-hidden="true">
+        <path
+          d="M4 2.5V13.5"
+          stroke={iconColor}
+          strokeWidth="1.5"
+          strokeLinecap="round"
+        />
+        <path
+          d="M5.2 3.2H11.7C12.05 3.2 12.34 3.48 12.34 3.84C12.34 3.95 12.31 4.07 12.25 4.17L10.95 6.34C10.8 6.59 10.8 6.91 10.95 7.16L12.25 9.33C12.43 9.63 12.33 10.02 12.03 10.2C11.93 10.26 11.82 10.29 11.7 10.29H5.2V3.2Z"
+          fill={iconColor}
+        />
+      </StatusSvg>
     );
   }
 
