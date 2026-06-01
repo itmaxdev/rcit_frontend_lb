@@ -2,6 +2,31 @@ import { getToken } from "./token";
 import { makeAuthenticatedRequest } from "./authenticatedRequest";
 import { CUSTOMS_API_BASE_URL } from "../config/api";
 
+export const fetchCustomsDashboard = async () => {
+  try {
+    const token = getToken();
+    const response = await makeAuthenticatedRequest(
+      `${CUSTOMS_API_BASE_URL}/dashboard`,
+      {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    if (!response?.ok) {
+      const errorData = response ? await response.json() : null;
+      throw new Error(errorData?.message || "Failed to fetch customs dashboard");
+    }
+
+    return response.json();
+  } catch (error) {
+    console.error("Error fetching customs dashboard:", error);
+    return null;
+  }
+};
+
 export const fetchCustomsDeclarations = async (
   declarationType = "IMPORTER",
   page = 1,

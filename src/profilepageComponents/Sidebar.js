@@ -45,6 +45,7 @@ const Sidebar = ({ basePath }) => {
         ]
       : accountType === ROLE_CUSTOMS
       ? [
+          { icon: dashboardSvg, label: "Dashboard", disabled: false },
           { icon: declareDevicesSvg, label: "Declaration", disabled: false },
         ]
       : [

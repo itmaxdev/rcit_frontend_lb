@@ -17,6 +17,7 @@ import RegisteredDevices from "../profilepageComponents/RegisteredDevices";
 import Profile from "../profilepageComponents/Profile";
 import SupportCard from "../homepageComponents/SupportCard";
 import CustomsDeclarations from "../profilepageComponents/customs/CustomsDeclarations";
+import CustomsDashboard from "../profilepageComponents/customs/CustomsDashboard";
 import {
   ROLE_ADMIN,
   ROLE_CUSTOMS,
@@ -113,8 +114,8 @@ const ProfilePage = () => {
 
           {accountType === ROLE_CUSTOMS && (
             <Route path="role_customs/*">
-              <Route path="" element={<Navigate to="Declaration" />} />
-              <Route path="Dashboard" element={<Navigate to="../Declaration" />} />
+              <Route path="" element={<Navigate to="Dashboard" />} />
+              <Route path="Dashboard" element={<CustomsDashboard />} />
               <Route path="Declaration" element={<CustomsDeclarations />} />
               <Route path="Profile" element={<Profile />} />
             </Route>

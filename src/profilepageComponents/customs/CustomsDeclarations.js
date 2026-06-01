@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import styled from "styled-components";
 import { useTranslation } from "react-i18next";
+import { useLocation, useNavigate } from "react-router-dom";
 import chevronSVG from "../../assets/chevron-down.svg";
 import noDeclarations from "../../assets/noDeclarations.png";
 import searchSVG from "../../assets/search3.svg";
@@ -28,6 +29,8 @@ const rowKey = (row) => `${row.declarationType}-${row.id}`;
 
 const CustomsDeclarations = () => {
   const { t } = useTranslation();
+  const location = useLocation();
+  const navigate = useNavigate();
   const invoiceContentRef = useRef(null);
   const [activeTab, setActiveTab] = useState(DECLARATION_TYPES.IMPORTER);
   const [searchInput, setSearchInput] = useState("");
@@ -54,6 +57,7 @@ const CustomsDeclarations = () => {
   const [expandedRowKey, setExpandedRowKey] = useState(null);
   const [expandedDetail, setExpandedDetail] = useState(null);
   const [expandedDetailLoading, setExpandedDetailLoading] = useState(false);
+  const [pendingDashboardSelection, setPendingDashboardSelection] = useState(null);
 
   // Adjust panel state
   const [isAdjustOpen, setIsAdjustOpen] = useState(false);
@@ -114,6 +118,18 @@ const CustomsDeclarations = () => {
   useEffect(() => {
     loadDeclarations();
   }, [loadDeclarations]);
+
+  useEffect(() => {
+    const selection = location.state;
+    if (!selection?.declarationId) {
+      return;
+    }
+
+    setActiveTab(selection.declarationType || DECLARATION_TYPES.IMPORTER);
+    setCurrentPage(0);
+    setPendingDashboardSelection(selection);
+    navigate(location.pathname, { replace: true, state: null });
+  }, [location.pathname, location.state, navigate]);
 
   const rangeStart = totalElements === 0 ? 0 : currentPage * pageSize + 1;
   const rangeEnd = Math.min((currentPage + 1) * pageSize, totalElements);
@@ -199,7 +215,7 @@ const CustomsDeclarations = () => {
     setIsDetailsDrawerOpen(false);
   };
 
-  const toggleRowExpansion = async (row) => {
+  const toggleRowExpansion = useCallback(async (row) => {
     const key = rowKey(row);
     if (expandedRowKey === key) {
       setExpandedRowKey(null);
@@ -215,7 +231,27 @@ const CustomsDeclarations = () => {
     );
     setExpandedDetail(detail);
     setExpandedDetailLoading(false);
-  };
+  }, [expandedRowKey]);
+
+  useEffect(() => {
+    if (!pendingDashboardSelection?.declarationId) {
+      return;
+    }
+    if (activeTab !== (pendingDashboardSelection.declarationType || DECLARATION_TYPES.IMPORTER)) {
+      return;
+    }
+
+    const fallbackRow = {
+      id: pendingDashboardSelection.declarationId,
+      declarationType: pendingDashboardSelection.declarationType || DECLARATION_TYPES.IMPORTER,
+    };
+    const selectedRow =
+      declarations.find((row) => row.id === pendingDashboardSelection.declarationId) ||
+      fallbackRow;
+
+    toggleRowExpansion(selectedRow);
+    setPendingDashboardSelection(null);
+  }, [activeTab, declarations, pendingDashboardSelection, toggleRowExpansion]);
 
   const openInvoice = async (row, title = "") => {
     if (!row) return;
