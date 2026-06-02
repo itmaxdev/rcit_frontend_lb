@@ -301,7 +301,7 @@
   "ImporterDeclarations_EmptyTitle": "Aucune déclaration pour le moment.",
   "ImporterDeclarations_EmptySubtitle": "Commencez votre processus d'enregistrement des appareils !",
   "ImporterDeclarations_LoadError": "Nous n'avons pas pu charger vos déclarations pour le moment.",
-  "ImporterDeclarations_SearchPlaceholder": "Rechercher par n° de déclaration.",
+  "ImporterDeclarations_SearchPlaceholder": "Rechercher",
   "ImporterDeclarations_NoSearchResults": "Aucune déclaration ne correspond à votre recherche.",
   "Import New Devices": "Importer de nouveaux appareils",
   "Dec ID": "ID déc.",

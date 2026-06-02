@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import styled from "styled-components";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
@@ -21,10 +21,12 @@ const ImporterDeclarations = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [declarations, setDeclarations] = useState([]);
+  const [totalDeclarations, setTotalDeclarations] = useState(0);
   const [clearableUpload, setClearableUpload] = useState(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [appliedSearch, setAppliedSearch] = useState("");
   const [openMenuId, setOpenMenuId] = useState(null);
   const [menuPosition, setMenuPosition] = useState({ top: 0, right: 0 });
   const [selectedRows, setSelectedRows] = useState(new Set());
@@ -50,19 +52,29 @@ const ImporterDeclarations = () => {
     };
   }, [openMenuId]);
 
+  useEffect(() => {
+    const timerId = window.setTimeout(() => {
+      setAppliedSearch(searchQuery.trim());
+    }, 250);
+
+    return () => window.clearTimeout(timerId);
+  }, [searchQuery]);
+
   const loadDeclarations = useCallback(async () => {
     setLoading(true);
     setLoadError(false);
-    const response = await fetchImporterDeclarations(1, 100);
+    const response = await fetchImporterDeclarations(1, 1000, appliedSearch);
     if (!response) {
       setDeclarations([]);
+      setTotalDeclarations(0);
       setLoadError(true);
       setLoading(false);
       return;
     }
     setDeclarations(response.data || []);
+    setTotalDeclarations(response.totalElements || 0);
     setLoading(false);
-  }, []);
+  }, [appliedSearch]);
 
   const loadClearableUpload = useCallback(async () => {
     const response = await fetchClearableImporterUpload();
@@ -74,36 +86,16 @@ const ImporterDeclarations = () => {
     loadClearableUpload();
   }, [loadDeclarations, loadClearableUpload]);
 
-  const filteredDeclarations = useMemo(() => {
-    const normalizedQuery = searchQuery.trim().toLowerCase();
-    if (!normalizedQuery) {
-      return declarations;
-    }
-
-    return declarations.filter((declaration) => {
-      const declarationNumber = formatDeclarationNumber(declaration.id).toLowerCase();
-      const status = formatStatusLabel(
-        t,
-        getDisplayStatus(declaration)
-      ).toLowerCase();
-      const filename = (declaration.originalFilename || "").toLowerCase();
-
-      return (
-        declarationNumber.includes(normalizedQuery) ||
-        status.includes(normalizedQuery) ||
-        filename.includes(normalizedQuery)
-      );
-    });
-  }, [declarations, searchQuery, t]);
+  const isSearching = appliedSearch.length > 0;
 
   const allSelected =
-    filteredDeclarations.length > 0 &&
-    filteredDeclarations.every((d) => selectedRows.has(d.id));
-  const someSelected = filteredDeclarations.some((d) => selectedRows.has(d.id));
+    declarations.length > 0 &&
+    declarations.every((d) => selectedRows.has(d.id));
+  const someSelected = declarations.some((d) => selectedRows.has(d.id));
 
   const handleSelectAll = (e) => {
     if (e.target.checked) {
-      setSelectedRows(new Set(filteredDeclarations.map((d) => d.id)));
+      setSelectedRows(new Set(declarations.map((d) => d.id)));
     } else {
       setSelectedRows(new Set());
     }
@@ -171,7 +163,7 @@ const ImporterDeclarations = () => {
     setExpandedDetailLoading(false);
   }, [expandedRowId]);
 
-  if (!loading && declarations.length === 0) {
+  if (!loading && declarations.length === 0 && !isSearching) {
     if (loadError) {
       return (
         <EmptyStateContainer>
@@ -237,7 +229,7 @@ const ImporterDeclarations = () => {
           </SearchBar>
 
           <ResultsText>
-            {filteredDeclarations.length} {t("Out of")} {declarations.length}
+            {declarations.length} {t("Out of")} {totalDeclarations}
           </ResultsText>
         </Toolbar>
 
@@ -269,14 +261,14 @@ const ImporterDeclarations = () => {
                 </tr>
               </thead>
               <tbody>
-                {filteredDeclarations.length === 0 ? (
+                {declarations.length === 0 ? (
                   <tr>
                     <EmptyTableCell colSpan="8">
                       {t("ImporterDeclarations_NoSearchResults")}
                     </EmptyTableCell>
                   </tr>
                 ) : (
-                  filteredDeclarations.map((declaration) => {
+                  declarations.map((declaration) => {
                     const currentStatus = getDisplayStatus(declaration);
                     const isExpanded = expandedRowId === declaration.id;
 

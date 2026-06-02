@@ -301,7 +301,7 @@
   "ImporterDeclarations_EmptyTitle": "No declarations yet.",
   "ImporterDeclarations_EmptySubtitle": "Start your device registration process!",
   "ImporterDeclarations_LoadError": "We couldn't load your declarations right now.",
-  "ImporterDeclarations_SearchPlaceholder": "Search by declaration no.",
+  "ImporterDeclarations_SearchPlaceholder": "Search",
   "ImporterDeclarations_NoSearchResults": "No declarations match your search.",
   "Import New Devices": "Import New Devices",
   "Dec ID": "Dec ID",

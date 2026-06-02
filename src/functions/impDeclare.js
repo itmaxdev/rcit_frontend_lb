@@ -81,9 +81,17 @@ export const bulkUpload = async (file) => {
   return ret;
 };
 
-export const fetchImporterDeclarations = async (page = 1, pageSize = 100) => {
+export const fetchImporterDeclarations = async (
+  page = 1,
+  pageSize = 100,
+  search = ""
+) => {
   const token = getToken();
-  const url = `${DECLARATIONS_URL}?page=${page}&pageSize=${pageSize}`;
+  const params = new URLSearchParams({ page, pageSize });
+  if (search) {
+    params.append("search", search);
+  }
+  const url = `${DECLARATIONS_URL}?${params.toString()}`;
 
   try {
     const response = await makeAuthenticatedRequest(url, {
