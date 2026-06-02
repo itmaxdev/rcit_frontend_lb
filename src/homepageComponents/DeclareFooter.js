@@ -16,7 +16,7 @@ const DeclareFooter = () => {
       <Header>{t("DeclareFooter")}</Header>
       <ButtonsContainer>
         <Link to="/login">
-          <LoginButton isLoggedIn={isLoggedIn}>{t("Login")}</LoginButton>
+          <LoginButton $isLoggedIn={isLoggedIn}>{t("Login")}</LoginButton>
         </Link>
         <Link to={isLoggedIn ? `/profile/${accountType}/DeclareDevices` : "/signup"}>
           <DeclareButton>
@@ -67,7 +67,7 @@ const ButtonsContainer = styled.div`
 
 const LoginButton = styled.button`
   cursor: pointer;
-  display: ${(props) => (props.isLoggedIn ? "none" : "flex")};
+  display: ${(props) => (props.$isLoggedIn ? "none" : "flex")};
   padding: 16px 28px;
   justify-content: center;
   align-items: center;

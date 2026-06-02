@@ -153,6 +153,52 @@ export const fetchImporterDeclarationInvoice = async (uploadId) => {
   }
 };
 
+const extractFilename = (response, fallbackFileName) => {
+  const disposition = response.headers.get("Content-Disposition") || "";
+  const match = disposition.match(/filename="([^"]+)"/i);
+  return match?.[1] || fallbackFileName;
+};
+
+const downloadBlobResponse = async (response, fallbackFileName) => {
+  const blob = await response.blob();
+  const url = window.URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = extractFilename(response, fallbackFileName);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  window.setTimeout(() => window.URL.revokeObjectURL(url), 1000);
+};
+
+export const downloadImporterDeclarationInvoicePdf = async (
+  uploadId,
+  fallbackFileName = "invoice.pdf"
+) => {
+  const token = getToken();
+  const url = `${DECLARATIONS_URL}/${uploadId}/invoice/pdf`;
+
+  try {
+    const response = await makeAuthenticatedRequest(url, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (!response?.ok) {
+      const errorData = response ? await response.json() : null;
+      throw new Error(errorData?.message || "Failed to download importer invoice");
+    }
+
+    await downloadBlobResponse(response, fallbackFileName);
+    return true;
+  } catch (error) {
+    console.error("Error downloading importer invoice PDF:", error);
+    return false;
+  }
+};
+
 export const initiateDeclarationPayment = async (uploadId) => {
   const token = getToken();
   const url = `${DECLARATIONS_URL}/${uploadId}/payments`;

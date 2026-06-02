@@ -12,6 +12,7 @@ import {
   adjustDeclarationValue,
   approveDeclaration,
   closeDeclaration,
+  downloadCustomsDeclarationInvoicePdf,
   fetchCustomsDeclarationDetail,
   fetchCustomsDeclarationInvoice,
   fetchCustomsDeclarations,
@@ -31,7 +32,6 @@ const CustomsDeclarations = () => {
   const { t } = useTranslation();
   const location = useLocation();
   const navigate = useNavigate();
-  const invoiceContentRef = useRef(null);
   const [activeTab, setActiveTab] = useState(DECLARATION_TYPES.IMPORTER);
   const [searchInput, setSearchInput] = useState("");
   const [appliedSearch, setAppliedSearch] = useState("");
@@ -280,35 +280,20 @@ const CustomsDeclarations = () => {
   const handleDownloadInvoice = async () => {
     if (!selectedInvoice) return;
 
-    try {
-      const canvas = await renderInvoiceToCanvas(selectedInvoice, t);
-      const jpegDataUrl = canvas.toDataURL("image/jpeg", 0.98);
-      const pdfBlob = createPdfFromJpegDataUrl(
-        jpegDataUrl,
-        canvas.width,
-        canvas.height
-      );
-      const blobUrl = URL.createObjectURL(pdfBlob);
-      const link = document.createElement("a");
-      link.href = blobUrl;
-      link.download = `${selectedInvoice.invoiceNumber || "invoice"}.pdf`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+    const downloaded = await downloadCustomsDeclarationInvoicePdf(
+      activeTab,
+      selectedInvoice.declarationId,
+      `${selectedInvoice.invoiceNumber || "invoice"}.pdf`
+    );
 
-      setTimeout(() => {
-        URL.revokeObjectURL(blobUrl);
-      }, 1000);
-
-      setTimeout(() => {
-        setSelectedInvoice(null);
-        setIsInvoiceLoading(false);
-        setInvoiceDialogTitle("");
-      }, 0);
-    } catch (error) {
-      console.error("Failed to generate invoice PDF", error);
+    if (!downloaded) {
       global.alert2?.(t("Failed to download invoice. Please try again."));
+      return;
     }
+
+    setSelectedInvoice(null);
+    setIsInvoiceLoading(false);
+    setInvoiceDialogTitle("");
   };
 
   const handleActionClick = async (e, row) => {
@@ -982,16 +967,16 @@ const CustomsDeclarations = () => {
       {(isInvoiceLoading || selectedInvoice) && (
         <InvoiceOverlay onClick={closeInvoice}>
           <InvoicePanel onClick={(e) => e.stopPropagation()}>
-            {isInvoiceLoading ? (
-              <DrawerLoading>{t("Loading")}</DrawerLoading>
-            ) : !selectedInvoice ? (
-              <DrawerLoading>{t("No data available")}</DrawerLoading>
-            ) : (
-              <>
-                <InvoiceCloseButton type="button" onClick={closeInvoice}>
-                  &#x2715;
-                </InvoiceCloseButton>
-                <div ref={invoiceContentRef}>
+            <InvoiceCloseButton type="button" onClick={closeInvoice}>
+              &#x2715;
+            </InvoiceCloseButton>
+            <InvoiceBody>
+              {isInvoiceLoading ? (
+                <DrawerLoading>{t("Loading")}</DrawerLoading>
+              ) : !selectedInvoice ? (
+                <DrawerLoading>{t("No data available")}</DrawerLoading>
+              ) : (
+                <div>
                   {invoiceDialogTitle && (
                     <InvoiceDialogTitle className="invoice-dialog-title">
                       {invoiceDialogTitle}
@@ -1103,7 +1088,9 @@ const CustomsDeclarations = () => {
                       : t("Invoice generated. Awaiting payment.")}
                   </InvoiceFooterNote>
                 </div>
-
+              )}
+            </InvoiceBody>
+            {!isInvoiceLoading && selectedInvoice && (
                 <InvoiceActions>
                   <InvoiceSecondaryButton type="button" onClick={closeInvoice}>
                     {t("Back to Declarations")}
@@ -1112,7 +1099,6 @@ const CustomsDeclarations = () => {
                     {t("Download Invoice")}
                   </InvoicePrimaryButton>
                 </InvoiceActions>
-              </>
             )}
           </InvoicePanel>
         </InvoiceOverlay>
@@ -1493,429 +1479,6 @@ const VarianceValue = ({ value }) => {
     </VarianceContainer>
   );
 };
-
-const renderInvoiceToCanvas = async (invoice, t) => {
-  if (!invoice) {
-    throw new Error("Invoice data is missing");
-  }
-
-  if (document.fonts?.ready) {
-    await document.fonts.ready;
-  }
-
-  const scale = Math.max(2, Math.min(window.devicePixelRatio || 1, 3));
-  const width = 1180;
-  const height = 830;
-  const canvas = document.createElement("canvas");
-  canvas.width = width * scale;
-  canvas.height = height * scale;
-
-  const context = canvas.getContext("2d");
-  if (!context) {
-    throw new Error("Canvas context is unavailable");
-  }
-
-  context.scale(scale, scale);
-  context.fillStyle = "#ffffff";
-  context.fillRect(0, 0, width, height);
-
-  const logo = await loadImage(ministryLogo);
-  const cardX = 24;
-  const cardY = 24;
-  const cardWidth = width - 48;
-  const cardHeight = height - 48;
-
-  drawRoundedRect(context, cardX, cardY, cardWidth, cardHeight, 22, "#ffffff");
-  drawRoundedBorder(context, cardX, cardY, cardWidth, cardHeight, 22, "#dfe4ef", 1);
-
-  let cursorY = 58;
-  const leftX = 52;
-  const rightX = width - 72;
-
-  context.drawImage(logo, leftX, cursorY, 56, 56);
-  drawText(context, t("Republic of Lebanon"), leftX + 74, cursorY + 10, {
-    size: 13,
-    color: "#8a93ad",
-  });
-  drawText(context, t("Ministry of Finance"), leftX + 74, cursorY + 32, {
-    size: 19,
-    color: "#1d2025",
-    weight: 700,
-  });
-  drawText(context, t("Customs Directorate"), leftX + 74, cursorY + 56, {
-    size: 17,
-    color: "#1d2025",
-    weight: 600,
-  });
-
-  drawText(context, t("Invoice"), rightX, cursorY + 18, {
-    size: 18,
-    color: "#1d2025",
-    weight: 700,
-    align: "right",
-  });
-  drawText(context, invoice.invoiceNumber || t("Invoice"), rightX, cursorY + 48, {
-    size: 20,
-    color: "#1d2025",
-    weight: 700,
-    align: "right",
-  });
-
-  cursorY += 90;
-  drawLine(context, 48, cursorY, width - 48, cursorY, "#edf0f7", 1);
-  cursorY += 24;
-
-  const rowGap = 54;
-  const metaColumns = [52, 410, 768];
-
-  drawMetaBlock(context, metaColumns[0], cursorY, t("Declaration No."), invoice.declarationNumber);
-  drawMetaBlock(context, metaColumns[1], cursorY, t("Devices Count"), String(invoice.devicesCount ?? 0));
-  drawMetaBlock(context, metaColumns[2], cursorY, t("Importer"), invoice.importerName || "-");
-
-  drawMetaBlock(context, metaColumns[0], cursorY + rowGap, t("Issue Date"), formatDate(invoice.issueDate));
-  drawMetaBlock(context, metaColumns[1], cursorY + rowGap, t("Currency"), invoice.currency || "USD");
-  drawMetaBlock(context, metaColumns[2], cursorY + rowGap, t("Declaration Date"), formatDate(invoice.declarationDate));
-
-  drawMetaBlock(context, metaColumns[0], cursorY + rowGap * 2, t("Payment Status"), "", {
-    drawBadge: true,
-    badgeText: formatInvoiceStatusLabel(t, invoice.invoiceStatus),
-    badgeStatus: invoice.invoiceStatus === "PAID" ? "PAID" : "AWAITING_PAYMENT",
-  });
-
-  cursorY += rowGap * 2 + 64;
-  drawLine(context, 48, cursorY, width - 48, cursorY, "#edf0f7", 1);
-  cursorY += 22;
-
-  const summaryX = 48;
-  const summaryWidth = width - 96;
-  const rowHeight = 56;
-  const labelX = summaryX + 8;
-  const valueX = summaryX + summaryWidth - 8;
-
-  drawSummaryRow(
-    context,
-    labelX,
-    valueX,
-    cursorY,
-    t("Total Approved Value"),
-    formatInvoiceMoney(invoice.approvedValueUsd),
-    rowHeight
-  );
-  cursorY += rowHeight;
-  drawSummaryRow(
-    context,
-    labelX,
-    valueX,
-    cursorY,
-    `${t("Total Customs Duty")} (${Number(invoice.dutyPercentage || 0).toFixed(0)}%)`,
-    formatInvoiceMoney(invoice.customsDutyUsd),
-    rowHeight,
-    { valueBold: true }
-  );
-  cursorY += rowHeight;
-  drawSummaryRow(
-    context,
-    labelX,
-    valueX,
-    cursorY,
-    t("Total (Approved Value + Customs Duty)"),
-    formatInvoiceMoney(invoice.totalWithDutyUsd),
-    rowHeight
-  );
-  cursorY += rowHeight;
-  drawSummaryRow(
-    context,
-    labelX,
-    valueX,
-    cursorY,
-    `${t("VAT")} (${Number(invoice.vatPercentage || 0).toFixed(0)}%)`,
-    `+${formatInvoiceMoney(invoice.vatAmountUsd)}`,
-    rowHeight,
-    { valueBold: true, drawDivider: false }
-  );
-  cursorY += rowHeight + 14;
-
-  drawRoundedRect(context, 48, cursorY, width - 96, 106, 16, "#f7fbf7");
-  drawText(context, t("TOTAL PAYABLE"), 68, cursorY + 42, {
-    size: 18,
-    color: "#1d2025",
-    weight: 700,
-  });
-  drawText(context, `(${t("TOTAL CUSTOMS DUTY + VAT")})`, 244, cursorY + 42, {
-    size: 16,
-    color: "#3f7f50",
-  });
-  drawText(context, formatInvoiceMoney(invoice.totalPayableUsd), width - 72, cursorY + 40, {
-    size: 28,
-    color: "#1b5e20",
-    weight: 800,
-    align: "right",
-  });
-  drawText(
-    context,
-    `≈ ${(Number(invoice.totalPayableUsd || 0) * Number(invoice.usdToLbpRate || 0)).toLocaleString()} LBP`,
-    width - 72,
-    cursorY + 70,
-    {
-      size: 13,
-      color: "#6f7897",
-      align: "right",
-    }
-  );
-  drawText(
-    context,
-    `${t("Exchange Rate")}: ${Number(invoice.usdToLbpRate || 0).toLocaleString()} USD/LBP`,
-    width - 72,
-    cursorY + 92,
-    {
-      size: 11,
-      color: "#98a0b7",
-      align: "right",
-    }
-  );
-
-  cursorY += 132;
-  drawText(
-    context,
-    invoice.invoiceStatus === "PAID"
-      ? t("Thank you. Payment received")
-      : t("Invoice generated. Awaiting payment."),
-    48,
-    cursorY,
-    {
-      size: 13,
-      color: "#a0a7bd",
-    }
-  );
-
-  return canvas;
-};
-
-const loadImage = (source) =>
-  new Promise((resolve, reject) => {
-    const image = new Image();
-    image.crossOrigin = "anonymous";
-    image.onload = () => resolve(image);
-    image.onerror = reject;
-    image.src = source;
-  });
-
-const createPdfFromJpegDataUrl = (jpegDataUrl, widthPx, heightPx) => {
-  const base64 = jpegDataUrl.split(",")[1];
-  const imageBytes = base64ToUint8Array(base64);
-  const pageWidth = Number((widthPx * 0.75).toFixed(2));
-  const pageHeight = Number((heightPx * 0.75).toFixed(2));
-  const contentStream = `q\n${pageWidth} 0 0 ${pageHeight} 0 0 cm\n/Im0 Do\nQ`;
-
-  const parts = [encodePdfText("%PDF-1.4\n")];
-  const offsets = [0];
-  const objects = [
-    `<< /Type /Catalog /Pages 2 0 R >>`,
-    `<< /Type /Pages /Kids [3 0 R] /Count 1 >>`,
-    `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${pageWidth} ${pageHeight}] /Resources << /XObject << /Im0 4 0 R >> >> /Contents 5 0 R >>`,
-    {
-      header: `<< /Type /XObject /Subtype /Image /Width ${widthPx} /Height ${heightPx} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${imageBytes.length} >>\nstream\n`,
-      bytes: imageBytes,
-      footer: "\nendstream",
-    },
-    `<< /Length ${contentStream.length} >>\nstream\n${contentStream}\nendstream`,
-  ];
-
-  objects.forEach((object, index) => {
-    offsets.push(getTotalByteLength(parts));
-
-    if (typeof object === "string") {
-      parts.push(encodePdfText(`${index + 1} 0 obj\n${object}\nendobj\n`));
-      return;
-    }
-
-    parts.push(
-      encodePdfText(`${index + 1} 0 obj\n${object.header}`),
-      object.bytes,
-      encodePdfText(`${object.footer}\nendobj\n`)
-    );
-  });
-
-  const xrefOffset = getTotalByteLength(parts);
-  const xref = [
-    `xref\n0 ${objects.length + 1}\n`,
-    "0000000000 65535 f \n",
-    ...offsets.slice(1).map(
-      (offset) => `${String(offset).padStart(10, "0")} 00000 n \n`
-    ),
-    `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF`,
-  ].join("");
-
-  parts.push(encodePdfText(xref));
-  return new Blob(parts, { type: "application/pdf" });
-};
-
-const encodePdfText = (value) => new TextEncoder().encode(value);
-
-const base64ToUint8Array = (value) => {
-  const binary = atob(value);
-  const bytes = new Uint8Array(binary.length);
-
-  for (let index = 0; index < binary.length; index += 1) {
-    bytes[index] = binary.charCodeAt(index);
-  }
-
-  return bytes;
-};
-
-const getTotalByteLength = (parts) =>
-  parts.reduce((total, part) => total + part.length, 0);
-
-const drawRoundedRect = (context, x, y, width, height, radius, fillColor) => {
-  context.beginPath();
-  context.moveTo(x + radius, y);
-  context.arcTo(x + width, y, x + width, y + height, radius);
-  context.arcTo(x + width, y + height, x, y + height, radius);
-  context.arcTo(x, y + height, x, y, radius);
-  context.arcTo(x, y, x + width, y, radius);
-  context.closePath();
-  context.fillStyle = fillColor;
-  context.fill();
-};
-
-const drawRoundedBorder = (context, x, y, width, height, radius, strokeColor, lineWidth) => {
-  context.beginPath();
-  context.moveTo(x + radius, y);
-  context.arcTo(x + width, y, x + width, y + height, radius);
-  context.arcTo(x + width, y + height, x, y + height, radius);
-  context.arcTo(x, y + height, x, y, radius);
-  context.arcTo(x, y, x + width, y, radius);
-  context.closePath();
-  context.strokeStyle = strokeColor;
-  context.lineWidth = lineWidth;
-  context.stroke();
-};
-
-const drawText = (
-  context,
-  text,
-  x,
-  y,
-  { size = 14, color = "#1d2025", weight = 400, align = "left" } = {}
-) => {
-  context.save();
-  context.font = `${weight} ${size}px Arial`;
-  context.fillStyle = color;
-  context.textAlign = align;
-  context.textBaseline = "alphabetic";
-  context.fillText(String(text ?? ""), x, y);
-  context.restore();
-};
-
-const drawLine = (context, x1, y1, x2, y2, strokeColor, lineWidth) => {
-  context.save();
-  context.beginPath();
-  context.moveTo(x1, y1);
-  context.lineTo(x2, y2);
-  context.strokeStyle = strokeColor;
-  context.lineWidth = lineWidth;
-  context.stroke();
-  context.restore();
-};
-
-const drawMetaBlock = (
-  context,
-  x,
-  y,
-  label,
-  value,
-  options = {}
-) => {
-  drawText(context, label, x, y, {
-    size: 13,
-    color: "#7d86a3",
-  });
-
-  if (options.drawBadge) {
-    drawInvoiceBadge(
-      context,
-      x,
-      y + 18,
-      options.badgeText,
-      options.badgeStatus
-    );
-    return;
-  }
-
-  drawText(context, value, x, y + 32, {
-    size: 17,
-    color: "#1e2a5a",
-    weight: 700,
-  });
-};
-
-const drawInvoiceBadge = (context, x, y, text, status) => {
-  const isPaid = status === "PAID";
-  const background = isPaid ? "#ebf9ef" : "#fff5e8";
-  const color = isPaid ? "#0da44b" : "#ff9800";
-  const paddingX = 14;
-  const height = 30;
-  const radius = 15;
-
-  context.save();
-  context.font = "500 14px Arial";
-  const textWidth = context.measureText(text).width;
-  const flagWidth = isPaid ? 0 : 14;
-  const gap = isPaid ? 0 : 8;
-  const width = paddingX * 2 + flagWidth + gap + textWidth;
-  drawRoundedRect(context, x, y, width, height, radius, background);
-
-  if (!isPaid) {
-    context.fillStyle = color;
-    context.beginPath();
-    context.moveTo(x + 14, y + 7);
-    context.lineTo(x + 14, y + 23);
-    context.lineWidth = 1.5;
-    context.strokeStyle = color;
-    context.stroke();
-    context.beginPath();
-    context.moveTo(x + 15, y + 8);
-    context.lineTo(x + 24, y + 8);
-    context.lineTo(x + 22, y + 14);
-    context.lineTo(x + 24, y + 20);
-    context.lineTo(x + 15, y + 20);
-    context.closePath();
-    context.fill();
-  }
-
-  context.fillStyle = color;
-  context.textAlign = "left";
-  context.textBaseline = "middle";
-  context.fillText(text, x + paddingX + flagWidth + gap, y + height / 2 + 0.5);
-  context.restore();
-};
-
-const drawSummaryRow = (
-  context,
-  labelX,
-  valueX,
-  y,
-  label,
-  value,
-  height,
-  options = {}
-) => {
-  drawText(context, label, labelX, y + 36, {
-    size: 15,
-    color: "#1d2025",
-  });
-  drawText(context, value, valueX, y + 36, {
-    size: 15,
-    color: "#1d2025",
-    weight: options.valueBold ? 700 : 400,
-    align: "right",
-  });
-
-  if (options.drawDivider !== false) {
-    drawLine(context, 48, y + height, 1132, y + height, "#edf0f7", 1);
-  }
-};
-
 
 const PageContainer = styled.div`
   display: flex;
@@ -2389,13 +1952,21 @@ const InvoicePanel = styled.div`
   position: relative;
   width: min(980px, calc(100vw - 48px));
   max-height: calc(100vh - 48px);
+  display: flex;
+  flex-direction: column;
   background: #fff;
   border-radius: 18px;
-  padding: 28px 24px 18px;
   border: 1px solid #edf0f7;
-  overflow-y: auto;
+  overflow: hidden;
   box-shadow: 0 24px 60px rgba(17, 24, 39, 0.12);
   margin: 24px;
+`;
+
+const InvoiceBody = styled.div`
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 28px 24px 18px;
 `;
 
 const InvoiceCloseButton = styled.button`
@@ -2408,6 +1979,7 @@ const InvoiceCloseButton = styled.button`
   cursor: pointer;
   color: #8b92a8;
   line-height: 1;
+  z-index: 2;
 `;
 
 const InvoiceDialogTitle = styled.h2`
@@ -2597,7 +2169,12 @@ const InvoiceFooterNote = styled.div`
 const InvoiceActions = styled.div`
   display: flex;
   gap: 16px;
-  margin-top: 18px;
+  flex-shrink: 0;
+  padding: 18px 24px 20px;
+  border-top: 1px solid #edf0f7;
+  background: #fff;
+  position: relative;
+  z-index: 1;
 
   @media (max-width: 720px) {
     flex-direction: column;

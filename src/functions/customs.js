@@ -123,6 +123,54 @@ export const fetchCustomsDeclarationInvoice = async (
   }
 };
 
+const extractFilename = (response, fallbackFileName) => {
+  const disposition = response.headers.get("Content-Disposition") || "";
+  const match = disposition.match(/filename="([^"]+)"/i);
+  return match?.[1] || fallbackFileName;
+};
+
+const downloadBlobResponse = async (response, fallbackFileName) => {
+  const blob = await response.blob();
+  const url = window.URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = extractFilename(response, fallbackFileName);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  window.setTimeout(() => window.URL.revokeObjectURL(url), 1000);
+};
+
+export const downloadCustomsDeclarationInvoicePdf = async (
+  declarationType,
+  declarationId,
+  fallbackFileName = "invoice.pdf"
+) => {
+  try {
+    const token = getToken();
+    const response = await makeAuthenticatedRequest(
+      `${CUSTOMS_API_BASE_URL}/declarations/${declarationType}/${declarationId}/invoice/pdf`,
+      {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    if (!response?.ok) {
+      const errorData = response ? await response.json() : null;
+      throw new Error(errorData?.message || "Failed to download declaration invoice");
+    }
+
+    await downloadBlobResponse(response, fallbackFileName);
+    return true;
+  } catch (error) {
+    console.error("Error downloading customs declaration invoice PDF:", error);
+    return false;
+  }
+};
+
 export const startCustomsDeclarationReview = async (
   declarationType,
   declarationId

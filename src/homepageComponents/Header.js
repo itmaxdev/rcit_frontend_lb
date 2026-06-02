@@ -58,7 +58,7 @@ const Header = ({ scrollToSection, refs }) => {
         </LanguageButton>
         <DesktopActions>
           <Link to={isLoggedIn ? "/profile" : "/login"}>
-            <LoginButton isLoggedIn={isLoggedIn}>
+            <LoginButton $isLoggedIn={isLoggedIn}>
               {isLoggedIn ? (
                 <img
                   src={userWhiteSvg}
@@ -104,7 +104,7 @@ const Header = ({ scrollToSection, refs }) => {
             {t("Header_Contact")}
           </NavItem>
           <Link to={isLoggedIn ? "/profile" : "/login"}>
-            <LoginButton isLoggedIn={isLoggedIn}>
+            <LoginButton $isLoggedIn={isLoggedIn}>
               {isLoggedIn ? (
                 <img src={userSvg} alt="User Profile" />
               ) : (
@@ -243,7 +243,7 @@ const DesktopActions = styled.div`
 const LoginButton = styled.button`
   cursor: pointer;
   display: flex;
-  padding: ${(props) => (props.isLoggedIn ? "9px" : "16px 20px")};
+  padding: ${(props) => (props.$isLoggedIn ? "9px" : "16px 20px")};
   justify-content: center;
   align-items: center;
   border-radius: 24px;
@@ -255,7 +255,7 @@ const LoginButton = styled.button`
   width: 100%;
 
   @media (max-width: 1100px) and (min-width: 769px) {
-    padding: ${(props) => (props.isLoggedIn ? "6px" : "12px 18px")};
+    padding: ${(props) => (props.$isLoggedIn ? "6px" : "12px 18px")};
     font-size: 12px;
   }
 `;
