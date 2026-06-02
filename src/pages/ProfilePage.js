@@ -117,6 +117,7 @@ const ProfilePage = () => {
               <Route path="" element={<Navigate to="Dashboard" />} />
               <Route path="Dashboard" element={<CustomsDashboard />} />
               <Route path="Declaration" element={<CustomsDeclarations />} />
+              <Route path="Help" element={<SupportCard />} />
               <Route path="Profile" element={<Profile />} />
             </Route>
           )}

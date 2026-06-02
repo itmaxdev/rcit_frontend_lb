@@ -154,6 +154,8 @@
   "Sidebar_Logout": "Se déconnecter",
   "Sidebar_Declaration": "Déclaration",
   "Sidebar_Declarations": "Déclarations",
+  "Header_MyDeclarations": "Mes déclarations",
+  "Header_MyDevices": "Mes appareils",
   "RoleBadge_CustomsOfficer": "Agent des douanes",
   "RoleBadge_Importer": "Importateur",
   "RoleBadge_Individual": "Individuel",

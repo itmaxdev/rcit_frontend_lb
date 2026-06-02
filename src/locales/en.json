@@ -154,6 +154,8 @@
   "Sidebar_Logout": "Log out",
   "Sidebar_Declaration": "Declaration",
   "Sidebar_Declarations": "Declarations",
+  "Header_MyDeclarations": "My Declarations",
+  "Header_MyDevices": "My Devices",
   "RoleBadge_CustomsOfficer": "Customs Officer",
   "RoleBadge_Importer": "Importer",
   "RoleBadge_Individual": "Individual",

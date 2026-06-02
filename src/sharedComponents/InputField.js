@@ -100,7 +100,7 @@ const InputField = ({
   return (
     <InputFieldContainer>
       <FieldName>{t(fieldName)}</FieldName>
-      <InputWrapper isFocused={isFocused} isValid={isValid}>
+      <InputWrapper $isFocused={isFocused} $isValid={isValid}>
         <Input
           type={isPassword ? (isPasswordVisible ? "text" : "password") : "text"}
           readOnly={readOnly}
@@ -123,7 +123,7 @@ const InputField = ({
           />
         )}
       </InputWrapper>
-      <Message isValid={isValid}>
+      <Message $isValid={isValid}>
         {isFocused
           ? ""
           : isValid === true
@@ -156,9 +156,9 @@ const InputWrapper = styled.div`
   align-items: center;
   border-bottom: 1.5px solid
     ${(props) => {
-      if (props.isFocused) return "#436C4D";
-      if (props.isValid === null) return "#20294C";
-      return props.isValid ? "#00953F" : "#EC011A";
+      if (props.$isFocused) return "#436C4D";
+      if (props.$isValid === null) return "#20294C";
+      return props.$isValid ? "#00953F" : "#EC011A";
     }};
 `;
 
@@ -189,6 +189,6 @@ const EyeIcon = styled.img`
 
 const Message = styled.div`
   font-size: 12px;
-  color: ${(props) => (props.isValid ? "#00953F" : "#EC011A")};
+  color: ${(props) => (props.$isValid ? "#00953F" : "#EC011A")};
   height: 16px;
 `;
