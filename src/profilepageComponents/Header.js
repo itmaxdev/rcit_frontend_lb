@@ -283,11 +283,12 @@ const AccountChipLink = styled(Link)`
 const AccountChip = styled.div`
   display: inline-flex;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
   min-width: 0;
-  padding: 10px 16px;
+  padding: 8px 14px 8px 10px;
   border-radius: 999px;
   background: #20232c;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.14);
   color: #fff;
 `;
 
@@ -295,19 +296,20 @@ const AccountIconCircle = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 42px;
-  height: 42px;
+  width: 30px;
+  height: 30px;
   flex-shrink: 0;
   border-radius: 50%;
   background: #fff;
+  border: 1px solid rgba(232, 236, 245, 0.95);
 `;
 
 const AccountIcon = styled.svg`
-  width: 24px;
-  height: 24px;
+  width: 16px;
+  height: 16px;
   fill: none;
   stroke: #20232c;
-  stroke-width: 1.6;
+  stroke-width: 1.8;
   stroke-linecap: round;
   stroke-linejoin: round;
 `;
@@ -321,21 +323,22 @@ const AccountText = styled.div`
 `;
 
 const AccountName = styled.span`
-  max-width: 220px;
+  max-width: 180px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 700;
+  color: #fff;
 `;
 
 const AccountRole = styled.span`
-  max-width: 220px;
+  max-width: 180px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  margin-top: 4px;
-  font-size: 12px;
+  margin-top: 3px;
+  font-size: 10px;
   font-weight: 500;
-  color: rgba(255, 255, 255, 0.78);
+  color: rgba(255, 255, 255, 0.92);
 `;
