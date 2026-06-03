@@ -9,6 +9,7 @@ import {
 const DEFAULT_FORM = {
   customsDutyPercentage: "5.00",
   vatPercentage: "11.00",
+  priceAdjustmentEnabled: false,
 };
 
 const Configuration = () => {
@@ -41,6 +42,7 @@ const Configuration = () => {
     const nextForm = {
       customsDutyPercentage: formatPercentInput(response.customsDutyPercentage),
       vatPercentage: formatPercentInput(response.vatPercentage),
+      priceAdjustmentEnabled: Boolean(response.priceAdjustmentEnabled),
     };
     setForm(nextForm);
     setInitialForm(nextForm);
@@ -54,6 +56,15 @@ const Configuration = () => {
     setSaveError("");
     setSaveSuccess(false);
     setForm((previous) => ({ ...previous, [field]: value }));
+  };
+
+  const handleToggleChange = () => {
+    setSaveError("");
+    setSaveSuccess(false);
+    setForm((previous) => ({
+      ...previous,
+      priceAdjustmentEnabled: !previous.priceAdjustmentEnabled,
+    }));
   };
 
   const canSave = useMemo(() => {
@@ -76,6 +87,7 @@ const Configuration = () => {
     const response = await updateInvoiceConfiguration({
       customsDutyPercentage: Number(form.customsDutyPercentage),
       vatPercentage: Number(form.vatPercentage),
+      priceAdjustmentEnabled: form.priceAdjustmentEnabled,
     });
 
     setSaving(false);
@@ -88,6 +100,7 @@ const Configuration = () => {
     const nextForm = {
       customsDutyPercentage: formatPercentInput(response.customsDutyPercentage),
       vatPercentage: formatPercentInput(response.vatPercentage),
+      priceAdjustmentEnabled: Boolean(response.priceAdjustmentEnabled),
     };
     setForm(nextForm);
     setInitialForm(nextForm);
@@ -100,18 +113,20 @@ const Configuration = () => {
       <Title>{t("Configuration_Title")}</Title>
       <Subtext>{t("Configuration_Subtext")}</Subtext>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>{t("Configuration_InvoiceRatesTitle")}</CardTitle>
-          <CardDescription>
-            {t("Configuration_InvoiceRatesDescription")}
-          </CardDescription>
-        </CardHeader>
-
-        {loading ? (
+      {loading ? (
+        <Card>
           <StateText>{t("Loading")}</StateText>
-        ) : (
-          <>
+        </Card>
+      ) : (
+        <>
+          <Card>
+            <CardHeader>
+              <CardTitle>{t("Configuration_PriceAdjustmentTitle")}</CardTitle>
+              <CardDescription>
+                {t("Configuration_PriceAdjustmentDescription")}
+              </CardDescription>
+            </CardHeader>
+
             {loadError ? (
               <StateStack>
                 <ErrorText>{t("Configuration_LoadError")}</ErrorText>
@@ -120,6 +135,38 @@ const Configuration = () => {
                 </RetryButton>
               </StateStack>
             ) : null}
+
+            <ToggleCard>
+              <ToggleTextStack>
+                <FieldLabel>{t("Adjust")}</FieldLabel>
+              </ToggleTextStack>
+
+              <ToggleAction>
+                <ToggleStatus $enabled={form.priceAdjustmentEnabled}>
+                  {form.priceAdjustmentEnabled
+                    ? t("Configuration_Enabled")
+                    : t("Configuration_Disabled")}
+                </ToggleStatus>
+                <ToggleButton
+                  type="button"
+                  role="switch"
+                  aria-checked={form.priceAdjustmentEnabled}
+                  onClick={handleToggleChange}
+                  $enabled={form.priceAdjustmentEnabled}
+                >
+                  <ToggleThumb $enabled={form.priceAdjustmentEnabled} />
+                </ToggleButton>
+              </ToggleAction>
+            </ToggleCard>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>{t("Configuration_InvoiceRatesTitle")}</CardTitle>
+              <CardDescription>
+                {t("Configuration_InvoiceRatesDescription")}
+              </CardDescription>
+            </CardHeader>
 
             <FieldsGrid>
               <FieldCard>
@@ -172,11 +219,15 @@ const Configuration = () => {
             </FieldsGrid>
 
             <HelperText>{t("Configuration_AutoRefreshNote")}</HelperText>
+          </Card>
 
-            {saveError ? <ErrorText>{saveError}</ErrorText> : null}
-            {saveSuccess ? (
-              <SuccessText>{t("Configuration_SaveSuccess")}</SuccessText>
-            ) : null}
+          <FooterActions>
+            <FeedbackStack>
+              {saveError ? <ErrorText>{saveError}</ErrorText> : null}
+              {saveSuccess ? (
+                <SuccessText>{t("Configuration_SaveSuccess")}</SuccessText>
+              ) : null}
+            </FeedbackStack>
 
             <Actions>
               <SaveButton
@@ -187,9 +238,9 @@ const Configuration = () => {
                 {saving ? t("Configuration_Saving") : t("Configuration_Save")}
               </SaveButton>
             </Actions>
-          </>
-        )}
-      </Card>
+          </FooterActions>
+        </>
+      )}
     </ConfigurationContainer>
   );
 };
@@ -223,6 +274,7 @@ const ConfigurationContainer = styled.div`
   flex-direction: column;
   padding: 40px 0;
   align-items: start;
+  gap: 24px;
 `;
 
 const Title = styled.h1`
@@ -267,6 +319,61 @@ const CardDescription = styled.p`
   line-height: 1.6;
   color: #797f94;
   max-width: 680px;
+`;
+
+const ToggleCard = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 22px 24px;
+  border-radius: 14px;
+  border: 1px solid #eaebef;
+  background: #fbfcfe;
+  flex-wrap: wrap;
+`;
+
+const ToggleTextStack = styled.div`
+  display: flex;
+  min-width: 0;
+  flex: 1 1 280px;
+  flex-direction: column;
+  gap: 6px;
+`;
+
+const ToggleAction = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 14px;
+`;
+
+const ToggleStatus = styled.span`
+  font-size: 14px;
+  font-weight: 700;
+  color: ${({ $enabled }) => ($enabled ? "#1c9d72" : "#797f94")};
+`;
+
+const ToggleButton = styled.button`
+  position: relative;
+  width: 56px;
+  height: 32px;
+  border: 0;
+  border-radius: 999px;
+  padding: 4px;
+  background: ${({ $enabled }) => ($enabled ? "#436c4d" : "#d8dfeb")};
+  cursor: pointer;
+  transition: background 0.2s ease;
+`;
+
+const ToggleThumb = styled.span`
+  display: block;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 4px 10px rgba(15, 23, 42, 0.12);
+  transform: translateX(${({ $enabled }) => ($enabled ? "24px" : "0")});
+  transition: transform 0.2s ease;
 `;
 
 const FieldsGrid = styled.div`
@@ -323,6 +430,28 @@ const HelperText = styled.p`
 const Actions = styled.div`
   display: flex;
   justify-content: flex-end;
+`;
+
+const FooterActions = styled.div`
+  display: flex;
+  width: 100%;
+  max-width: 900px;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+
+  @media (max-width: 768px) {
+    flex-direction: column;
+    align-items: stretch;
+  }
+`;
+
+const FeedbackStack = styled.div`
+  display: flex;
+  min-height: 24px;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 8px;
 `;
 
 const SaveButton = styled.button`

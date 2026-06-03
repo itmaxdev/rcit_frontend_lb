@@ -27,6 +27,33 @@ export const fetchCustomsDashboard = async () => {
   }
 };
 
+export const fetchCustomsInvoiceConfiguration = async () => {
+  try {
+    const token = getToken();
+    const response = await makeAuthenticatedRequest(
+      `${CUSTOMS_API_BASE_URL}/configuration/invoice-rates`,
+      {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    if (!response?.ok) {
+      const errorData = response ? await response.json() : null;
+      throw new Error(
+        errorData?.message || "Failed to fetch customs configuration"
+      );
+    }
+
+    return response.json();
+  } catch (error) {
+    console.error("Error fetching customs configuration:", error);
+    return null;
+  }
+};
+
 export const fetchCustomsDeclarations = async (
   declarationType = "IMPORTER",
   page = 1,

@@ -16,6 +16,7 @@ import {
   downloadCustomsDeclarationInvoicePdf,
   fetchCustomsDeclarationDetail,
   fetchCustomsDeclarationInvoice,
+  fetchCustomsInvoiceConfiguration,
   fetchCustomsDeclarations,
   rejectDeclaration,
   startCustomsDeclarationReview,
@@ -38,9 +39,12 @@ const EMPTY_FILTERS = {
 };
 
 // Client-side filtering over the loaded declarations.
-const filterCustomsDeclarations = (list, filters) =>
+const filterCustomsDeclarations = (list, filters, isPriceAdjustmentEnabled) =>
   (list || []).filter((row) => {
-    if (filters.status !== "All" && getDisplayStatus(row) !== filters.status) {
+    if (
+      filters.status !== "All" &&
+      getDisplayStatus(row, isPriceAdjustmentEnabled) !== filters.status
+    ) {
       return false;
     }
 
@@ -79,6 +83,7 @@ const CustomsDeclarations = () => {
   const [pageSize, setPageSize] = useState(10);
   const [declarations, setDeclarations] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isPriceAdjustmentEnabled, setIsPriceAdjustmentEnabled] = useState(false);
   const [selectedDeclaration, setSelectedDeclaration] = useState(null);
   const [isDetailLoading, setIsDetailLoading] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState(null);
@@ -161,6 +166,15 @@ const CustomsDeclarations = () => {
   }, [loadDeclarations]);
 
   useEffect(() => {
+    const loadCustomsConfiguration = async () => {
+      const configuration = await fetchCustomsInvoiceConfiguration();
+      setIsPriceAdjustmentEnabled(Boolean(configuration?.priceAdjustmentEnabled));
+    };
+
+    loadCustomsConfiguration();
+  }, []);
+
+  useEffect(() => {
     const selection = location.state;
     if (!selection?.declarationId) {
       return;
@@ -174,8 +188,13 @@ const CustomsDeclarations = () => {
 
   // Filtered set + the slice shown on the current page (client-side).
   const filteredDeclarations = useMemo(
-    () => filterCustomsDeclarations(declarations, appliedFilters),
-    [declarations, appliedFilters]
+    () =>
+      filterCustomsDeclarations(
+        declarations,
+        appliedFilters,
+        isPriceAdjustmentEnabled
+      ),
+    [declarations, appliedFilters, isPriceAdjustmentEnabled]
   );
 
   const totalElements = filteredDeclarations.length;
@@ -192,11 +211,11 @@ const CustomsDeclarations = () => {
   const statusOptions = useMemo(() => {
     const set = new Set();
     declarations.forEach((row) => {
-      const status = getDisplayStatus(row);
+      const status = getDisplayStatus(row, isPriceAdjustmentEnabled);
       if (status) set.add(status);
     });
     return Array.from(set);
-  }, [declarations]);
+  }, [declarations, isPriceAdjustmentEnabled]);
 
   const activeFilters = useMemo(() => {
     const list = [];
@@ -880,16 +899,25 @@ const CustomsDeclarations = () => {
                         <Td>{row.devicesCount}</Td>
                         <Td>{formatMoney(row.declaredTotalUsd)}</Td>
                         <Td>
-                          <AdjustedEstimatedValue row={row} />
+                          <AdjustedEstimatedValue
+                            row={row}
+                            isPriceAdjustmentEnabled={isPriceAdjustmentEnabled}
+                          />
                         </Td>
                         <Td>
                           <VarianceValue value={Number(row.variancePercent || 0)} />
                         </Td>
                         <Td>{row.priceSource}</Td>
                         <Td>
-                          <StatusBadge $status={getDisplayStatus(row)}>
-                            <StatusIcon status={getDisplayStatus(row)} />
-                            {formatStatusLabel(getDisplayStatus(row))}
+                          <StatusBadge
+                            $status={getDisplayStatus(row, isPriceAdjustmentEnabled)}
+                          >
+                            <StatusIcon
+                              status={getDisplayStatus(row, isPriceAdjustmentEnabled)}
+                            />
+                            {formatStatusLabel(
+                              getDisplayStatus(row, isPriceAdjustmentEnabled)
+                            )}
                           </StatusBadge>
                         </Td>
                         <Td onClick={(event) => event.stopPropagation()}>
@@ -915,7 +943,7 @@ const CustomsDeclarations = () => {
                                     <span>{t("View Details")}</span>
                                   </ActionLabel>
                                 </ActionMenuButton>
-                                {canAdjustDeclaration(row) && (
+                                {canAdjustDeclaration(row, isPriceAdjustmentEnabled) && (
                                   <ActionMenuButton
                                     type="button"
                                     onClick={() => openAdjustPanel(row)}
@@ -1301,9 +1329,21 @@ const CustomsDeclarations = () => {
 
                 <AdjustDetailLabel>{t("Status")}</AdjustDetailLabel>
                   <AdjustDetailValue>
-                    <StatusBadge $status={getDisplayStatus(adjustRow)}>
-                      <StatusIcon status={getDisplayStatus(adjustRow)} />
-                      {formatStatusLabel(getDisplayStatus(adjustRow))}
+                    <StatusBadge
+                      $status={getDisplayStatus(
+                        adjustRow,
+                        isPriceAdjustmentEnabled
+                      )}
+                    >
+                      <StatusIcon
+                        status={getDisplayStatus(
+                          adjustRow,
+                          isPriceAdjustmentEnabled
+                        )}
+                      />
+                      {formatStatusLabel(
+                        getDisplayStatus(adjustRow, isPriceAdjustmentEnabled)
+                      )}
                     </StatusBadge>
                   </AdjustDetailValue>
               </AdjustDetailGrid>
@@ -1460,9 +1500,24 @@ const CustomsDeclarations = () => {
 
                     <AdjustDetailLabel>{t("Status")}</AdjustDetailLabel>
                     <AdjustDetailValue>
-                      <StatusBadge $status={getDisplayStatus(detailsDrawerRow)}>
-                        <StatusIcon status={getDisplayStatus(detailsDrawerRow)} />
-                        {formatStatusLabel(getDisplayStatus(detailsDrawerRow))}
+                      <StatusBadge
+                        $status={getDisplayStatus(
+                          detailsDrawerRow,
+                          isPriceAdjustmentEnabled
+                        )}
+                      >
+                        <StatusIcon
+                          status={getDisplayStatus(
+                            detailsDrawerRow,
+                            isPriceAdjustmentEnabled
+                          )}
+                        />
+                        {formatStatusLabel(
+                          getDisplayStatus(
+                            detailsDrawerRow,
+                            isPriceAdjustmentEnabled
+                          )
+                        )}
                       </StatusBadge>
                     </AdjustDetailValue>
                   </AdjustDetailGrid>
@@ -1675,21 +1730,26 @@ const formatInvoiceStatusLabel = (t, status) => {
 
 const formatImeis = (imeis) => (imeis ? imeis.split("|").join("\n") : "-");
 
-const hasPendingApprovalAdjustment = (row) =>
+const hasPendingApprovalAdjustment = (row, isPriceAdjustmentEnabled = true) =>
+  isPriceAdjustmentEnabled &&
   row?.declarationType === DECLARATION_TYPES.IMPORTER &&
   row?.status === "UNDER_REVIEW" &&
   row?.approvedPriceUsd != null &&
   Boolean(row?.adjustmentReason?.trim());
 
-const hasAdjustedApprovedValue = (row) =>
+const hasAdjustedApprovedValue = (row, isPriceAdjustmentEnabled = true) =>
   row?.declarationType === DECLARATION_TYPES.IMPORTER &&
+  (row?.status !== "UNDER_REVIEW" || isPriceAdjustmentEnabled) &&
   row?.approvedPriceUsd != null &&
   Boolean(row?.adjustmentReason?.trim());
 
-const getDisplayStatus = (row) =>
-  hasPendingApprovalAdjustment(row) ? "PENDING_APPROVAL" : row?.status;
+const getDisplayStatus = (row, isPriceAdjustmentEnabled = true) =>
+  hasPendingApprovalAdjustment(row, isPriceAdjustmentEnabled)
+    ? "PENDING_APPROVAL"
+    : row?.status;
 
-const canAdjustDeclaration = (row) =>
+const canAdjustDeclaration = (row, isPriceAdjustmentEnabled) =>
+  isPriceAdjustmentEnabled &&
   row.declarationType === DECLARATION_TYPES.IMPORTER &&
   row.status === "UNDER_REVIEW";
 
@@ -1714,8 +1774,8 @@ const canRejectDeclaration = (row) =>
   row.declarationType === DECLARATION_TYPES.IMPORTER &&
   (row.status === "SUBMITTED" || row.status === "UNDER_REVIEW");
 
-const AdjustedEstimatedValue = ({ row }) => {
-  if (!hasAdjustedApprovedValue(row)) {
+const AdjustedEstimatedValue = ({ row, isPriceAdjustmentEnabled }) => {
+  if (!hasAdjustedApprovedValue(row, isPriceAdjustmentEnabled)) {
     return formatMoney(row?.estimatedValueUsd);
   }
 
