@@ -1,9 +1,10 @@
 // src/profilepageComponents/Header.js
-import React, { useContext } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import styled from "styled-components";
 import { useTranslation } from "react-i18next";
 import { Link, useLocation } from "react-router-dom";
 import { Context } from "../Context";
+import { fetchUserSummary } from "../functions/profile";
 import {
   ROLE_ADMIN,
   ROLE_CUSTOMS,
@@ -12,7 +13,6 @@ import {
 } from "../config/roles";
 
 import globeSvg from "../assets/globe.svg";
-import profileSvg from "../assets/profile.svg";
 import bellSvg from "../assets/bell.svg";
 import supportSvg from "../assets/support.svg";
 
@@ -20,11 +20,32 @@ const Header = () => {
   const { t, i18n } = useTranslation();
   const location = useLocation();
   const { accountType } = useContext(Context);
+  const [userSummary, setUserSummary] = useState(null);
 
   const segments = location.pathname.split("/").filter(Boolean);
   const title = getHeaderTitle(t, segments, accountType);
-  const roleBadge = getRoleBadge(t, accountType);
+  const accountBadge = getAccountBadge(t, accountType, userSummary);
   const supportPath = getSupportPath(accountType);
+  const accountChipPath = getAccountChipPath(accountType);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadUserSummary = async () => {
+      const summary = await fetchUserSummary();
+      if (isMounted) {
+        setUserSummary(summary);
+      }
+    };
+
+    if (accountType && accountType !== "Unknown") {
+      loadUserSummary();
+    }
+
+    return () => {
+      isMounted = false;
+    };
+  }, [accountType]);
 
   return (
     <HeaderContainer>
@@ -32,17 +53,6 @@ const Header = () => {
         <Title>{title}</Title>
       </TitleGroup>
       <ButtonsContainer>
-        {roleBadge && (
-          <>
-            <RoleBadge $tone={roleBadge.tone}>
-              <RoleIcon aria-hidden="true" viewBox="0 0 24 24">
-                <path d={roleBadge.iconPath} />
-              </RoleIcon>
-              {roleBadge.label}
-            </RoleBadge>
-            <Separator />
-          </>
-        )}
         {supportPath ? (
           <Link to={supportPath}>
             <Support>
@@ -65,15 +75,36 @@ const Header = () => {
           <img src={globeSvg} alt="Language" />
           {i18n.resolvedLanguage === "en" ? "EN" : "FR"}
         </LanguageButton>
-        {accountType !== ROLE_ADMIN && (
-          <Link to={`/profile/${accountType.toLowerCase()}/Profile`}>
-            <Button
-              src={profileSvg}
-              alt="Profile"
-              style={{ width: "40px", background: "#20294C" }}
-            />
-          </Link>
-        )}
+        {accountBadge &&
+          (accountChipPath ? (
+            <AccountChipLink to={accountChipPath}>
+              <AccountChip>
+                <AccountIconCircle aria-hidden="true">
+                  <AccountIcon viewBox="0 0 24 24">
+                    <path d="M6.57757 15.4816C5.1628 16.324 1.45336 18.0441 3.71266 20.1966C4.81631 21.248 6.04549 22 7.59087 22H16.4091C17.9545 22 19.1837 21.248 20.2873 20.1966C22.5466 18.0441 18.8372 16.324 17.4224 15.4816C14.1048 13.5061 9.89519 13.5061 6.57757 15.4816Z" />
+                    <path d="M16.5 6.5C16.5 8.98528 14.4853 11 12 11C9.51472 11 7.5 8.98528 7.5 6.5C7.5 4.01472 9.51472 2 12 2C14.4853 2 16.5 4.01472 16.5 6.5Z" />
+                  </AccountIcon>
+                </AccountIconCircle>
+                <AccountText>
+                  <AccountName>{accountBadge.name}</AccountName>
+                  <AccountRole>{accountBadge.roleLabel}</AccountRole>
+                </AccountText>
+              </AccountChip>
+            </AccountChipLink>
+          ) : (
+            <AccountChip>
+              <AccountIconCircle aria-hidden="true">
+                <AccountIcon viewBox="0 0 24 24">
+                  <path d="M6.57757 15.4816C5.1628 16.324 1.45336 18.0441 3.71266 20.1966C4.81631 21.248 6.04549 22 7.59087 22H16.4091C17.9545 22 19.1837 21.248 20.2873 20.1966C22.5466 18.0441 18.8372 16.324 17.4224 15.4816C14.1048 13.5061 9.89519 13.5061 6.57757 15.4816Z" />
+                  <path d="M16.5 6.5C16.5 8.98528 14.4853 11 12 11C9.51472 11 7.5 8.98528 7.5 6.5C7.5 4.01472 9.51472 2 12 2C14.4853 2 16.5 4.01472 16.5 6.5Z" />
+                </AccountIcon>
+              </AccountIconCircle>
+              <AccountText>
+                <AccountName>{accountBadge.name}</AccountName>
+                <AccountRole>{accountBadge.roleLabel}</AccountRole>
+              </AccountText>
+            </AccountChip>
+          ))}
       </ButtonsContainer>
     </HeaderContainer>
   );
@@ -113,39 +144,39 @@ const getHeaderTitle = (t, segments, accountType) => {
   return t(`Sidebar_${lastSegment}`);
 };
 
-const getRoleBadge = (t, accountType) => {
+const getRoleLabel = (t, accountType) => {
   switch (accountType) {
     case ROLE_CUSTOMS:
-      return {
-        label: t("RoleBadge_CustomsOfficer"),
-        tone: "customs",
-        iconPath:
-          "M12 3.75 18 6v5.25c0 4.15-2.55 7.82-6 9-3.45-1.18-6-4.85-6-9V6l6-2.25Zm0 3.2a2.3 2.3 0 0 0-2.3 2.3v.8H9a1 1 0 0 0-1 1V15a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1v-3.95a1 1 0 0 0-1-1h-.7v-.8A2.3 2.3 0 0 0 12 6.95Zm-1 3.1v-.8a1 1 0 1 1 2 0v.8h-2Z",
-      };
+      return t("RoleBadge_CustomsOfficer");
     case ROLE_IMPORTER:
-      return {
-        label: t("RoleBadge_Importer"),
-        tone: "importer",
-        iconPath:
-          "M4 9.5h16M7.5 9.5V6.75A1.75 1.75 0 0 1 9.25 5h5.5A1.75 1.75 0 0 1 16.5 6.75V9.5M6.25 19h11.5A1.75 1.75 0 0 0 19.5 17.25V8.75A1.75 1.75 0 0 0 17.75 7H6.25A1.75 1.75 0 0 0 4.5 8.75v8.5A1.75 1.75 0 0 0 6.25 19ZM9 13h6M9 16h3",
-      };
+      return t("RoleBadge_Importer");
     case ROLE_USER:
-      return {
-        label: t("RoleBadge_Individual"),
-        tone: "individual",
-        iconPath:
-          "M12 12.5a3.25 3.25 0 1 0 0-6.5 3.25 3.25 0 0 0 0 6.5Zm0 1.75c-3.63 0-6.75 1.88-6.75 4.25 0 .28.22.5.5.5h12.5a.5.5 0 0 0 .5-.5c0-2.37-3.12-4.25-6.75-4.25Z",
-      };
+      return t("RoleBadge_Individual");
     case ROLE_ADMIN:
-      return {
-        label: t("RoleBadge_Administrator"),
-        tone: "admin",
-        iconPath:
-          "m12 4 1.15 1.96 2.27.52.52 2.27L18 9.9l-1.96 1.15-.52 2.27-2.27.52L12 16l-1.15-1.96-2.27-.52-.52-2.27L6 9.9l1.96-1.15.52-2.27 2.27-.52L12 4Zm0 4.1a1.8 1.8 0 1 0 0 3.6 1.8 1.8 0 0 0 0-3.6ZM5 17.75h14",
-      };
+      return t("RoleBadge_Administrator");
     default:
       return null;
   }
+};
+
+const getAccountBadge = (t, accountType, userSummary) => {
+  const roleLabel = getRoleLabel(t, accountType);
+  if (!roleLabel) {
+    return null;
+  }
+
+  const firstName = userSummary?.firstName?.trim() || "";
+  const lastName = userSummary?.lastName?.trim() || "";
+  const fullName = `${firstName} ${lastName}`.trim();
+  const fallbackName =
+    userSummary?.companyName?.trim() ||
+    userSummary?.email?.trim() ||
+    roleLabel;
+
+  return {
+    name: fullName || fallbackName,
+    roleLabel,
+  };
 };
 
 const getSupportPath = (accountType) => {
@@ -157,6 +188,17 @@ const getSupportPath = (accountType) => {
     case ROLE_IMPORTER:
     case ROLE_USER:
       return `/profile/${accountType.toLowerCase()}/Help`;
+    default:
+      return null;
+  }
+};
+
+const getAccountChipPath = (accountType) => {
+  switch (accountType) {
+    case ROLE_USER:
+    case ROLE_IMPORTER:
+    case ROLE_CUSTOMS:
+      return `/profile/${accountType.toLowerCase()}/Profile`;
     default:
       return null;
   }
@@ -188,63 +230,6 @@ const Title = styled.h1`
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-`;
-
-const RoleBadge = styled.div`
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 7px 12px;
-  border-radius: 999px;
-  font-size: 13px;
-  font-weight: 700;
-  white-space: nowrap;
-  background: ${({ $tone }) => {
-    switch ($tone) {
-      case "customs":
-        return "#fff4e8";
-      case "importer":
-        return "#eaf3ff";
-      case "individual":
-        return "#eafbf3";
-      case "admin":
-        return "#f1f3f7";
-      default:
-        return "#eef2ff";
-    }
-  }};
-  color: ${({ $tone }) => {
-    switch ($tone) {
-      case "customs":
-        return "#f28c28";
-      case "importer":
-        return "#2671d9";
-      case "individual":
-        return "#1c9d72";
-      case "admin":
-        return "#344054";
-      default:
-        return "#334155";
-    }
-  }};
-`;
-
-const RoleIcon = styled.svg`
-  width: 14px;
-  height: 14px;
-  flex-shrink: 0;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 1.7;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-`;
-
-const Separator = styled.div`
-  width: 1px;
-  height: 20px;
-  background: #d7ddea;
-  flex-shrink: 0;
 `;
 
 const ButtonsContainer = styled.div`
@@ -289,4 +274,68 @@ const LanguageButton = styled.div`
   border-radius: 40px;
   background: #fff;
   white-space: nowrap;
+`;
+
+const AccountChipLink = styled(Link)`
+  text-decoration: none;
+`;
+
+const AccountChip = styled.div`
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  padding: 10px 16px;
+  border-radius: 999px;
+  background: #20232c;
+  color: #fff;
+`;
+
+const AccountIconCircle = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: #fff;
+`;
+
+const AccountIcon = styled.svg`
+  width: 24px;
+  height: 24px;
+  fill: none;
+  stroke: #20232c;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+`;
+
+const AccountText = styled.div`
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  align-items: flex-start;
+  line-height: 1.1;
+`;
+
+const AccountName = styled.span`
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 14px;
+  font-weight: 700;
+`;
+
+const AccountRole = styled.span`
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-top: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.78);
 `;
