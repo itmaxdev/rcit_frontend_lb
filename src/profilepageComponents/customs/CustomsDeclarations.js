@@ -6,6 +6,7 @@ import chevronSVG from "../../assets/chevron-down.svg";
 import noDeclarations from "../../assets/noDeclarations.png";
 import searchSVG from "../../assets/search3.svg";
 import eyeSVG from "../../assets/eye.svg";
+import filtersSVG from "../../assets/filters.svg";
 import ministryLogo from "../../assets/ministry_logo.jpeg";
 import Popup from "../Popup";
 import {
@@ -28,6 +29,45 @@ const DECLARATION_TYPES = {
 
 const rowKey = (row) => `${row.declarationType}-${row.id}`;
 
+const EMPTY_FILTERS = {
+  status: "All",
+  declDateFrom: "",
+  declDateTo: "",
+  amountMin: "",
+  amountMax: "",
+};
+
+// Client-side filtering over the loaded declarations.
+const filterCustomsDeclarations = (list, filters) =>
+  (list || []).filter((row) => {
+    if (filters.status !== "All" && getDisplayStatus(row) !== filters.status) {
+      return false;
+    }
+
+    if (filters.declDateFrom || filters.declDateTo) {
+      const date = row.declarationDate ? new Date(row.declarationDate) : null;
+      if (!date || isNaN(date.getTime())) return false;
+      if (filters.declDateFrom) {
+        const from = new Date(filters.declDateFrom);
+        from.setHours(0, 0, 0, 0);
+        if (date < from) return false;
+      }
+      if (filters.declDateTo) {
+        const to = new Date(filters.declDateTo);
+        to.setHours(23, 59, 59, 999);
+        if (date > to) return false;
+      }
+    }
+
+    const amount = Number(row.declaredTotalUsd || 0);
+    if (filters.amountMin !== "" && amount < Number(filters.amountMin))
+      return false;
+    if (filters.amountMax !== "" && amount > Number(filters.amountMax))
+      return false;
+
+    return true;
+  });
+
 const CustomsDeclarations = () => {
   const { t } = useTranslation();
   const location = useLocation();
@@ -37,7 +77,6 @@ const CustomsDeclarations = () => {
   const [appliedSearch, setAppliedSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(0);
   const [pageSize, setPageSize] = useState(10);
-  const [totalElements, setTotalElements] = useState(0);
   const [declarations, setDeclarations] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [selectedDeclaration, setSelectedDeclaration] = useState(null);
@@ -58,6 +97,9 @@ const CustomsDeclarations = () => {
   const [expandedDetail, setExpandedDetail] = useState(null);
   const [expandedDetailLoading, setExpandedDetailLoading] = useState(false);
   const [pendingDashboardSelection, setPendingDashboardSelection] = useState(null);
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [appliedFilters, setAppliedFilters] = useState(EMPTY_FILTERS);
+  const [draftFilters, setDraftFilters] = useState(EMPTY_FILTERS);
 
   // Adjust panel state
   const [isAdjustOpen, setIsAdjustOpen] = useState(false);
@@ -99,21 +141,20 @@ const CustomsDeclarations = () => {
 
   const loadDeclarations = useCallback(async () => {
     setIsLoading(true);
+    // Load the full result set so filtering and pagination run client-side.
     const response = await fetchCustomsDeclarations(
       activeTab,
-      currentPage + 1,
-      pageSize,
+      1,
+      1000,
       appliedSearch
     );
     if (response) {
       setDeclarations(response.data || []);
-      setTotalElements(response.totalElements || 0);
     } else {
       setDeclarations([]);
-      setTotalElements(0);
     }
     setIsLoading(false);
-  }, [activeTab, appliedSearch, currentPage, pageSize]);
+  }, [activeTab, appliedSearch]);
 
   useEffect(() => {
     loadDeclarations();
@@ -131,6 +172,86 @@ const CustomsDeclarations = () => {
     navigate(location.pathname, { replace: true, state: null });
   }, [location.pathname, location.state, navigate]);
 
+  // Filtered set + the slice shown on the current page (client-side).
+  const filteredDeclarations = useMemo(
+    () => filterCustomsDeclarations(declarations, appliedFilters),
+    [declarations, appliedFilters]
+  );
+
+  const totalElements = filteredDeclarations.length;
+
+  const pagedDeclarations = useMemo(
+    () =>
+      filteredDeclarations.slice(
+        currentPage * pageSize,
+        (currentPage + 1) * pageSize
+      ),
+    [filteredDeclarations, currentPage, pageSize]
+  );
+
+  const statusOptions = useMemo(() => {
+    const set = new Set();
+    declarations.forEach((row) => {
+      const status = getDisplayStatus(row);
+      if (status) set.add(status);
+    });
+    return Array.from(set);
+  }, [declarations]);
+
+  const activeFilters = useMemo(() => {
+    const list = [];
+    if (appliedFilters.status !== "All")
+      list.push({ key: "status", label: t("Status") });
+    if (appliedFilters.declDateFrom || appliedFilters.declDateTo)
+      list.push({ key: "declDate", label: t("Declaration Date") });
+    if (appliedFilters.amountMin !== "" || appliedFilters.amountMax !== "")
+      list.push({ key: "amount", label: t("Declared Total (USD)") });
+    return list;
+  }, [appliedFilters, t]);
+
+  const activeFilterCount = activeFilters.length;
+
+  const openFilters = () => {
+    setDraftFilters(appliedFilters);
+    setFilterOpen(true);
+  };
+
+  const closeFilters = () => setFilterOpen(false);
+
+  const handleFilterChange = (key, value) => {
+    setDraftFilters((previous) => ({ ...previous, [key]: value }));
+  };
+
+  const clearDraftFilters = () => setDraftFilters(EMPTY_FILTERS);
+
+  const applyFilters = () => {
+    setAppliedFilters(draftFilters);
+    setCurrentPage(0);
+    setFilterOpen(false);
+  };
+
+  const hasFilterChanges =
+    JSON.stringify(draftFilters) !== JSON.stringify(appliedFilters);
+
+  const resetFilterKey = (filters, key) => {
+    if (key === "declDate")
+      return { ...filters, declDateFrom: "", declDateTo: "" };
+    if (key === "amount") return { ...filters, amountMin: "", amountMax: "" };
+    return { ...filters, [key]: "All" };
+  };
+
+  const removeFilter = (key) => {
+    setAppliedFilters((previous) => resetFilterKey(previous, key));
+    setDraftFilters((previous) => resetFilterKey(previous, key));
+    setCurrentPage(0);
+  };
+
+  const clearAllFilters = () => {
+    setAppliedFilters(EMPTY_FILTERS);
+    setDraftFilters(EMPTY_FILTERS);
+    setCurrentPage(0);
+  };
+
   const rangeStart = totalElements === 0 ? 0 : currentPage * pageSize + 1;
   const rangeEnd = Math.min((currentPage + 1) * pageSize, totalElements);
 
@@ -146,6 +267,8 @@ const CustomsDeclarations = () => {
     setTableActionError(null);
     setActiveTab(tab);
     setCurrentPage(0);
+    setAppliedFilters(EMPTY_FILTERS);
+    setDraftFilters(EMPTY_FILTERS);
     setOpenMenuId(null);
     setSelectedDeclaration(null);
     setDetailsDrawerRow(null);
@@ -171,13 +294,15 @@ const CustomsDeclarations = () => {
 
   // Checkbox helpers
   const allSelected =
-    declarations.length > 0 &&
-    declarations.every((row) => selectedRows.has(rowKey(row)));
-  const someSelected = declarations.some((row) => selectedRows.has(rowKey(row)));
+    pagedDeclarations.length > 0 &&
+    pagedDeclarations.every((row) => selectedRows.has(rowKey(row)));
+  const someSelected = pagedDeclarations.some((row) =>
+    selectedRows.has(rowKey(row))
+  );
 
   const handleSelectAll = (e) => {
     if (e.target.checked) {
-      setSelectedRows(new Set(declarations.map(rowKey)));
+      setSelectedRows(new Set(pagedDeclarations.map(rowKey)));
     } else {
       setSelectedRows(new Set());
     }
@@ -557,23 +682,58 @@ const CustomsDeclarations = () => {
             </TabButton>
           </Tabs>
 
-          <SearchContainer>
-            <SearchButton type="button" onClick={handleSearchSubmit}>
-              <img src={searchSVG} alt="Search" />
-            </SearchButton>
-            <SearchInput
-              type="text"
-              placeholder={t("Search")}
-              value={searchInput}
-              onChange={(event) => setSearchInput(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key === "Enter") {
-                  handleSearchSubmit();
-                }
-              }}
-            />
-          </SearchContainer>
+          <ToolbarRight>
+            <SearchContainer>
+              <SearchButton type="button" onClick={handleSearchSubmit}>
+                <img src={searchSVG} alt="Search" />
+              </SearchButton>
+              <SearchInput
+                type="text"
+                placeholder={t("Search")}
+                value={searchInput}
+                onChange={(event) => setSearchInput(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") {
+                    handleSearchSubmit();
+                  }
+                }}
+              />
+            </SearchContainer>
+
+            <FilterButton
+              type="button"
+              onClick={openFilters}
+              $active={activeFilterCount > 0}
+            >
+              <img src={filtersSVG} alt="Filters" />
+              {t("Filters")}
+              {activeFilterCount > 0 && (
+                <FilterBadge>{activeFilterCount}</FilterBadge>
+              )}
+            </FilterButton>
+          </ToolbarRight>
         </Toolbar>
+
+        {activeFilterCount > 0 && (
+          <FiltersAppliedRow>
+            <FiltersAppliedLabel>{t("Filters applied")}:</FiltersAppliedLabel>
+            {activeFilters.map((filter) => (
+              <FilterChip key={filter.key}>
+                {filter.label}
+                <ChipRemove
+                  type="button"
+                  onClick={() => removeFilter(filter.key)}
+                  aria-label={`Remove ${filter.label} filter`}
+                >
+                  ✕
+                </ChipRemove>
+              </FilterChip>
+            ))}
+            <ClearAllButton type="button" onClick={clearAllFilters}>
+              {t("Clear all")}
+            </ClearAllButton>
+          </FiltersAppliedRow>
+        )}
 
         {tableActionError && (
           <ErrorBanner>
@@ -587,7 +747,7 @@ const CustomsDeclarations = () => {
           </ErrorBanner>
         )}
 
-        {totalElements === 0 && !isLoading ? (
+        {declarations.length === 0 && !isLoading ? (
           <EmptyState>
             <EmptyImage src={noDeclarations} alt="No declarations" />
             <EmptyTitle>{emptyStateTitle}</EmptyTitle>
@@ -676,8 +836,14 @@ const CustomsDeclarations = () => {
                     <tr>
                       <LoadingCell colSpan="12">{t("Loading")}</LoadingCell>
                     </tr>
+                  ) : pagedDeclarations.length === 0 ? (
+                    <tr>
+                      <LoadingCell colSpan="12">
+                        {t("ImporterDeclarations_NoSearchResults")}
+                      </LoadingCell>
+                    </tr>
                   ) : (
-                    declarations.map((row) => {
+                    pagedDeclarations.map((row) => {
                       const key = rowKey(row);
                       const isExpanded = expandedRowKey === key;
                       return (
@@ -1355,6 +1521,97 @@ const CustomsDeclarations = () => {
           onAction={handleConfirmApprove}
           busy={isActioning}
         />
+      )}
+
+      {filterOpen && (
+        <FilterOverlay onClick={closeFilters}>
+          <FilterPanel onClick={(e) => e.stopPropagation()}>
+            <FilterPanelHeader>
+              <FilterPanelTitle>{t("Filters")}</FilterPanelTitle>
+              <FilterCloseButton type="button" onClick={closeFilters}>
+                ✕
+              </FilterCloseButton>
+            </FilterPanelHeader>
+
+            <FilterBody>
+              <FilterField>
+                <FilterLabel>{t("Status")}</FilterLabel>
+                <FilterSelect
+                  value={draftFilters.status}
+                  onChange={(e) => handleFilterChange("status", e.target.value)}
+                >
+                  <option value="All">{t("All")}</option>
+                  {statusOptions.map((option) => (
+                    <option key={option} value={option}>
+                      {formatStatusLabel(option)}
+                    </option>
+                  ))}
+                </FilterSelect>
+              </FilterField>
+
+              <FilterField>
+                <FilterLabel>{t("Declaration Date")}</FilterLabel>
+                <RangeRow>
+                  <DateInput
+                    type="date"
+                    value={draftFilters.declDateFrom}
+                    max={draftFilters.declDateTo || undefined}
+                    onChange={(e) =>
+                      handleFilterChange("declDateFrom", e.target.value)
+                    }
+                  />
+                  <RangeSeparator>-</RangeSeparator>
+                  <DateInput
+                    type="date"
+                    value={draftFilters.declDateTo}
+                    min={draftFilters.declDateFrom || undefined}
+                    onChange={(e) =>
+                      handleFilterChange("declDateTo", e.target.value)
+                    }
+                  />
+                </RangeRow>
+              </FilterField>
+
+              <FilterField>
+                <FilterLabel>{t("Declared Total (USD)")}</FilterLabel>
+                <RangeRow>
+                  <AmountInput
+                    type="number"
+                    min="0"
+                    placeholder={t("Min")}
+                    value={draftFilters.amountMin}
+                    onChange={(e) =>
+                      handleFilterChange("amountMin", e.target.value)
+                    }
+                  />
+                  <RangeSeparator>-</RangeSeparator>
+                  <AmountInput
+                    type="number"
+                    min="0"
+                    placeholder={t("Max")}
+                    value={draftFilters.amountMax}
+                    onChange={(e) =>
+                      handleFilterChange("amountMax", e.target.value)
+                    }
+                  />
+                </RangeRow>
+              </FilterField>
+            </FilterBody>
+
+            <FilterFooter>
+              <ClearFiltersButton type="button" onClick={clearDraftFilters}>
+                {t("Clear all filters")}
+              </ClearFiltersButton>
+              <ApplyFilterButton
+                type="button"
+                onClick={applyFilters}
+                disabled={!hasFilterChanges}
+              >
+                {t("Apply")}
+              </ApplyFilterButton>
+            </FilterFooter>
+          </FilterPanel>
+        </FilterOverlay>
       )}
     </PageContainer>
   );
@@ -2419,5 +2676,270 @@ const AdjustPrimaryButton = styled.button`
   }
 `;
 
+
+const ToolbarRight = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 16px;
+`;
+
+const FilterButton = styled.button`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  font-size: 14px;
+  cursor: pointer;
+  border-radius: 38px;
+  border: 1px solid ${(props) => (props.$active ? "#2671d9" : "#d4d6df")};
+  background: #fff;
+  color: ${(props) => (props.$active ? "#2671d9" : "#20294c")};
+  white-space: nowrap;
+  transition: all 0.3s ease;
+
+  img {
+    height: 18px;
+  }
+
+  &:hover {
+    opacity: 0.7;
+  }
+`;
+
+const FilterBadge = styled.span`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 10px;
+  background: #2671d9;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+`;
+
+const FiltersAppliedRow = styled.div`
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+`;
+
+const FiltersAppliedLabel = styled.span`
+  color: #797f94;
+  font-size: 14px;
+`;
+
+const FilterChip = styled.span`
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-radius: 38px;
+  border: 1px solid #d4d6df;
+  background: #fff;
+  color: #20294c;
+  font-size: 14px;
+`;
+
+const ChipRemove = styled.button`
+  border: none;
+  background: transparent;
+  padding: 0;
+  font-size: 12px;
+  line-height: 1;
+  color: #797f94;
+  cursor: pointer;
+
+  &:hover {
+    color: #20294c;
+  }
+`;
+
+const ClearAllButton = styled.button`
+  border: none;
+  background: transparent;
+  padding: 0;
+  font-size: 14px;
+  color: #2671d9;
+  text-decoration: underline;
+  cursor: pointer;
+
+  &:hover {
+    opacity: 0.7;
+  }
+`;
+
+const FilterOverlay = styled.div`
+  position: fixed;
+  inset: 0;
+  background: rgba(13, 18, 28, 0.28);
+  display: flex;
+  justify-content: flex-end;
+  z-index: 30;
+`;
+
+const FilterPanel = styled.div`
+  width: min(440px, 100vw);
+  height: 100%;
+  background: #fff;
+  padding: 28px 32px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: -16px 0 48px rgba(17, 24, 39, 0.14);
+`;
+
+const FilterPanelHeader = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 28px;
+`;
+
+const FilterPanelTitle = styled.h2`
+  font-size: 22px;
+  font-weight: 700;
+  color: #2671d9;
+`;
+
+const FilterCloseButton = styled.button`
+  border: none;
+  background: transparent;
+  font-size: 18px;
+  cursor: pointer;
+  color: #6f7897;
+  line-height: 1;
+
+  &:hover {
+    opacity: 0.7;
+  }
+`;
+
+const FilterBody = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  overflow-y: auto;
+  flex: 1;
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+`;
+
+const FilterField = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+`;
+
+const FilterLabel = styled.label`
+  font-size: 14px;
+  font-weight: 500;
+  color: #797f94;
+`;
+
+const FilterSelect = styled.select`
+  width: 100%;
+  border: none;
+  border-bottom: 1.5px solid #d4d6df;
+  outline: none;
+  font-size: 16px;
+  font-weight: 500;
+  padding: 6px 0;
+  background: none;
+  color: #20294c;
+  cursor: pointer;
+  font-family: inherit;
+
+  &:focus {
+    border-bottom-color: #2671d9;
+  }
+`;
+
+const RangeRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-bottom: 1.5px solid #d4d6df;
+  padding: 6px 0;
+`;
+
+const DateInput = styled.input`
+  border: none;
+  outline: none;
+  font-size: 16px;
+  font-weight: 500;
+  background: none;
+  color: #20294c;
+  font-family: inherit;
+  flex: 1;
+`;
+
+const AmountInput = styled.input`
+  border: none;
+  outline: none;
+  font-size: 16px;
+  font-weight: 500;
+  background: none;
+  color: #20294c;
+  font-family: inherit;
+  width: 100%;
+  flex: 1;
+`;
+
+const RangeSeparator = styled.span`
+  color: #797f94;
+`;
+
+const FilterFooter = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-top: 24px;
+  margin-top: 16px;
+  border-top: 1px solid #edf0f7;
+`;
+
+const ClearFiltersButton = styled.button`
+  flex: 1;
+  padding: 16px 24px;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  border-radius: 38px;
+  border: 1px solid #d4d6df;
+  background: #fff;
+  color: #20294c;
+  transition: all 0.3s ease;
+
+  &:hover {
+    opacity: 0.7;
+  }
+`;
+
+const ApplyFilterButton = styled.button`
+  flex: 1;
+  padding: 16px 24px;
+  font-size: 15px;
+  font-weight: 500;
+  color: #fff;
+  cursor: pointer;
+  border-radius: 38px;
+  border: 1px solid #2671d9;
+  background: #2671d9;
+  transition: all 0.3s ease;
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: default;
+  }
+  &:hover:not(:disabled) {
+    opacity: 0.8;
+  }
+`;
 
 export default CustomsDeclarations;
