@@ -232,9 +232,15 @@ export const initiateDeclarationPayment = async (uploadId) => {
 };
 
 // Function to fetch results by upload ID
-export const fetchUploadResults = async (uploadID, page, pageSize) => {
+export const fetchUploadResults = async (uploadID, page, pageSize, filters = {}) => {
   const token = getToken();
-  const url = `${BULK_URL}/${uploadID}/devices?page=${page}&pageSize=${pageSize}`;
+  const params = new URLSearchParams({ page, pageSize });
+  Object.entries(filters).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && value !== "" && value !== "All") {
+      params.append(key, value);
+    }
+  });
+  const url = `${BULK_URL}/${uploadID}/devices?${params.toString()}`;
 
   try {
     const response = await makeAuthenticatedRequest(url, {

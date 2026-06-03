@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import styled from "styled-components";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
@@ -6,6 +6,7 @@ import emptySVG from "../../assets/noRegistered.svg";
 import plusSVG from "../../assets/plus.svg";
 import searchSVG from "../../assets/search3.svg";
 import eyeSVG from "../../assets/eye.svg";
+import filtersSVG from "../../assets/filters.svg";
 import {
   downloadFullFile,
   fetchImporterDeclarationById,
@@ -16,6 +17,48 @@ import {
   fetchClearableImporterUpload,
 } from "../../functions/registered";
 import { StatusBadge, StatusIcon } from "../statusBadge";
+
+const EMPTY_FILTERS = {
+  status: "All",
+  declDateFrom: "",
+  declDateTo: "",
+  dutyMin: "",
+  dutyMax: "",
+};
+
+// Client-side filtering over the loaded declarations.
+const filterDeclarations = (list, filters) =>
+  (list || []).filter((declaration) => {
+    if (
+      filters.status !== "All" &&
+      getDisplayStatus(declaration) !== filters.status
+    ) {
+      return false;
+    }
+
+    if (filters.declDateFrom || filters.declDateTo) {
+      const date = declaration.createdAt
+        ? new Date(declaration.createdAt)
+        : null;
+      if (!date || isNaN(date.getTime())) return false;
+      if (filters.declDateFrom) {
+        const from = new Date(filters.declDateFrom);
+        from.setHours(0, 0, 0, 0);
+        if (date < from) return false;
+      }
+      if (filters.declDateTo) {
+        const to = new Date(filters.declDateTo);
+        to.setHours(23, 59, 59, 999);
+        if (date > to) return false;
+      }
+    }
+
+    const duty = Number(declaration.totalCustomsDuty || 0);
+    if (filters.dutyMin !== "" && duty < Number(filters.dutyMin)) return false;
+    if (filters.dutyMax !== "" && duty > Number(filters.dutyMax)) return false;
+
+    return true;
+  });
 
 const ImporterDeclarations = () => {
   const { t } = useTranslation();
@@ -33,6 +76,9 @@ const ImporterDeclarations = () => {
   const [expandedRowId, setExpandedRowId] = useState(null);
   const [expandedDetail, setExpandedDetail] = useState(null);
   const [expandedDetailLoading, setExpandedDetailLoading] = useState(false);
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [appliedFilters, setAppliedFilters] = useState(EMPTY_FILTERS);
+  const [draftFilters, setDraftFilters] = useState(EMPTY_FILTERS);
 
   const menuRef = useRef(null);
 
@@ -88,14 +134,77 @@ const ImporterDeclarations = () => {
 
   const isSearching = appliedSearch.length > 0;
 
+  // Filtered declarations + filter UI state.
+  const visibleDeclarations = useMemo(
+    () => filterDeclarations(declarations, appliedFilters),
+    [declarations, appliedFilters]
+  );
+
+  const statusOptions = useMemo(() => {
+    const set = new Set();
+    declarations.forEach((d) => set.add(getDisplayStatus(d)));
+    return Array.from(set);
+  }, [declarations]);
+
+  const activeFilters = useMemo(() => {
+    const list = [];
+    if (appliedFilters.status !== "All")
+      list.push({ key: "status", label: t("Status") });
+    if (appliedFilters.declDateFrom || appliedFilters.declDateTo)
+      list.push({ key: "declDate", label: t("Declaration Date") });
+    if (appliedFilters.dutyMin !== "" || appliedFilters.dutyMax !== "")
+      list.push({ key: "duty", label: t("Customs Duty (USD)") });
+    return list;
+  }, [appliedFilters, t]);
+
+  const activeFilterCount = activeFilters.length;
+
+  const openFilters = () => {
+    setDraftFilters(appliedFilters);
+    setFilterOpen(true);
+  };
+
+  const closeFilters = () => setFilterOpen(false);
+
+  const handleFilterChange = (key, value) => {
+    setDraftFilters((previous) => ({ ...previous, [key]: value }));
+  };
+
+  const clearDraftFilters = () => setDraftFilters(EMPTY_FILTERS);
+
+  const applyFilters = () => {
+    setAppliedFilters(draftFilters);
+    setFilterOpen(false);
+  };
+
+  const hasFilterChanges =
+    JSON.stringify(draftFilters) !== JSON.stringify(appliedFilters);
+
+  const resetFilterKey = (filters, key) => {
+    if (key === "declDate")
+      return { ...filters, declDateFrom: "", declDateTo: "" };
+    if (key === "duty") return { ...filters, dutyMin: "", dutyMax: "" };
+    return { ...filters, [key]: "All" };
+  };
+
+  const removeFilter = (key) => {
+    setAppliedFilters((previous) => resetFilterKey(previous, key));
+    setDraftFilters((previous) => resetFilterKey(previous, key));
+  };
+
+  const clearAllFilters = () => {
+    setAppliedFilters(EMPTY_FILTERS);
+    setDraftFilters(EMPTY_FILTERS);
+  };
+
   const allSelected =
-    declarations.length > 0 &&
-    declarations.every((d) => selectedRows.has(d.id));
-  const someSelected = declarations.some((d) => selectedRows.has(d.id));
+    visibleDeclarations.length > 0 &&
+    visibleDeclarations.every((d) => selectedRows.has(d.id));
+  const someSelected = visibleDeclarations.some((d) => selectedRows.has(d.id));
 
   const handleSelectAll = (e) => {
     if (e.target.checked) {
-      setSelectedRows(new Set(declarations.map((d) => d.id)));
+      setSelectedRows(new Set(visibleDeclarations.map((d) => d.id)));
     } else {
       setSelectedRows(new Set());
     }
@@ -218,20 +327,55 @@ const ImporterDeclarations = () => {
 
       <TableCard>
         <Toolbar>
-          <SearchBar>
-            <SearchIcon src={searchSVG} alt="Search" />
-            <SearchInput
-              type="text"
-              placeholder={t("ImporterDeclarations_SearchPlaceholder")}
-              value={searchQuery}
-              onChange={(event) => setSearchQuery(event.target.value)}
-            />
-          </SearchBar>
+          <ToolbarLeft>
+            <SearchBar>
+              <SearchIcon src={searchSVG} alt="Search" />
+              <SearchInput
+                type="text"
+                placeholder={t("ImporterDeclarations_SearchPlaceholder")}
+                value={searchQuery}
+                onChange={(event) => setSearchQuery(event.target.value)}
+              />
+            </SearchBar>
+
+            <FilterButton
+              type="button"
+              onClick={openFilters}
+              $active={activeFilterCount > 0}
+            >
+              <img src={filtersSVG} alt="Filters" />
+              {t("Filters")}
+              {activeFilterCount > 0 && (
+                <FilterBadge>{activeFilterCount}</FilterBadge>
+              )}
+            </FilterButton>
+          </ToolbarLeft>
 
           <ResultsText>
-            {declarations.length} {t("Out of")} {totalDeclarations}
+            {visibleDeclarations.length} {t("Out of")} {totalDeclarations}
           </ResultsText>
         </Toolbar>
+
+        {activeFilterCount > 0 && (
+          <FiltersAppliedRow>
+            <FiltersAppliedLabel>{t("Filters applied")}:</FiltersAppliedLabel>
+            {activeFilters.map((filter) => (
+              <FilterChip key={filter.key}>
+                {filter.label}
+                <ChipRemove
+                  type="button"
+                  onClick={() => removeFilter(filter.key)}
+                  aria-label={`Remove ${filter.label} filter`}
+                >
+                  ✕
+                </ChipRemove>
+              </FilterChip>
+            ))}
+            <ClearAllButton type="button" onClick={clearAllFilters}>
+              {t("Clear all")}
+            </ClearAllButton>
+          </FiltersAppliedRow>
+        )}
 
         <TableWrapper>
           {loading ? (
@@ -261,14 +405,14 @@ const ImporterDeclarations = () => {
                 </tr>
               </thead>
               <tbody>
-                {declarations.length === 0 ? (
+                {visibleDeclarations.length === 0 ? (
                   <tr>
                     <EmptyTableCell colSpan="8">
                       {t("ImporterDeclarations_NoSearchResults")}
                     </EmptyTableCell>
                   </tr>
                 ) : (
-                  declarations.map((declaration) => {
+                  visibleDeclarations.map((declaration) => {
                     const currentStatus = getDisplayStatus(declaration);
                     const isExpanded = expandedRowId === declaration.id;
 
@@ -479,6 +623,97 @@ const ImporterDeclarations = () => {
           )}
         </TableWrapper>
       </TableCard>
+
+      {filterOpen && (
+        <FilterOverlay onClick={closeFilters}>
+          <FilterPanel onClick={(e) => e.stopPropagation()}>
+            <FilterPanelHeader>
+              <FilterPanelTitle>{t("Filters")}</FilterPanelTitle>
+              <CloseButton type="button" onClick={closeFilters}>
+                ✕
+              </CloseButton>
+            </FilterPanelHeader>
+
+            <FilterBody>
+              <FilterField>
+                <FilterLabel>{t("Status")}</FilterLabel>
+                <FilterSelect
+                  value={draftFilters.status}
+                  onChange={(e) => handleFilterChange("status", e.target.value)}
+                >
+                  <option value="All">{t("All")}</option>
+                  {statusOptions.map((option) => (
+                    <option key={option} value={option}>
+                      {formatStatusLabel(t, option)}
+                    </option>
+                  ))}
+                </FilterSelect>
+              </FilterField>
+
+              <FilterField>
+                <FilterLabel>{t("Declaration Date")}</FilterLabel>
+                <RangeRow>
+                  <DateInput
+                    type="date"
+                    value={draftFilters.declDateFrom}
+                    max={draftFilters.declDateTo || undefined}
+                    onChange={(e) =>
+                      handleFilterChange("declDateFrom", e.target.value)
+                    }
+                  />
+                  <RangeSeparator>-</RangeSeparator>
+                  <DateInput
+                    type="date"
+                    value={draftFilters.declDateTo}
+                    min={draftFilters.declDateFrom || undefined}
+                    onChange={(e) =>
+                      handleFilterChange("declDateTo", e.target.value)
+                    }
+                  />
+                </RangeRow>
+              </FilterField>
+
+              <FilterField>
+                <FilterLabel>{t("Customs Duty (USD)")}</FilterLabel>
+                <RangeRow>
+                  <AmountInput
+                    type="number"
+                    min="0"
+                    placeholder={t("Min")}
+                    value={draftFilters.dutyMin}
+                    onChange={(e) =>
+                      handleFilterChange("dutyMin", e.target.value)
+                    }
+                  />
+                  <RangeSeparator>-</RangeSeparator>
+                  <AmountInput
+                    type="number"
+                    min="0"
+                    placeholder={t("Max")}
+                    value={draftFilters.dutyMax}
+                    onChange={(e) =>
+                      handleFilterChange("dutyMax", e.target.value)
+                    }
+                  />
+                </RangeRow>
+              </FilterField>
+            </FilterBody>
+
+            <FilterFooter>
+              <ClearFiltersButton type="button" onClick={clearDraftFilters}>
+                {t("Clear all filters")}
+              </ClearFiltersButton>
+              <ApplyButton
+                type="button"
+                onClick={applyFilters}
+                disabled={!hasFilterChanges}
+              >
+                {t("Apply")}
+              </ApplyButton>
+            </FilterFooter>
+          </FilterPanel>
+        </FilterOverlay>
+      )}
     </PageContainer>
   );
 };
@@ -910,4 +1145,270 @@ const EmptyActions = styled.div`
   display: flex;
   align-items: center;
   gap: 12px;
+`;
+
+const ToolbarLeft = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex: 1;
+`;
+
+const FilterButton = styled.button`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  font-size: 14px;
+  cursor: pointer;
+  border-radius: 38px;
+  border: 1px solid ${(props) => (props.$active ? "#436C4D" : "#d4d6df")};
+  background: #fff;
+  color: ${(props) => (props.$active ? "#436C4D" : "#20294c")};
+  white-space: nowrap;
+  transition: all 0.3s ease;
+
+  img {
+    height: 18px;
+  }
+
+  &:hover {
+    opacity: 0.7;
+  }
+`;
+
+const FilterBadge = styled.span`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 10px;
+  background: #436c4d;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+`;
+
+const FiltersAppliedRow = styled.div`
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+`;
+
+const FiltersAppliedLabel = styled.span`
+  color: #797f94;
+  font-size: 14px;
+`;
+
+const FilterChip = styled.span`
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-radius: 38px;
+  border: 1px solid #d4d6df;
+  background: #fff;
+  color: #20294c;
+  font-size: 14px;
+`;
+
+const ChipRemove = styled.button`
+  border: none;
+  background: transparent;
+  padding: 0;
+  font-size: 12px;
+  line-height: 1;
+  color: #797f94;
+  cursor: pointer;
+
+  &:hover {
+    color: #20294c;
+  }
+`;
+
+const ClearAllButton = styled.button`
+  border: none;
+  background: transparent;
+  padding: 0;
+  font-size: 14px;
+  color: #436c4d;
+  text-decoration: underline;
+  cursor: pointer;
+
+  &:hover {
+    opacity: 0.7;
+  }
+`;
+
+const FilterOverlay = styled.div`
+  position: fixed;
+  inset: 0;
+  background: rgba(13, 18, 28, 0.28);
+  display: flex;
+  justify-content: flex-end;
+  z-index: 30;
+`;
+
+const FilterPanel = styled.div`
+  width: min(440px, 100vw);
+  height: 100%;
+  background: #fff;
+  padding: 28px 32px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: -16px 0 48px rgba(17, 24, 39, 0.14);
+`;
+
+const FilterPanelHeader = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 28px;
+`;
+
+const FilterPanelTitle = styled.h2`
+  font-size: 22px;
+  font-weight: 700;
+  color: #2671d9;
+`;
+
+const CloseButton = styled.button`
+  border: none;
+  background: transparent;
+  font-size: 18px;
+  cursor: pointer;
+  color: #6f7897;
+  line-height: 1;
+
+  &:hover {
+    opacity: 0.7;
+  }
+`;
+
+const FilterBody = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  overflow-y: auto;
+  flex: 1;
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+`;
+
+const FilterField = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+`;
+
+const FilterLabel = styled.label`
+  font-size: 14px;
+  font-weight: 500;
+  color: #797f94;
+`;
+
+const FilterSelect = styled.select`
+  width: 100%;
+  border: none;
+  border-bottom: 1.5px solid #d4d6df;
+  outline: none;
+  font-size: 16px;
+  font-weight: 500;
+  padding: 6px 0;
+  background: none;
+  color: #20294c;
+  cursor: pointer;
+  font-family: inherit;
+
+  &:focus {
+    border-bottom-color: #2671d9;
+  }
+`;
+
+const RangeRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-bottom: 1.5px solid #d4d6df;
+  padding: 6px 0;
+`;
+
+const DateInput = styled.input`
+  border: none;
+  outline: none;
+  font-size: 16px;
+  font-weight: 500;
+  background: none;
+  color: #20294c;
+  font-family: inherit;
+  flex: 1;
+`;
+
+const AmountInput = styled.input`
+  border: none;
+  outline: none;
+  font-size: 16px;
+  font-weight: 500;
+  background: none;
+  color: #20294c;
+  font-family: inherit;
+  width: 100%;
+  flex: 1;
+`;
+
+const RangeSeparator = styled.span`
+  color: #797f94;
+`;
+
+const FilterFooter = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-top: 24px;
+  margin-top: 16px;
+  border-top: 1px solid #edf0f7;
+`;
+
+const ClearFiltersButton = styled.button`
+  flex: 1;
+  padding: 16px 24px;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  border-radius: 38px;
+  border: 1px solid #d4d6df;
+  background: #fff;
+  color: #20294c;
+  transition: all 0.3s ease;
+
+  &:hover {
+    opacity: 0.7;
+  }
+`;
+
+const ApplyButton = styled.button`
+  flex: 1;
+  padding: 16px 24px;
+  font-size: 15px;
+  font-weight: 500;
+  color: #fff;
+  cursor: pointer;
+  border-radius: 38px;
+  border: 1px solid #2671d9;
+  background: #2671d9;
+  transition: all 0.3s ease;
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: default;
+  }
+  &:hover:not(:disabled) {
+    opacity: 0.8;
+  }
 `;
