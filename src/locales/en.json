@@ -250,6 +250,7 @@
   "RegisteredDevices_Subtitle": "Review all your previously registered devices with all their details",
   "RegisteredDevices_AddButton": "Register New Devices",
   "Sidebar_UserManagement": "User Management",
+  "Sidebar_Configuration": "Configuration",
   "Sidebar_PermissionsAndRoles": "Permissions and Roles",
   "Valid": "Valid",
   "Invalid": "Invalid",
@@ -408,5 +409,17 @@
   "DeviceInfo_MaxDevices": "You have already registered 3 devices for the year 2024",
   "Change Password": "Change Password",
   "User Email": "User Email",
-  "Adjusted value must be a whole number.": "Adjusted value must be a whole number."
+  "Adjusted value must be a whole number.": "Adjusted value must be a whole number.",
+  "Configuration_Title": "Configuration",
+  "Configuration_Subtext": "Manage system-wide invoice pricing used by customs and importer workflows.",
+  "Configuration_InvoiceRatesTitle": "Invoice Rates",
+  "Configuration_InvoiceRatesDescription": "Set the customs duty and VAT percentages used for importer invoices. Saving new values refreshes all existing invoices automatically.",
+  "Configuration_CustomsDuty": "Customs Duty",
+  "Configuration_VAT": "VAT",
+  "Configuration_AutoRefreshNote": "Any change here updates the stored invoice totals, percentages, and downloadable PDFs automatically.",
+  "Configuration_Save": "Save Configuration",
+  "Configuration_Saving": "Saving...",
+  "Configuration_LoadError": "Failed to load configuration. Please try again.",
+  "Configuration_SaveError": "Failed to save configuration. Please try again.",
+  "Configuration_SaveSuccess": "Configuration saved successfully."
 }

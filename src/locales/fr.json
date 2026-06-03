@@ -250,6 +250,7 @@
   "RegisteredDevices_Subtitle": "Passez en revue tous vos appareils précédemment enregistrés avec tous leurs détails",
   "RegisteredDevices_AddButton": "Déclarer de nouveaux appareils",
   "Sidebar_UserManagement": "Gestion des utilisateurs",
+  "Sidebar_Configuration": "Configuration",
   "Sidebar_PermissionsAndRoles": "Autorisations et rôles",
   "Valid": "Valide",
   "Invalid": "Invalide",
@@ -408,5 +409,17 @@
   "Start Registration": "Commencer l'enregistrement !",
   "DeviceInfo_MaxDevices": "Vous avez déjà enregistré 3 appareils pour l'année 2024",
   "Change Password": "Changer le mot de passe",
-  "User Email": "E-mail de l'utilisateur"
+  "User Email": "E-mail de l'utilisateur",
+  "Configuration_Title": "Configuration",
+  "Configuration_Subtext": "Gérez la tarification des factures utilisée par les workflows douaniers et importateurs.",
+  "Configuration_InvoiceRatesTitle": "Taux de facture",
+  "Configuration_InvoiceRatesDescription": "Définissez les pourcentages des droits de douane et de la TVA utilisés pour les factures importateur. L'enregistrement met automatiquement à jour toutes les factures existantes.",
+  "Configuration_CustomsDuty": "Droits de douane",
+  "Configuration_VAT": "TVA",
+  "Configuration_AutoRefreshNote": "Toute modification met automatiquement à jour les totaux enregistrés des factures, les pourcentages et les PDF téléchargeables.",
+  "Configuration_Save": "Enregistrer la configuration",
+  "Configuration_Saving": "Enregistrement...",
+  "Configuration_LoadError": "Impossible de charger la configuration. Veuillez réessayer.",
+  "Configuration_SaveError": "Impossible d'enregistrer la configuration. Veuillez réessayer.",
+  "Configuration_SaveSuccess": "Configuration enregistrée avec succès."
 }

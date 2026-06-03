@@ -12,6 +12,7 @@ import ImporterDeclarations from "../profilepageComponents/importers/ImporterDec
 import ImporterDeclarationDetail from "../profilepageComponents/importers/ImporterDeclarationDetail";
 import UserManagement from "../profilepageComponents/admins/UserManagement";
 import UserDetails from "../profilepageComponents/admins/UserDetails";
+import Configuration from "../profilepageComponents/admins/Configuration";
 import IMEIVerify from "../homepageComponents/IMEIVerify";
 import RegisteredDevices from "../profilepageComponents/RegisteredDevices";
 import Profile from "../profilepageComponents/Profile";
@@ -102,6 +103,7 @@ const ProfilePage = () => {
               />
               <Route path="UserManagement" element={<UserManagement />} />
               <Route path="UserDetails/:userId" element={<UserDetails />} />
+              <Route path="Configuration" element={<Configuration />} />
               <Route path="RegisteredDevices" element={<RegisteredDevices />} />
               <Route path="Reports" element={<Placeholder title="Reports" />} />
               <Route

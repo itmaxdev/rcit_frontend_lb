@@ -255,3 +255,51 @@ export const editUserDocuments = async (
     return false;
   }
 };
+
+export const fetchInvoiceConfiguration = async () => {
+  try {
+    const token = getToken();
+    const url = `${ADMIN_API_BASE_URL}/configuration/invoice-rates`;
+    const headers = { Authorization: `Bearer ${token}` };
+
+    const response = await makeAuthenticatedRequest(url, {
+      method: "GET",
+      headers,
+    });
+
+    if (!response?.ok) {
+      return null;
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error("Error fetching invoice configuration:", error);
+    return null;
+  }
+};
+
+export const updateInvoiceConfiguration = async (payload) => {
+  try {
+    const token = getToken();
+    const url = `${ADMIN_API_BASE_URL}/configuration/invoice-rates`;
+    const headers = {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    };
+
+    const response = await makeAuthenticatedRequest(url, {
+      method: "PUT",
+      headers,
+      body: JSON.stringify(payload),
+    });
+
+    if (!response?.ok) {
+      return null;
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error("Error updating invoice configuration:", error);
+    return null;
+  }
+};

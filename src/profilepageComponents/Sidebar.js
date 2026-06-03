@@ -39,6 +39,7 @@ const Sidebar = ({ basePath }) => {
       ? [
           { icon: dashboardSvg, label: "Dashboard", disabled: true },
           { icon: declareDevicesSvg, label: "UserManagement", disabled: false },
+          { icon: permissionSvg, label: "Configuration", disabled: false },
           { icon: declareDevicesSvg, label: "RegisteredDevices", disabled: false },
           { icon: reportsSvg, label: "Reports", disabled: true },
           { icon: permissionSvg, label: "PermissionsAndRoles", disabled: true },
