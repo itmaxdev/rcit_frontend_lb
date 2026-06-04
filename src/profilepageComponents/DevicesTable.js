@@ -25,6 +25,7 @@ const DevicesTable = ({ data, isAdmin = false }) => {
             <TableHeader>{t("Device Type")}</TableHeader>
             <TableHeader>{t("Country of Origin")}</TableHeader>
             <TableHeader>{t("Import Date")}</TableHeader>
+            {isAdmin && <TableHeader>{t("Input_FullName")}</TableHeader>}
             {isAdmin && <TableHeader>{t("User Email")}</TableHeader>}
             <TableHeader>{t("Device Status")}</TableHeader>
           </TableRow>
@@ -32,22 +33,27 @@ const DevicesTable = ({ data, isAdmin = false }) => {
         <tbody>
           {data && data.length > 0 ? (
             data.map((device, index) => (
-              <TableRow
-                key={index}
-                onClick={
-                  isAdmin ? () => handleRowClick(device.userId) : undefined
-                }
-                isAdmin={isAdmin}
-              >
+              <TableRow key={device.id || `${device.userId}-${index}`}>
                 <TableCell>{device.imeiCount || 1}</TableCell>
                 <TableCell>
-                  {device.imei || device.imeis.replace("|", " ") || "-"}
+                  {device.imei || device.imeis?.replace("|", " ") || "-"}
                 </TableCell>
                 <TableCell>{device.brand || "-"}</TableCell>
                 <TableCell>{device.model || "-"}</TableCell>
                 <TableCell>{device.technology || "-"}</TableCell>
                 <TableCell>{device.country || "-"}</TableCell>
                 <TableCell>{device.importDate || "-"}</TableCell>
+                {isAdmin && (
+                  <TableCell>
+                    <NameButton
+                      type="button"
+                      onClick={() => handleRowClick(device.userId)}
+                      disabled={!device.userId}
+                    >
+                      {device.fullName || "-"}
+                    </NameButton>
+                  </TableCell>
+                )}
                 {isAdmin && <TableCell>{device.userEmail || "-"}</TableCell>}
                 <TableCell>
                   <StatusBadge status={device.status || "Registered"}>
@@ -58,7 +64,9 @@ const DevicesTable = ({ data, isAdmin = false }) => {
             ))
           ) : (
             <TableRow>
-              <TableCell colSpan="7">{t("No data available")}</TableCell>
+              <TableCell colSpan={isAdmin ? "9" : "7"}>
+                {t("No data available")}
+              </TableCell>
             </TableRow>
           )}
         </tbody>
@@ -90,7 +98,6 @@ const TableRow = styled.tr`
   transition: all 0.2s ease;
   &:hover {
     background-color: #f5f6fa;
-    cursor: ${(props) => (props.isAdmin ? "pointer" : "default")};
   }
 `;
 
@@ -108,6 +115,26 @@ const TableCell = styled.td`
   border-bottom: 1px solid #eaebef;
   text-align: left;
   font-size: 14px;
+`;
+
+const NameButton = styled.button`
+  border: none;
+  background: transparent;
+  padding: 0;
+  font: inherit;
+  color: #2671d9;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: left;
+
+  &:hover:not(:disabled) {
+    text-decoration: underline;
+  }
+
+  &:disabled {
+    color: inherit;
+    cursor: default;
+  }
 `;
 
 const StatusBadge = styled.span`
