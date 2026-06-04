@@ -78,6 +78,10 @@ export default UsersTable;
 
 const UsersTableContainer = styled.div`
   width: 100%;
+  flex: 1;
+  min-height: 360px;
+  display: flex;
+  flex-direction: column;
   border-radius: 8px;
   height: 100%;
   overflow-y: auto;
@@ -89,6 +93,7 @@ const UsersTableContainer = styled.div`
 
 const Table = styled.table`
   width: 100%;
+  min-height: 100%;
   border-collapse: collapse;
 `;
 
@@ -114,6 +119,7 @@ const TableCell = styled.td`
   border-bottom: 1px solid #eaebef;
   text-align: left;
   font-size: 14px;
+  vertical-align: middle;
 `;
 
 const ChevronIcon = styled.img`

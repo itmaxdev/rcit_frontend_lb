@@ -220,7 +220,7 @@ const CustomsDashboard = () => {
           </MiddleGrid>
 
           <BottomGrid>
-            <Panel>
+            <RecentDeclarationsPanel>
               <PanelTitle>{t("Customs_DashboardRecentDeclarations")}</PanelTitle>
               <TabRow>
                 {RECENT_FILTERS.map((filter) => (
@@ -296,7 +296,7 @@ const CustomsDashboard = () => {
                   </RecentTable>
                 </RecentTableWrapper>
               )}
-            </Panel>
+            </RecentDeclarationsPanel>
 
             <RightColumn>
               <SidePanel>
@@ -689,6 +689,7 @@ const BottomGrid = styled.div`
   display: grid;
   grid-template-columns: minmax(0, 1.8fr) minmax(320px, 0.75fr);
   gap: 12px;
+  align-items: stretch;
 
   @media (max-width: 1280px) {
     grid-template-columns: 1fr;
@@ -712,6 +713,12 @@ const Panel = styled.section`
 const SidePanel = styled(Panel)`
   display: flex;
   flex-direction: column;
+`;
+
+const RecentDeclarationsPanel = styled(Panel)`
+  display: flex;
+  flex-direction: column;
+  min-height: 520px;
 `;
 
 const PanelHeader = styled.div`
@@ -892,11 +899,15 @@ const FilterTab = styled.button`
 `;
 
 const RecentTableWrapper = styled.div`
+  flex: 1;
+  min-height: 360px;
   overflow-x: auto;
+  display: flex;
 `;
 
 const RecentTable = styled.table`
   width: 100%;
+  min-height: 100%;
   border-collapse: separate;
   border-spacing: 0;
   min-width: 980px;
@@ -924,6 +935,10 @@ const RecentTable = styled.table`
     color: #2d3557;
     font-size: 14px;
     vertical-align: middle;
+  }
+
+  tbody tr:last-child td {
+    border-bottom: none;
   }
 `;
 
@@ -991,7 +1006,9 @@ const EmptyBlock = styled.div`
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   gap: 12px;
+  min-height: 360px;
   padding: 36px 18px 18px;
   color: #7d86a2;
 

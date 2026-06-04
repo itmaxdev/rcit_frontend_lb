@@ -143,9 +143,11 @@ const Subtext = styled.p`
 
 const UsersContainer = styled.div`
   display: flex;
+  flex: 1;
+  min-height: 520px;
   border-radius: 12px;
   border: 1px solid #eaebef;
-  padding: 20px 20px 0 20px;
+  padding: 20px;
   flex-direction: column;
   align-items: flex-start;
   gap: 20px;

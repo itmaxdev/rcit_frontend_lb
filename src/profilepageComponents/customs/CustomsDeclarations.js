@@ -1870,7 +1870,7 @@ const Subtitle = styled.p`
 const ContentCard = styled.div`
   width: 100%;
   flex: 1;
-  min-height: 0;
+  min-height: 520px;
   border-radius: 12px;
   border: 1px solid #d4d6df;
   background: #fff;
@@ -1942,7 +1942,7 @@ const SearchInput = styled.input`
 
 const EmptyState = styled.div`
   display: flex;
-  min-height: 320px;
+  min-height: 360px;
   width: 100%;
   align-items: center;
   justify-content: center;
@@ -1967,7 +1967,7 @@ const EmptyText = styled.p`
 const TableWrapper = styled.div`
   width: 100%;
   flex: 1;
-  min-height: 0;
+  min-height: 360px;
   display: flex;
   flex-direction: column;
   overflow-x: auto;
@@ -2004,6 +2004,7 @@ const PageSizeInput = styled.input`
 
 const Table = styled.table`
   width: 100%;
+  min-height: 100%;
   border-collapse: collapse;
 
   thead tr {
@@ -2121,8 +2122,10 @@ const TableRow = styled.tr`
 
 const LoadingCell = styled.td`
   padding: 28px 16px;
+  min-height: 360px;
   text-align: center;
   color: #797f94;
+  vertical-align: middle;
 `;
 
 const StyledCheckbox = styled.input`
