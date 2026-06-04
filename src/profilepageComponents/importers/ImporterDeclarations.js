@@ -26,6 +26,9 @@ const EMPTY_FILTERS = {
   dutyMax: "",
 };
 
+const MENU_GAP = 6;
+const MENU_VIEWPORT_MARGIN = 8;
+
 // Client-side filtering over the loaded declarations.
 const filterDeclarations = (list, filters) =>
   (list || []).filter((declaration) => {
@@ -71,7 +74,8 @@ const ImporterDeclarations = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [appliedSearch, setAppliedSearch] = useState("");
   const [openMenuId, setOpenMenuId] = useState(null);
-  const [menuPosition, setMenuPosition] = useState({ top: 0, right: 0 });
+  const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
+  const [menuAnchorRect, setMenuAnchorRect] = useState(null);
   const [selectedRows, setSelectedRows] = useState(new Set());
   const [expandedRowId, setExpandedRowId] = useState(null);
   const [expandedDetail, setExpandedDetail] = useState(null);
@@ -90,13 +94,45 @@ const ImporterDeclarations = () => {
       }
     };
     const handleScroll = () => setOpenMenuId(null);
+    const handleResize = () => setOpenMenuId(null);
     document.addEventListener("mousedown", handleOutside);
     window.addEventListener("scroll", handleScroll, true);
+    window.addEventListener("resize", handleResize);
     return () => {
       document.removeEventListener("mousedown", handleOutside);
       window.removeEventListener("scroll", handleScroll, true);
+      window.removeEventListener("resize", handleResize);
     };
   }, [openMenuId]);
+
+  useEffect(() => {
+    if (!openMenuId || !menuAnchorRect || !menuRef.current) {
+      return;
+    }
+
+    const menuRect = menuRef.current.getBoundingClientRect();
+    let nextTop = menuAnchorRect.bottom + MENU_GAP;
+    if (nextTop + menuRect.height > window.innerHeight - MENU_VIEWPORT_MARGIN) {
+      nextTop = Math.max(
+        MENU_VIEWPORT_MARGIN,
+        menuAnchorRect.top - menuRect.height - MENU_GAP
+      );
+    }
+
+    let nextLeft = menuAnchorRect.right - menuRect.width;
+    if (nextLeft + menuRect.width > window.innerWidth - MENU_VIEWPORT_MARGIN) {
+      nextLeft = window.innerWidth - MENU_VIEWPORT_MARGIN - menuRect.width;
+    }
+    if (nextLeft < MENU_VIEWPORT_MARGIN) {
+      nextLeft = MENU_VIEWPORT_MARGIN;
+    }
+
+    setMenuPosition((previous) =>
+      previous.top === nextTop && previous.left === nextLeft
+        ? previous
+        : { top: nextTop, left: nextLeft }
+    );
+  }, [openMenuId, menuAnchorRect]);
 
   useEffect(() => {
     const timerId = window.setTimeout(() => {
@@ -467,9 +503,10 @@ const ImporterDeclarations = () => {
                                   return;
                                 }
                                 const rect = e.currentTarget.getBoundingClientRect();
+                                setMenuAnchorRect(rect);
                                 setMenuPosition({
-                                  top: rect.bottom + 6,
-                                  right: window.innerWidth - rect.right,
+                                  top: rect.bottom + MENU_GAP,
+                                  left: Math.max(MENU_VIEWPORT_MARGIN, rect.right - 220),
                                 });
                                 setOpenMenuId(declaration.id);
                               }}
@@ -480,7 +517,7 @@ const ImporterDeclarations = () => {
                               <ActionMenu
                                 ref={menuRef}
                                 $top={menuPosition.top}
-                                $right={menuPosition.right}
+                                $left={menuPosition.left}
                               >
                                 <ActionMenuButton
                                   type="button"
@@ -985,7 +1022,7 @@ const ActionButton = styled.button`
 const ActionMenu = styled.div`
   position: fixed;
   top: ${({ $top }) => $top}px;
-  right: ${({ $right }) => $right}px;
+  left: ${({ $left }) => $left}px;
   width: max-content;
   border-radius: 12px;
   border: 1px solid #e6e8f0;
