@@ -911,6 +911,7 @@ const RecentTable = styled.table`
   border-collapse: separate;
   border-spacing: 0;
   min-width: 980px;
+  height:fit-content;
 
   thead th {
     background: #f5f7fc;
