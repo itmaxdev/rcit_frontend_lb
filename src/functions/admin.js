@@ -36,6 +36,45 @@ export const fetchPendingEntities = async (
   }
 };
 
+export const fetchUsers = async (
+  role = "",
+  page = 0,
+  pageSize = 10,
+  setTotalElements
+) => {
+  try {
+    const token = getToken();
+    const params = new URLSearchParams({ page, size: pageSize });
+    if (role) {
+      params.append("role", role);
+    }
+    const url = `${ADMIN_API_BASE_URL}/users?${params.toString()}`;
+    const headers = { Authorization: `Bearer ${token}` };
+
+    const response = await makeAuthenticatedRequest(url, {
+      method: "GET",
+      headers,
+    });
+
+    if (!response?.ok) {
+      const errorData = response ? await response.json() : null;
+      setTotalElements(0);
+      console.error(
+        `Error fetching users: ${errorData?.message || "Unknown error"}`
+      );
+      return null;
+    }
+
+    const data = await response.json();
+    setTotalElements(data.totalElements || 0);
+    return data.content || [];
+  } catch (error) {
+    setTotalElements(0);
+    console.error("Error fetching users:", error);
+    return null;
+  }
+};
+
 export const fetchUser = async (userId) => {
   try {
     const token = getToken();

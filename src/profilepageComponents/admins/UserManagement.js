@@ -1,35 +1,51 @@
 // src/profilepageComponents/admins/UserManagement.js
-import React, { useState, useEffect } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import styled from "styled-components";
 import { useTranslation } from "react-i18next";
-import { fetchPendingEntities } from "../../functions/admin";
+import { fetchUsers } from "../../functions/admin";
+import {
+  ROLE_ADMIN,
+  ROLE_CUSTOMS,
+  ROLE_IMPORTER,
+  ROLE_USER,
+} from "../../config/roles";
 
 import UsersTable from "./UsersTable";
 import chevronSVG from "../../assets/chevron-down.svg";
 
+const USER_ROLE_FILTERS = [
+  { key: "ALL", labelKey: "All Users", value: "" },
+  { key: ROLE_ADMIN, labelKey: "RoleBadge_Administrator", value: ROLE_ADMIN },
+  { key: ROLE_CUSTOMS, labelKey: "RoleBadge_CustomsOfficer", value: ROLE_CUSTOMS },
+  { key: ROLE_IMPORTER, labelKey: "RoleBadge_Importer", value: ROLE_IMPORTER },
+  { key: ROLE_USER, labelKey: "RoleBadge_Individual", value: ROLE_USER },
+];
+
 const UserManagement = () => {
   const { t } = useTranslation();
-  const [accountType, setAccountType] = useState("Importer");
+  const [roleFilter, setRoleFilter] = useState("ALL");
   const [usersData, setUsersData] = useState([]);
 
   const [currentPage, setCurrentPage] = useState(0);
   const [pageSize, setPageSize] = useState(10);
   const [totalElements, setTotalElements] = useState(0);
 
-  useEffect(() => {
-    fetchData();
-  }, [accountType, currentPage, pageSize]);
-
-  const fetchData = async () => {
-    const isUser = accountType === "Individual";
-    const data = await fetchPendingEntities(
-      isUser,
+  const fetchData = useCallback(async () => {
+    const selectedFilter = USER_ROLE_FILTERS.find(
+      (filter) => filter.key === roleFilter
+    );
+    const data = await fetchUsers(
+      selectedFilter?.value || "",
       currentPage,
       pageSize,
       setTotalElements
     );
     setUsersData(data || []);
-  };
+  }, [roleFilter, currentPage, pageSize]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   const handlePageSizeChange = (e) => {
     const newSize = parseInt(e.target.value, 10);
@@ -39,6 +55,12 @@ const UserManagement = () => {
     }
   };
 
+  const pageStart = totalElements === 0 ? 0 : currentPage * pageSize + 1;
+  const pageEnd =
+    totalElements === 0
+      ? 0
+      : Math.min((currentPage + 1) * pageSize, totalElements);
+
   return (
     <UserManagementContainer>
       <Title>{t("UserManagement_Title")}</Title>
@@ -47,25 +69,25 @@ const UserManagement = () => {
       <UsersContainer>
         <TopBar>
           <ChoiceContainer>
-            <Button
-              selected={accountType === "Importer"}
-              onClick={() => setAccountType("Importer")}
-            >
-              {t("SignupPage_Importer")}
-            </Button>
-            <Button
-              selected={accountType === "Individual"}
-              onClick={() => setAccountType("Individual")}
-            >
-              {t("SignupPage_Individual")}
-            </Button>
+            {USER_ROLE_FILTERS.map((filter) => (
+              <Button
+                key={filter.key}
+                $selected={roleFilter === filter.key}
+                onClick={() => {
+                  setRoleFilter(filter.key);
+                  setCurrentPage(0);
+                }}
+              >
+                {t(filter.labelKey)}
+              </Button>
+            ))}
           </ChoiceContainer>
           <Pagination>
             <PageNumber>
               <span>
-                {currentPage * pageSize + 1}
+                {pageStart}
                 {" - "}
-                {Math.min((currentPage + 1) * pageSize, totalElements)}
+                {pageEnd}
               </span>{" "}
               out of <span>{totalElements}</span>
             </PageNumber>
@@ -185,9 +207,9 @@ const Button = styled.button`
   font-weight: 600;
   background: #f5f6fa;
 
-  border: ${({ selected }) =>
-    selected ? "1px solid #436C4D" : "1px solid #f5f6fa"};
-  color: ${({ selected }) => (selected ? "#436C4D" : "#20294C")};
+  border: ${({ $selected }) =>
+    $selected ? "1px solid #436C4D" : "1px solid #f5f6fa"};
+  color: ${({ $selected }) => ($selected ? "#436C4D" : "#20294C")};
   transition: all 0.3s ease;
 
   &:hover {

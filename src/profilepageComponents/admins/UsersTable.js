@@ -46,8 +46,8 @@ const UsersTable = ({ data }) => {
         </thead>
         <tbody>
           {data && data.length > 0 ? (
-            data.map((user, index) => (
-              <TableRow key={index} onClick={() => handleRowClick(user.id)}>
+            data.map((user) => (
+              <TableRow key={user.id} onClick={() => handleRowClick(user.id)}>
                 <TableCell>{user.firstName}</TableCell>
                 <TableCell>{user.lastName}</TableCell>
                 <TableCell>{user.email}</TableCell>
