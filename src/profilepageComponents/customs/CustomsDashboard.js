@@ -903,6 +903,7 @@ const RecentTableWrapper = styled.div`
   min-height: 360px;
   overflow-x: auto;
   display: flex;
+  align-items: flex-start;
 `;
 
 const RecentTable = styled.table`
