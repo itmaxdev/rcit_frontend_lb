@@ -5,8 +5,6 @@ import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { getPrimaryRole, ROLE_ADMIN, ROLE_CUSTOMS, ROLE_IMPORTER, ROLE_USER } from "../../config/roles";
 
-import chevronSvg from "../../assets/chevron-down.svg";
-
 const getRoleLabel = (t, authorities) => {
   switch (getPrimaryRole(authorities)) {
     case ROLE_ADMIN:
@@ -35,21 +33,25 @@ const UsersTable = ({ data }) => {
       <Table>
         <thead>
           <TableRow>
-            <TableHeader>{t("First Name")}</TableHeader>
-            <TableHeader>{t("Last Name")}</TableHeader>
+            <TableHeader>{t("Input_FullName")}</TableHeader>
             <TableHeader>{t("Email")}</TableHeader>
             <TableHeader>{t("Role")}</TableHeader>
             <TableHeader>{t("Phone Number")}</TableHeader>
             <TableHeader>{t("Account Status")}</TableHeader>
-            <TableHeader></TableHeader>
           </TableRow>
         </thead>
         <tbody>
           {data && data.length > 0 ? (
             data.map((user) => (
-              <TableRow key={user.id} onClick={() => handleRowClick(user.id)}>
-                <TableCell>{user.firstName}</TableCell>
-                <TableCell>{user.lastName}</TableCell>
+              <TableRow key={user.id}>
+                <TableCell>
+                  <NameButton
+                    type="button"
+                    onClick={() => handleRowClick(user.id)}
+                  >
+                    {[user.firstName, user.lastName].filter(Boolean).join(" ") || "-"}
+                  </NameButton>
+                </TableCell>
                 <TableCell>{user.email}</TableCell>
                 <TableCell>{getRoleLabel(t, user.authorities)}</TableCell>
                 <TableCell>{user.phoneNumber}</TableCell>
@@ -58,14 +60,11 @@ const UsersTable = ({ data }) => {
                     {t(user.status)}
                   </StatusBadge>
                 </TableCell>
-                <TableCell>
-                  <ChevronIcon src={chevronSvg} alt="Chevron" />
-                </TableCell>
               </TableRow>
             ))
           ) : (
             <TableRow>
-              <TableCell colSpan="7">{t("No data available")}</TableCell>
+              <TableCell colSpan="5">{t("No data available")}</TableCell>
             </TableRow>
           )}
         </tbody>
@@ -100,7 +99,6 @@ const TableRow = styled.tr`
   transition: all 0.2s ease;
   &:hover {
     background-color: #f5f6fa;
-    cursor: pointer;
   }
 `;
 
@@ -121,13 +119,19 @@ const TableCell = styled.td`
   vertical-align: middle;
 `;
 
-const ChevronIcon = styled.img`
-  width: 16px;
-  height: 16px;
-  display: block;
-  margin-left: auto;
-  transform: rotate(-90deg);
-  opacity: 0.7;
+const NameButton = styled.button`
+  border: none;
+  background: transparent;
+  padding: 0;
+  font: inherit;
+  color: #2671d9;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: left;
+
+  &:hover {
+    text-decoration: underline;
+  }
 `;
 
 const StatusBadge = styled.span`
