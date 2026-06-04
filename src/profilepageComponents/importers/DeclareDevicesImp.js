@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import styled from "styled-components";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
@@ -98,6 +98,7 @@ const DeclareDevicesImp = () => {
   const [filterOpen, setFilterOpen] = useState(false);
   const [appliedFilters, setAppliedFilters] = useState(EMPTY_FILTERS);
   const [draftFilters, setDraftFilters] = useState(EMPTY_FILTERS);
+  const uploadAbortControllerRef = useRef(null);
 
   const handleDownload = () => {
     const link = document.createElement("a");
@@ -199,14 +200,32 @@ const DeclareDevicesImp = () => {
 
   // Load the full result set once so filtering and pagination run client-side.
   useEffect(() => {
+    return () => {
+      uploadAbortControllerRef.current?.abort();
+    };
+  }, []);
+
+  useEffect(() => {
+    const controller = new AbortController();
+
     const loadAllDevices = async () => {
       if (!fileUploaded || !uploadID) return;
-      const response = await fetchUploadResults(uploadID, 1, 1000000);
-      if (response) {
+      const response = await fetchUploadResults(
+        uploadID,
+        1,
+        1000000,
+        {},
+        { silentAuthErrors: true, signal: controller.signal }
+      );
+      if (!controller.signal.aborted && response) {
         setAllDevices(response.content || []);
       }
     };
     loadAllDevices();
+
+    return () => {
+      controller.abort();
+    };
   }, [fileUploaded, uploadID]);
 
   const handlePageSizeChange = (e) => {
@@ -220,6 +239,10 @@ const DeclareDevicesImp = () => {
   const handleFileUpload = async (e) => {
     const file = e.target.files?.[0] || e.dataTransfer?.files?.[0];
     if (file) {
+      uploadAbortControllerRef.current?.abort();
+      const controller = new AbortController();
+      uploadAbortControllerRef.current = controller;
+
       setUploadedFile(file);
       setUploading(true);
       setProgress(0);
@@ -230,16 +253,27 @@ const DeclareDevicesImp = () => {
       setDraftFilters(EMPTY_FILTERS);
 
       try {
-        const ret = await bulkUpload(file);
+        const ret = await bulkUpload(file, { signal: controller.signal });
+        if (controller.signal.aborted) {
+          return;
+        }
         if (ret.uploadedData) {
           setUploadID(ret.uploadId);
           setSummaryData(ret.summaryData);
           setFileUploaded(true);
         }
       } catch (error) {
+        if (error?.name === "AbortError") {
+          return;
+        }
         console.error("Upload error:", error);
       } finally {
-        setUploading(false);
+        if (uploadAbortControllerRef.current === controller) {
+          uploadAbortControllerRef.current = null;
+        }
+        if (!controller.signal.aborted) {
+          setUploading(false);
+        }
       }
     }
   };

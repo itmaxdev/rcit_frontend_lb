@@ -23,7 +23,7 @@ export const refreshToken = async () => {
         Authorization: `Bearer ${authToken}`,
       },
       body: JSON.stringify({ refreshToken }),
-    });
+    }, { skipTokenRefresh: true });
 
     if (response.ok) {
       const { accessToken, refreshToken: newRefreshToken } =

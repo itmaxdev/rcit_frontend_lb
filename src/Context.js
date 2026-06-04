@@ -29,6 +29,12 @@ export const ContextProvider = ({ children }) => {
 
   const triggerLogOut = () => {
     setIsLoggedIn(false);
+    setAccountType("Unknown");
+    setAccountState("Unknown");
+    setUserEmail("");
+    setUserPhone("");
+    setEmailVerified(false);
+    setPhoneVerified(false);
     deleteToken();
   };
 

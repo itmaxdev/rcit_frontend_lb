@@ -6,11 +6,47 @@ import { API_BASE_URL } from "../config/api";
 const BULK_URL = `${API_BASE_URL}/importers/bulk-uploads`;
 const DECLARATIONS_URL = `${API_BASE_URL}/importers/declarations`;
 
-const pollUploadResults = async (uploadID, interval = 1000) => {
+const isAbortError = (error) =>
+  error?.name === "AbortError" || error?.message === "Polling aborted";
+
+const parseErrorData = async (response, fallbackMessage) => {
+  try {
+    return await response.json();
+  } catch (error) {
+    return { message: fallbackMessage || response.statusText || "Unknown error" };
+  }
+};
+
+const pollUploadResults = async (uploadID, interval = 1000, signal) => {
   return new Promise((resolve, reject) => {
+    let timeoutId;
+
     const poll = async () => {
+      if (signal?.aborted) {
+        reject(new DOMException("Polling aborted", "AbortError"));
+        return;
+      }
+
       try {
-        const summary = await getSummaryData(uploadID);
+        const summary = await getSummaryData(uploadID, {
+          silentAuthErrors: true,
+          signal,
+        });
+
+        if (signal?.aborted) {
+          reject(new DOMException("Polling aborted", "AbortError"));
+          return;
+        }
+
+        if (!summary) {
+          if (!getToken()) {
+            reject(new DOMException("Polling aborted", "AbortError"));
+            return;
+          }
+          reject(new Error("Failed to retrieve summary data"));
+          return;
+        }
+
         const totalIMEIs = Number(summary?.totalIMEIs ?? 0);
         const validRecordsCount = Number(summary?.validRecordsCount ?? 0);
         const invalidRecordsCount = Number(summary?.invalidRecordsCount ?? 0);
@@ -18,25 +54,38 @@ const pollUploadResults = async (uploadID, interval = 1000) => {
           summary?.status === "PROCESSED_OK" ||
           summary?.status === "PROCESSED_INVALID";
         const isCountComplete =
-          totalIMEIs > 0 &&
+          totalIMEIs === 0 ||
           validRecordsCount + invalidRecordsCount >= totalIMEIs;
 
         if (isTerminalStatus && isCountComplete) {
           resolve(summary);
         } else {
-          setTimeout(poll, interval);
+          timeoutId = setTimeout(poll, interval);
         }
       } catch (error) {
         reject(error);
       }
     };
 
+    if (signal) {
+      signal.addEventListener(
+        "abort",
+        () => {
+          if (timeoutId) {
+            clearTimeout(timeoutId);
+          }
+          reject(new DOMException("Polling aborted", "AbortError"));
+        },
+        { once: true }
+      );
+    }
+
     poll();
   });
 };
 
 // Updated bulkUpload function
-export const bulkUpload = async (file) => {
+export const bulkUpload = async (file, options = {}) => {
   const token = getToken();
   const ret = {};
   try {
@@ -49,10 +98,15 @@ export const bulkUpload = async (file) => {
         Authorization: `Bearer ${token}`,
       },
       body: formData,
+      signal: options.signal,
     });
 
+    if (!response) {
+      return ret;
+    }
+
     if (!response.ok) {
-      const errorData = await response.json();
+      const errorData = await parseErrorData(response, "Upload failed");
       global.alert2(`Upload failed with status: ${errorData.message}`);
       return;
     }
@@ -61,20 +115,28 @@ export const bulkUpload = async (file) => {
     ret.uploadId = data.uploadId;
 
     // Start polling for summary status
-    const summary = await pollUploadResults(data.uploadId);
+    const summary = await pollUploadResults(data.uploadId, 1000, options.signal);
 
     if (summary.status === "PROCESSED_OK" || summary.status === "PROCESSED_INVALID") {
-      const results = await fetchUploadResults(data.uploadId, 1, 10);
+      const results = await fetchUploadResults(
+        data.uploadId,
+        1,
+        10,
+        {},
+        { silentAuthErrors: true, signal: options.signal }
+      );
       ret.uploadedData = results;
       ret.summaryData = summary;
     } else {
-      const errorData = await response.json();
       console.error(
         "Bulk upload did not complete successfully. Final status:",
-        errorData.message
+        summary.status
       );
     }
   } catch (error) {
+    if (isAbortError(error)) {
+      return ret;
+    }
     console.error("Error during bulk upload:", error);
     global.alert2("Failed to upload file. Please try again.");
   }
@@ -232,7 +294,13 @@ export const initiateDeclarationPayment = async (uploadId) => {
 };
 
 // Function to fetch results by upload ID
-export const fetchUploadResults = async (uploadID, page, pageSize, filters = {}) => {
+export const fetchUploadResults = async (
+  uploadID,
+  page,
+  pageSize,
+  filters = {},
+  { silentAuthErrors = false, signal } = {}
+) => {
   const token = getToken();
   const params = new URLSearchParams({ page, pageSize });
   Object.entries(filters).forEach(([key, value]) => {
@@ -248,25 +316,46 @@ export const fetchUploadResults = async (uploadID, page, pageSize, filters = {})
       headers: {
         Authorization: `Bearer ${token}`,
       },
+      signal,
     });
 
+    if (!response) {
+      return null;
+    }
+
     if (!response.ok) {
-      const errorData = await response.json();
-      global.alert2(`Failed to fetch results with status ${errorData.message}`);
-      throw new Error(`HTTP error! status: ${errorData.message}`);
+      const errorData = await parseErrorData(
+        response,
+        "Failed to retrieve results"
+      );
+      const isAuthFailure = response.status === 401 || response.status === 403;
+
+      if (!(silentAuthErrors && isAuthFailure)) {
+        global.alert2(`Failed to fetch results with status ${errorData.message}`);
+      }
+      return null;
     }
 
     const data = await response.json();
 
     return data;
   } catch (error) {
+    if (isAbortError(error)) {
+      return null;
+    }
     console.error("Error fetching upload results:", error);
-    global.alert2("Failed to retrieve results. Please try again.");
+    if (!silentAuthErrors) {
+      global.alert2("Failed to retrieve results. Please try again.");
+    }
+    return null;
   }
 };
 
 // Function to retrieve summary data
-export const getSummaryData = async (uploadID) => {
+export const getSummaryData = async (
+  uploadID,
+  { silentAuthErrors = false, signal } = {}
+) => {
   const token = getToken();
   const url = `${BULK_URL}/${uploadID}`;
 
@@ -276,11 +365,26 @@ export const getSummaryData = async (uploadID) => {
       headers: {
         Authorization: `Bearer ${token}`,
       },
+      signal,
     });
 
+    if (!response) {
+      return null;
+    }
+
     if (!response.ok) {
-      const errorData = await response.json();
-      global.alert2(`Failed to retrieve summary data with status ${errorData.message}`);
+      const errorData = await parseErrorData(
+        response,
+        "Failed to retrieve summary data"
+      );
+      const isAuthFailure = response.status === 401 || response.status === 403;
+
+      if (!(silentAuthErrors && isAuthFailure)) {
+        global.alert2(
+          `Failed to retrieve summary data with status ${errorData.message}`
+        );
+      }
+      return null;
     }
 
     const data = await response.json();
@@ -293,8 +397,14 @@ export const getSummaryData = async (uploadID) => {
 
     return summary;
   } catch (error) {
+    if (isAbortError(error)) {
+      return null;
+    }
     console.error("Error fetching summary data:", error);
-    global.alert2("Failed to retrieve summary data. Please try again.");
+    if (!silentAuthErrors) {
+      global.alert2("Failed to retrieve summary data. Please try again.");
+    }
+    return null;
   }
 };
 

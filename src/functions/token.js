@@ -30,7 +30,9 @@ export const saveToken = (token, refresh = false) => {
   // Save the token in the cookie with the calculated expiry date
   Cookies.set(cookieName, token, {
     expires: expiryDate,  // Set expiry date for both tokens
-    secure: false,
+    secure:
+      typeof window !== "undefined" &&
+      window.location.protocol === "https:",
     sameSite: "Strict",
   });
 };

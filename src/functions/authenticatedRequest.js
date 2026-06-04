@@ -9,12 +9,24 @@ const isTokenExpired = (token) => {
   return Date.now() > expiryTime;
 };
 
+const buildAuthFailureResponse = (message = 'Authentication failed') =>
+  new Response(JSON.stringify({ message }), {
+    status: 401,
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
+
 // Function to handle the request logic, including token refresh if expired
-export const makeAuthenticatedRequest = async (url, options = {}) => {
+export const makeAuthenticatedRequest = async (
+  url,
+  options = {},
+  { skipTokenRefresh = false } = {}
+) => {
   let accessToken = getToken(); // Get current access token
 
   // Check if the token is expired
-  if ((accessToken && isTokenExpired(accessToken)) || !accessToken) {
+  if (!skipTokenRefresh && ((accessToken && isTokenExpired(accessToken)) || !accessToken)) {
     console.log('Access token expired. Attempting to refresh...');
 
     // Attempt to refresh the token
@@ -23,7 +35,7 @@ export const makeAuthenticatedRequest = async (url, options = {}) => {
     if (!success) {
       console.error('Token refresh failed. Logging out...');
       deleteToken(); // If refresh fails, clear tokens
-      return; // Optionally redirect to login
+      return buildAuthFailureResponse(); // Return a safe auth failure for callers
     }
 
     // Retrieve the new access token
@@ -33,8 +45,11 @@ export const makeAuthenticatedRequest = async (url, options = {}) => {
   // Set the Authorization header with the (possibly refreshed) token
   options.headers = {
     ...options.headers,
-    Authorization: `Bearer ${accessToken}`,
   };
+
+  if (accessToken) {
+    options.headers.Authorization = `Bearer ${accessToken}`;
+  }
   
   // Make the API request
   return fetch(url, options); // Return the response object for handling at the top level
