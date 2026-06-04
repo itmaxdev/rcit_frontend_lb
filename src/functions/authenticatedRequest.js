@@ -17,11 +17,18 @@ const buildAuthFailureResponse = (message = 'Authentication failed') =>
     },
   });
 
+const redirectToLogin = () => {
+  deleteToken();
+  if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
+    window.location.replace('/login');
+  }
+};
+
 // Function to handle the request logic, including token refresh if expired
 export const makeAuthenticatedRequest = async (
   url,
   options = {},
-  { skipTokenRefresh = false } = {}
+  { skipTokenRefresh = false, redirectOnForbidden = true } = {}
 ) => {
   let accessToken = getToken(); // Get current access token
 
@@ -52,5 +59,11 @@ export const makeAuthenticatedRequest = async (
   }
   
   // Make the API request
-  return fetch(url, options); // Return the response object for handling at the top level
+  const response = await fetch(url, options);
+
+  if (redirectOnForbidden && response.status === 403) {
+    redirectToLogin();
+  }
+
+  return response; // Return the response object for handling at the top level
 };

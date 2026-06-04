@@ -3,8 +3,24 @@ import React from "react";
 import styled from "styled-components";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
+import { getPrimaryRole, ROLE_ADMIN, ROLE_CUSTOMS, ROLE_IMPORTER, ROLE_USER } from "../../config/roles";
 
 import chevronSvg from "../../assets/chevron-down.svg";
+
+const getRoleLabel = (t, authorities) => {
+  switch (getPrimaryRole(authorities)) {
+    case ROLE_ADMIN:
+      return t("RoleBadge_Administrator");
+    case ROLE_CUSTOMS:
+      return t("RoleBadge_CustomsOfficer");
+    case ROLE_IMPORTER:
+      return t("RoleBadge_Importer");
+    case ROLE_USER:
+      return t("RoleBadge_Individual");
+    default:
+      return "-";
+  }
+};
 
 const UsersTable = ({ data }) => {
   const { t } = useTranslation();
@@ -22,6 +38,7 @@ const UsersTable = ({ data }) => {
             <TableHeader>{t("First Name")}</TableHeader>
             <TableHeader>{t("Last Name")}</TableHeader>
             <TableHeader>{t("Email")}</TableHeader>
+            <TableHeader>{t("Role")}</TableHeader>
             <TableHeader>{t("Phone Number")}</TableHeader>
             <TableHeader>{t("Account Status")}</TableHeader>
             <TableHeader></TableHeader>
@@ -34,6 +51,7 @@ const UsersTable = ({ data }) => {
                 <TableCell>{user.firstName}</TableCell>
                 <TableCell>{user.lastName}</TableCell>
                 <TableCell>{user.email}</TableCell>
+                <TableCell>{getRoleLabel(t, user.authorities)}</TableCell>
                 <TableCell>{user.phoneNumber}</TableCell>
                 <TableCell>
                   <StatusBadge status={user.status}>

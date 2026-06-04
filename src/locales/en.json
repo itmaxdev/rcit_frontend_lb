@@ -175,6 +175,7 @@
   "RoleBadge_Importer": "Importer",
   "RoleBadge_Individual": "Individual",
   "RoleBadge_Administrator": "Administrator",
+  "Role": "Role",
   "DeclareDevicesInd_Title": "Declare new devices ",
   "DeclareDevicesInd_SubText": "Fill in the information about each device",
   "DeclareDevicesInd_SubHeader": "Device details",
