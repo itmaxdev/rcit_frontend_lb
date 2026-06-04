@@ -14,22 +14,35 @@ export const validateIMEI = async (imei) => {
 
     if (response.ok) {
       const result = await response.json();
+      const registrationState = inferRegistrationState(result);
 
       let validity;
-      switch (result.message) {
-        case "IMEI is valid and not registered.":
-          validity = "unregistered";
-          break;
-        case "IMEI is valid but already registered.":
+      switch (registrationState) {
+        case "REGISTERED":
           validity = "valid";
           break;
+        case "PAYMENT_PENDING":
+        case "DECLARATION_IN_PROGRESS":
+        case "NOT_REGISTERED":
+          validity = "unregistered";
+          break;
         default:
-          validity = "invalid";
+          switch (result.message) {
+            case "IMEI is valid and not registered.":
+              validity = "unregistered";
+              break;
+            case "IMEI is valid but already registered.":
+              validity = "valid";
+              break;
+            default:
+              validity = "invalid";
+          }
       }
 
       const formattedData = {
         Model: result.data.deviceName_Model || "-",
         Validity: validity,
+        RegistrationState: registrationState,
         Type: result.data.deviceType || "-",
         Manufacturer: result.data.manufacture || "-",
         Status: result.data.deviceStatus || "-",
@@ -47,5 +60,21 @@ export const validateIMEI = async (imei) => {
     console.error("Error validating IMEI:", error);
     global.alert2("An error occurred while validating the IMEI.");
     return null;
+  }
+};
+
+const inferRegistrationState = (result) => {
+  const explicitState = result?.data?.registrationState;
+  if (explicitState) {
+    return explicitState;
+  }
+
+  switch (result?.message) {
+    case "IMEI is valid but already registered.":
+      return "REGISTERED";
+    case "IMEI is valid and not registered.":
+      return "NOT_REGISTERED";
+    default:
+      return "INVALID";
   }
 };

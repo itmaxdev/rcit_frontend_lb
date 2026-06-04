@@ -1,7 +1,9 @@
 import React, { useEffect, useMemo, useState } from "react";
 import styled from "styled-components";
 import { useTranslation } from "react-i18next";
+import Popup from "../Popup";
 import {
+  deleteAllDeclarations,
   fetchInvoiceConfiguration,
   updateInvoiceConfiguration,
 } from "../../functions/admin";
@@ -10,6 +12,7 @@ const DEFAULT_FORM = {
   customsDutyPercentage: "5.00",
   vatPercentage: "11.00",
   priceAdjustmentEnabled: false,
+  declarationDeletionEnabled: false,
 };
 
 const Configuration = () => {
@@ -21,6 +24,10 @@ const Configuration = () => {
   const [loadError, setLoadError] = useState(false);
   const [saveError, setSaveError] = useState("");
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
+  const [deleteSuccess, setDeleteSuccess] = useState(false);
+  const [deletePopupOpen, setDeletePopupOpen] = useState(false);
 
   useEffect(() => {
     loadConfiguration();
@@ -43,6 +50,7 @@ const Configuration = () => {
       customsDutyPercentage: formatPercentInput(response.customsDutyPercentage),
       vatPercentage: formatPercentInput(response.vatPercentage),
       priceAdjustmentEnabled: Boolean(response.priceAdjustmentEnabled),
+      declarationDeletionEnabled: Boolean(response.declarationDeletionEnabled),
     };
     setForm(nextForm);
     setInitialForm(nextForm);
@@ -55,15 +63,19 @@ const Configuration = () => {
     }
     setSaveError("");
     setSaveSuccess(false);
+    setDeleteError("");
+    setDeleteSuccess(false);
     setForm((previous) => ({ ...previous, [field]: value }));
   };
 
-  const handleToggleChange = () => {
+  const handleToggleChange = (field) => {
     setSaveError("");
     setSaveSuccess(false);
+    setDeleteError("");
+    setDeleteSuccess(false);
     setForm((previous) => ({
       ...previous,
-      priceAdjustmentEnabled: !previous.priceAdjustmentEnabled,
+      [field]: !previous[field],
     }));
   };
 
@@ -83,11 +95,14 @@ const Configuration = () => {
     setSaving(true);
     setSaveError("");
     setSaveSuccess(false);
+    setDeleteError("");
+    setDeleteSuccess(false);
 
     const response = await updateInvoiceConfiguration({
       customsDutyPercentage: Number(form.customsDutyPercentage),
       vatPercentage: Number(form.vatPercentage),
       priceAdjustmentEnabled: form.priceAdjustmentEnabled,
+      declarationDeletionEnabled: form.declarationDeletionEnabled,
     });
 
     setSaving(false);
@@ -101,6 +116,7 @@ const Configuration = () => {
       customsDutyPercentage: formatPercentInput(response.customsDutyPercentage),
       vatPercentage: formatPercentInput(response.vatPercentage),
       priceAdjustmentEnabled: Boolean(response.priceAdjustmentEnabled),
+      declarationDeletionEnabled: Boolean(response.declarationDeletionEnabled),
     };
     setForm(nextForm);
     setInitialForm(nextForm);
@@ -108,8 +124,46 @@ const Configuration = () => {
     setSaveSuccess(true);
   };
 
+  const canDeleteDeclarations = initialForm.declarationDeletionEnabled && !loadError;
+
+  const handleDeleteDeclarations = async () => {
+    if (!canDeleteDeclarations || deleting) {
+      return;
+    }
+
+    setDeleting(true);
+    setDeleteError("");
+    setDeleteSuccess(false);
+
+    const deleted = await deleteAllDeclarations();
+
+    setDeleting(false);
+
+    if (!deleted) {
+      setDeleteError(t("Configuration_DeleteError"));
+      setDeletePopupOpen(false);
+      return;
+    }
+
+    setDeletePopupOpen(false);
+    setDeleteSuccess(true);
+  };
+
   return (
     <ConfigurationContainer>
+      {deletePopupOpen ? (
+        <Popup
+          purpose="deleteDeclarations"
+          onClose={() => {
+            if (!deleting) {
+              setDeletePopupOpen(false);
+            }
+          }}
+          onAction={handleDeleteDeclarations}
+          busy={deleting}
+        />
+      ) : null}
+
       <Title>{t("Configuration_Title")}</Title>
       <Subtext>{t("Configuration_Subtext")}</Subtext>
 
@@ -151,10 +205,53 @@ const Configuration = () => {
                   type="button"
                   role="switch"
                   aria-checked={form.priceAdjustmentEnabled}
-                  onClick={handleToggleChange}
+                  onClick={() => handleToggleChange("priceAdjustmentEnabled")}
                   $enabled={form.priceAdjustmentEnabled}
                 >
                   <ToggleThumb $enabled={form.priceAdjustmentEnabled} />
+                </ToggleButton>
+              </ToggleAction>
+            </ToggleCard>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>{t("Configuration_DeleteDeclarationsTitle")}</CardTitle>
+              <CardDescription>
+                {t("Configuration_DeleteDeclarationsDescription")}
+              </CardDescription>
+            </CardHeader>
+
+            {loadError ? (
+              <StateStack>
+                <ErrorText>{t("Configuration_LoadError")}</ErrorText>
+                <RetryButton type="button" onClick={loadConfiguration}>
+                  {t("Retry")}
+                </RetryButton>
+              </StateStack>
+            ) : null}
+
+            <ToggleCard>
+              <ToggleTextStack>
+                <FieldLabel>{t("Configuration_CanDelete")}</FieldLabel>
+              </ToggleTextStack>
+
+              <ToggleAction>
+                <ToggleStatus $enabled={form.declarationDeletionEnabled}>
+                  {form.declarationDeletionEnabled
+                    ? t("Configuration_Enabled")
+                    : t("Configuration_Disabled")}
+                </ToggleStatus>
+                <ToggleButton
+                  type="button"
+                  role="switch"
+                  aria-checked={form.declarationDeletionEnabled}
+                  onClick={() =>
+                    handleToggleChange("declarationDeletionEnabled")
+                  }
+                  $enabled={form.declarationDeletionEnabled}
+                >
+                  <ToggleThumb $enabled={form.declarationDeletionEnabled} />
                 </ToggleButton>
               </ToggleAction>
             </ToggleCard>
@@ -219,6 +316,38 @@ const Configuration = () => {
             </FieldsGrid>
 
             <HelperText>{t("Configuration_AutoRefreshNote")}</HelperText>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>{t("Configuration_DeleteActionTitle")}</CardTitle>
+              <CardDescription>
+                {canDeleteDeclarations
+                  ? t("Configuration_DeleteActionEnabledDescription")
+                  : t("Configuration_DeleteActionDisabledDescription")}
+              </CardDescription>
+            </CardHeader>
+
+            <DangerActions>
+              <DangerButton
+                type="button"
+                onClick={() => {
+                  setDeleteError("");
+                  setDeleteSuccess(false);
+                  setDeletePopupOpen(true);
+                }}
+                disabled={!canDeleteDeclarations || deleting}
+              >
+                {deleting
+                  ? t("Configuration_Deleting")
+                  : t("Configuration_DeleteAllDeclarations")}
+              </DangerButton>
+            </DangerActions>
+
+            {deleteError ? <ErrorText>{deleteError}</ErrorText> : null}
+            {deleteSuccess ? (
+              <SuccessText>{t("Configuration_DeleteSuccess")}</SuccessText>
+            ) : null}
           </Card>
 
           <FooterActions>
@@ -432,6 +561,11 @@ const Actions = styled.div`
   justify-content: flex-end;
 `;
 
+const DangerActions = styled.div`
+  display: flex;
+  justify-content: flex-start;
+`;
+
 const FooterActions = styled.div`
   display: flex;
   width: 100%;
@@ -459,6 +593,23 @@ const SaveButton = styled.button`
   border: 0;
   border-radius: 10px;
   background: #436c4d;
+  color: #fff;
+  padding: 14px 24px;
+  font-size: 14px;
+  font-weight: 700;
+  transition: opacity 0.2s ease;
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+`;
+
+const DangerButton = styled.button`
+  cursor: pointer;
+  border: 0;
+  border-radius: 10px;
+  background: #d32f2f;
   color: #fff;
   padding: 14px 24px;
   font-size: 14px;

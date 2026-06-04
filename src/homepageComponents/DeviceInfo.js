@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import styled from "styled-components";
 import { useTranslation } from "react-i18next";
 import { Context } from "../Context";
+import { ROLE_IMPORTER, ROLE_USER } from "../config/roles";
 
 import img from "../assets/phone.png";
 import valid from "../assets/valid.svg";
@@ -13,6 +14,9 @@ import invalid from "../assets/invalid.svg";
 const DeviceInfo = ({ device }) => {
   const { t } = useTranslation();
   const { isLoggedIn, accountType } = useContext(Context);
+  const registrationState = device.RegistrationState || "NOT_REGISTERED";
+  const statusMessage = getStatusMessage(t, registrationState, isLoggedIn, accountType);
+  const primaryAction = getPrimaryAction(t, registrationState, isLoggedIn, accountType);
 
   const getIcon = (validity) => {
     switch (validity) {
@@ -37,16 +41,12 @@ const DeviceInfo = ({ device }) => {
           {device.Validity === "valid" && t("DeviceInfo_Valid")}
           {device.Validity === "unregistered" && (
             <>
-              {t("DeviceInfo_Unregistered")}
-              <Link
-                to={
-                  isLoggedIn
-                    ? `/profile/${accountType}/DeclareDevices`
-                    : "/signup"
-                }
-              >
-                <DeclareButton>{t("Header_DeclareNow")}</DeclareButton>
-              </Link>
+              <MessageText>{statusMessage}</MessageText>
+              {primaryAction ? (
+                <Link to={primaryAction.to}>
+                  <DeclareButton>{primaryAction.label}</DeclareButton>
+                </Link>
+              ) : null}
             </>
           )}
           {device.Validity === "invalid" && t("DeviceInfo_Invalid")}
@@ -75,6 +75,102 @@ const DeviceInfo = ({ device }) => {
       </InfoContainer>
     </DeviceInfoContainer>
   );
+};
+
+const getStatusMessage = (t, registrationState, isLoggedIn, accountType) => {
+  switch (registrationState) {
+    case "PAYMENT_PENDING":
+      if (!isLoggedIn) {
+        return t("DeviceInfo_PaymentPending_Public");
+      }
+      if (accountType === ROLE_IMPORTER) {
+        return t("DeviceInfo_PaymentPending_Importer");
+      }
+      if (accountType === ROLE_USER) {
+        return t("DeviceInfo_PaymentPending_Individual");
+      }
+      return t("DeviceInfo_PaymentPending_Public");
+    case "DECLARATION_IN_PROGRESS":
+      if (!isLoggedIn) {
+        return t("DeviceInfo_DeclarationInProgress_Public");
+      }
+      if (accountType === ROLE_IMPORTER) {
+        return t("DeviceInfo_DeclarationInProgress_Importer");
+      }
+      if (accountType === ROLE_USER) {
+        return t("DeviceInfo_DeclarationInProgress_Individual");
+      }
+      return t("DeviceInfo_DeclarationInProgress_Public");
+    case "NOT_REGISTERED":
+    default:
+      if (!isLoggedIn) {
+        return t("DeviceInfo_Unregistered_Public");
+      }
+      if (accountType === ROLE_IMPORTER) {
+        return t("DeviceInfo_Unregistered_Importer");
+      }
+      if (accountType === ROLE_USER) {
+        return t("DeviceInfo_Unregistered_Individual");
+      }
+      return t("DeviceInfo_Unregistered");
+  }
+};
+
+const getPrimaryAction = (t, registrationState, isLoggedIn, accountType) => {
+  if (!isLoggedIn) {
+    if (
+      registrationState === "PAYMENT_PENDING" ||
+      registrationState === "DECLARATION_IN_PROGRESS"
+    ) {
+      return { label: t("DeviceInfo_SignInToContinue"), to: "/login" };
+    }
+
+    if (registrationState === "NOT_REGISTERED") {
+      return { label: t("DeviceInfo_SignUpToDeclare"), to: "/signup" };
+    }
+
+    return null;
+  }
+
+  if (accountType === ROLE_IMPORTER) {
+    if (
+      registrationState === "PAYMENT_PENDING" ||
+      registrationState === "DECLARATION_IN_PROGRESS"
+    ) {
+      return {
+        label: t("DeviceInfo_ViewDeclarations"),
+        to: "/profile/role_importer/DeclareDevices",
+      };
+    }
+
+    if (registrationState === "NOT_REGISTERED") {
+      return {
+        label: t("DeviceInfo_DeclareNow"),
+        to: "/profile/role_importer/RegisterDevices",
+      };
+    }
+  }
+
+  if (accountType === ROLE_USER) {
+    if (
+      registrationState === "PAYMENT_PENDING" ||
+      registrationState === "DECLARATION_IN_PROGRESS"
+    ) {
+      return {
+        label: t("DeviceInfo_ContactSupport"),
+        to: "/profile/role_user/Help",
+      };
+    }
+
+    if (registrationState === "NOT_REGISTERED") {
+      return {
+        label: t("DeviceInfo_DeclareNow"),
+        to: "/profile/role_user/RegisterDevices",
+      };
+    }
+  }
+
+  return null;
 };
 
 export default DeviceInfo;
@@ -111,6 +207,7 @@ const Subheader = styled.div`
 const Validity = styled.div`
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 10px;
   font-size: 16px;
   border-radius: 14px;
@@ -128,6 +225,10 @@ const Validity = styled.div`
       : validity === "unregistered"
       ? "#FC7413"
       : "#FF0000"};
+`;
+
+const MessageText = styled.span`
+  line-height: 1.5;
 `;
 
 const SVG = styled.img`

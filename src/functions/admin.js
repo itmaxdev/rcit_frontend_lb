@@ -303,3 +303,21 @@ export const updateInvoiceConfiguration = async (payload) => {
     return null;
   }
 };
+
+export const deleteAllDeclarations = async () => {
+  try {
+    const token = getToken();
+    const url = `${ADMIN_API_BASE_URL}/configuration/declarations`;
+    const headers = { Authorization: `Bearer ${token}` };
+
+    const response = await makeAuthenticatedRequest(url, {
+      method: "DELETE",
+      headers,
+    });
+
+    return Boolean(response?.ok);
+  } catch (error) {
+    console.error("Error deleting declarations:", error);
+    return false;
+  }
+};

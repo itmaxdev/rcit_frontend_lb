@@ -70,11 +70,25 @@ const Popup = ({ data, purpose, onClose, onAction, reason, onReasonChange, reaso
     isRed = true;
     isColumn = true;
     isBlueHeader = true;
+  } else if (purpose === "deleteDeclarations") {
+    img = reject2SVG;
+    headerText = t("Are you sure you want to delete all declarations?");
+    subheaderText = t("Configuration_DeleteConfirmSubtext");
+    actionText = busy ? t("Configuration_Deleting") : t("Delete");
+    isRed = true;
+    isColumn = true;
+    isBlueHeader = true;
   }
 
   return (
     <Overlay>
-      <PopupContainer $wide={purpose === "rejectDeclaration" || purpose === "approveDeclaration"}>
+      <PopupContainer
+        $wide={
+          purpose === "rejectDeclaration" ||
+          purpose === "approveDeclaration" ||
+          purpose === "deleteDeclarations"
+        }
+      >
         <SVG src={img} alt="Icon" />
         <Header $isBlue={isBlueHeader}>{headerText}</Header>
         {subheaderText && <Subheader>{subheaderText}</Subheader>}
@@ -103,7 +117,9 @@ const Popup = ({ data, purpose, onClose, onAction, reason, onReasonChange, reaso
             isColumn={isColumn}
             isRed={isRed}
             onClick={onAction}
-            disabled={busy || (purpose === "rejectDeclaration" && !reason?.trim())}
+            disabled={
+              busy || (purpose === "rejectDeclaration" && !reason?.trim())
+            }
           >
             {actionText}
           </ActionButton>
