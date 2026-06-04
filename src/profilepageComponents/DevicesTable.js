@@ -24,7 +24,7 @@ const DevicesTable = ({ data, isAdmin = false }) => {
             <TableHeader>{t("Model")}</TableHeader>
             <TableHeader>{t("Device Type")}</TableHeader>
             <TableHeader>{t("Country of Origin")}</TableHeader>
-            <TableHeader>{t("Import Date")}</TableHeader>
+            <TableHeader>{t("Declaration Date")}</TableHeader>
             {isAdmin && <TableHeader>{t("Input_FullName")}</TableHeader>}
             {isAdmin && <TableHeader>{t("User Email")}</TableHeader>}
             <TableHeader>{t("Device Status")}</TableHeader>
@@ -42,7 +42,7 @@ const DevicesTable = ({ data, isAdmin = false }) => {
                 <TableCell>{device.model || "-"}</TableCell>
                 <TableCell>{device.technology || "-"}</TableCell>
                 <TableCell>{device.country || "-"}</TableCell>
-                <TableCell>{device.importDate || "-"}</TableCell>
+                <TableCell>{device.declarationDate || "-"}</TableCell>
                 {isAdmin && (
                   <TableCell>
                     <NameButton
