@@ -498,7 +498,9 @@ const ImporterDeclarations = () => {
                                     <span>{t("View Details")}</span>
                                   </ActionLabel>
                                 </ActionMenuButton>
-                                {(currentStatus === "AWAITING_PAYMENT" || currentStatus === "PAID") && (
+                                {(currentStatus === "AWAITING_PAYMENT" ||
+                                  currentStatus === "PAID" ||
+                                  currentStatus === "CLOSED") && (
                                   <ActionMenuButton
                                     type="button"
                                     onClick={() => {
@@ -753,6 +755,7 @@ const formatStatusLabel = (t, status) => {
     DECLINED: t("Rejected"),
     AWAITING_PAYMENT: t("Awaiting Payment"),
     PAID: t("Paid"),
+    CLOSED: t("Closed"),
   };
 
   return labels[status] || status;

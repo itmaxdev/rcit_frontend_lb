@@ -153,12 +153,13 @@ const ImporterDeclarationDetail = () => {
   const currentStatus = getDisplayStatus(declaration);
   const trackerSteps = getTrackerSteps(currentStatus);
   const currentStepIndex = getTrackerStepIndex(currentStatus);
-  const isPaid = rawStatus === "PAID";
+  const isPaid = rawStatus === "PAID" || rawStatus === "CLOSED";
   const showInvoiceAccess =
     shouldLoadInvoice(rawStatus) &&
     !(rawStatus === "AWAITING_PAYMENT" && showPaymentSummary);
   const showProceedToPayment =
     rawStatus === "AWAITING_PAYMENT" &&
+    rawStatus !== "CLOSED" &&
     invoice?.invoiceStatus !== "PAID" &&
     !showPaymentSummary;
   const showPayment = rawStatus === "AWAITING_PAYMENT" && showPaymentSummary && !!invoice;
@@ -485,6 +486,7 @@ const getTrackerSteps = (status) => {
     return ["SUBMITTED", "PENDING_APPROVAL", "AWAITING_PAYMENT"];
   }
   if (status === "PAID") return ["SUBMITTED", "APPROVED", "PAID"];
+  if (status === "CLOSED") return ["SUBMITTED", "APPROVED", "PAID", "CLOSED"];
   return ["SUBMITTED", "APPROVED", "AWAITING_PAYMENT"];
 };
 
@@ -496,13 +498,14 @@ const getTrackerStepIndex = (status) => {
     APPROVED: 1,
     AWAITING_PAYMENT: 2,
     PAID: 2,
+    CLOSED: 3,
     DECLINED: 2,
   };
   return map[status] ?? 0;
 };
 
 const shouldLoadInvoice = (status) =>
-  status === "AWAITING_PAYMENT" || status === "PAID";
+  status === "AWAITING_PAYMENT" || status === "PAID" || status === "CLOSED";
 
 const formatDeclarationNumber = (value) =>
   `#${String(value).padStart(6, "0")}`;
@@ -540,6 +543,7 @@ const formatStatusLabel = (t, status) => {
     DECLINED: t("Rejected"),
     AWAITING_PAYMENT: t("Awaiting Payment"),
     PAID: t("Paid"),
+    CLOSED: t("Closed"),
   };
   return labels[status] || status || "-";
 };
