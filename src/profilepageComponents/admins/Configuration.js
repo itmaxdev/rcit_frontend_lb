@@ -25,6 +25,7 @@ const Configuration = () => {
   const [saveError, setSaveError] = useState("");
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [deleteToggleSaving, setDeleteToggleSaving] = useState(false);
   const [deleteError, setDeleteError] = useState("");
   const [deleteSuccess, setDeleteSuccess] = useState(false);
   const [deletePopupOpen, setDeletePopupOpen] = useState(false);
@@ -69,6 +70,11 @@ const Configuration = () => {
   };
 
   const handleToggleChange = (field) => {
+    if (field === "declarationDeletionEnabled") {
+      handleDeleteToggleChange();
+      return;
+    }
+
     setSaveError("");
     setSaveSuccess(false);
     setDeleteError("");
@@ -79,11 +85,49 @@ const Configuration = () => {
     }));
   };
 
+  const handleDeleteToggleChange = async () => {
+    if (deleteToggleSaving || loadError) {
+      return;
+    }
+
+    const nextValue = !form.declarationDeletionEnabled;
+    setDeleteToggleSaving(true);
+    setDeleteError("");
+    setDeleteSuccess(false);
+
+    const response = await updateInvoiceConfiguration({
+      customsDutyPercentage: Number(initialForm.customsDutyPercentage),
+      vatPercentage: Number(initialForm.vatPercentage),
+      priceAdjustmentEnabled: initialForm.priceAdjustmentEnabled,
+      declarationDeletionEnabled: nextValue,
+    });
+
+    setDeleteToggleSaving(false);
+
+    if (!response) {
+      setDeleteError(t("Configuration_SaveError"));
+      return;
+    }
+
+    const normalizedValue = Boolean(response.declarationDeletionEnabled);
+    setInitialForm((previous) => ({
+      ...previous,
+      declarationDeletionEnabled: normalizedValue,
+    }));
+    setForm((previous) => ({
+      ...previous,
+      declarationDeletionEnabled: normalizedValue,
+    }));
+  };
+
   const canSave = useMemo(() => {
     return (
       isValidPercent(form.customsDutyPercentage) &&
       isValidPercent(form.vatPercentage) &&
-      (JSON.stringify(form) !== JSON.stringify(initialForm) || loadError)
+      (form.customsDutyPercentage !== initialForm.customsDutyPercentage ||
+        form.vatPercentage !== initialForm.vatPercentage ||
+        form.priceAdjustmentEnabled !== initialForm.priceAdjustmentEnabled ||
+        loadError)
     );
   }, [form, initialForm, loadError]);
 
@@ -124,7 +168,8 @@ const Configuration = () => {
     setSaveSuccess(true);
   };
 
-  const canDeleteDeclarations = initialForm.declarationDeletionEnabled && !loadError;
+  const canDeleteDeclarations =
+    form.declarationDeletionEnabled && !loadError && !deleteToggleSaving;
 
   const handleDeleteDeclarations = async () => {
     if (!canDeleteDeclarations || deleting) {
@@ -216,49 +261,6 @@ const Configuration = () => {
 
           <Card>
             <CardHeader>
-              <CardTitle>{t("Configuration_DeleteDeclarationsTitle")}</CardTitle>
-              <CardDescription>
-                {t("Configuration_DeleteDeclarationsDescription")}
-              </CardDescription>
-            </CardHeader>
-
-            {loadError ? (
-              <StateStack>
-                <ErrorText>{t("Configuration_LoadError")}</ErrorText>
-                <RetryButton type="button" onClick={loadConfiguration}>
-                  {t("Retry")}
-                </RetryButton>
-              </StateStack>
-            ) : null}
-
-            <ToggleCard>
-              <ToggleTextStack>
-                <FieldLabel>{t("Configuration_CanDelete")}</FieldLabel>
-              </ToggleTextStack>
-
-              <ToggleAction>
-                <ToggleStatus $enabled={form.declarationDeletionEnabled}>
-                  {form.declarationDeletionEnabled
-                    ? t("Configuration_Enabled")
-                    : t("Configuration_Disabled")}
-                </ToggleStatus>
-                <ToggleButton
-                  type="button"
-                  role="switch"
-                  aria-checked={form.declarationDeletionEnabled}
-                  onClick={() =>
-                    handleToggleChange("declarationDeletionEnabled")
-                  }
-                  $enabled={form.declarationDeletionEnabled}
-                >
-                  <ToggleThumb $enabled={form.declarationDeletionEnabled} />
-                </ToggleButton>
-              </ToggleAction>
-            </ToggleCard>
-          </Card>
-
-          <Card>
-            <CardHeader>
               <CardTitle>{t("Configuration_InvoiceRatesTitle")}</CardTitle>
               <CardDescription>
                 {t("Configuration_InvoiceRatesDescription")}
@@ -318,6 +320,25 @@ const Configuration = () => {
             <HelperText>{t("Configuration_AutoRefreshNote")}</HelperText>
           </Card>
 
+          <FooterActions>
+            <FeedbackStack>
+              {saveError ? <ErrorText>{saveError}</ErrorText> : null}
+              {saveSuccess ? (
+                <SuccessText>{t("Configuration_SaveSuccess")}</SuccessText>
+              ) : null}
+            </FeedbackStack>
+
+            <Actions>
+              <SaveButton
+                type="button"
+                onClick={handleSave}
+                disabled={!canSave || saving}
+              >
+                {saving ? t("Configuration_Saving") : t("Configuration_Save")}
+              </SaveButton>
+            </Actions>
+          </FooterActions>
+
           <Card>
             <CardHeader>
               <CardTitle>{t("Configuration_DeleteActionTitle")}</CardTitle>
@@ -327,6 +348,30 @@ const Configuration = () => {
                   : t("Configuration_DeleteActionDisabledDescription")}
               </CardDescription>
             </CardHeader>
+
+            <ToggleCard>
+              <ToggleTextStack>
+                <FieldLabel>{t("Configuration_CanDelete")}</FieldLabel>
+              </ToggleTextStack>
+
+              <ToggleAction>
+                <ToggleStatus $enabled={form.declarationDeletionEnabled}>
+                  {form.declarationDeletionEnabled
+                    ? t("Configuration_Enabled")
+                    : t("Configuration_Disabled")}
+                </ToggleStatus>
+                <ToggleButton
+                  type="button"
+                  role="switch"
+                  aria-checked={form.declarationDeletionEnabled}
+                  onClick={() => handleToggleChange("declarationDeletionEnabled")}
+                  $enabled={form.declarationDeletionEnabled}
+                  disabled={deleteToggleSaving}
+                >
+                  <ToggleThumb $enabled={form.declarationDeletionEnabled} />
+                </ToggleButton>
+              </ToggleAction>
+            </ToggleCard>
 
             <DangerActions>
               <DangerButton
@@ -349,25 +394,6 @@ const Configuration = () => {
               <SuccessText>{t("Configuration_DeleteSuccess")}</SuccessText>
             ) : null}
           </Card>
-
-          <FooterActions>
-            <FeedbackStack>
-              {saveError ? <ErrorText>{saveError}</ErrorText> : null}
-              {saveSuccess ? (
-                <SuccessText>{t("Configuration_SaveSuccess")}</SuccessText>
-              ) : null}
-            </FeedbackStack>
-
-            <Actions>
-              <SaveButton
-                type="button"
-                onClick={handleSave}
-                disabled={!canSave || saving}
-              >
-                {saving ? t("Configuration_Saving") : t("Configuration_Save")}
-              </SaveButton>
-            </Actions>
-          </FooterActions>
         </>
       )}
     </ConfigurationContainer>

@@ -436,7 +436,7 @@
   "Configuration_CanDelete": "Peut supprimer",
   "Configuration_DeleteActionTitle": "Supprimer toutes les déclarations",
   "Configuration_DeleteActionEnabledDescription": "La suppression des déclarations est activée. Vous pouvez maintenant retirer toutes les déclarations importateur et individuelles pour repartir d'un cycle de test vierge.",
-  "Configuration_DeleteActionDisabledDescription": "Activez puis enregistrez l'option Peut supprimer ci-dessus avant de supprimer les déclarations.",
+  "Configuration_DeleteActionDisabledDescription": "Activez l'option Peut supprimer ci-dessus avant de supprimer les déclarations.",
   "Configuration_DeleteAllDeclarations": "Supprimer toutes les déclarations",
   "Configuration_Deleting": "Suppression...",
   "Configuration_DeleteConfirm": "Supprimer toutes les déclarations importateur et individuelles ? Cette action est irréversible.",

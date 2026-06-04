@@ -436,7 +436,7 @@
   "Configuration_CanDelete": "Can Delete",
   "Configuration_DeleteActionTitle": "Delete All Declarations",
   "Configuration_DeleteActionEnabledDescription": "Declaration deletion is enabled. You can now remove all importer and individual declarations for a fresh test cycle.",
-  "Configuration_DeleteActionDisabledDescription": "Enable and save the Can Delete toggle above before deleting declarations.",
+  "Configuration_DeleteActionDisabledDescription": "Turn on Can Delete above before deleting declarations.",
   "Configuration_DeleteAllDeclarations": "Delete All Declarations",
   "Configuration_Deleting": "Deleting...",
   "Configuration_DeleteConfirm": "Delete all importer and individual declarations? This action cannot be undone.",
