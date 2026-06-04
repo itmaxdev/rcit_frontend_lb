@@ -907,7 +907,6 @@ const RecentTableWrapper = styled.div`
 
 const RecentTable = styled.table`
   width: 100%;
-  min-height: 100%;
   border-collapse: separate;
   border-spacing: 0;
   min-width: 980px;

@@ -947,7 +947,6 @@ const TableWrapper = styled.div`
 
 const Table = styled.table`
   width: 100%;
-  min-height: 100%;
   border-collapse: collapse;
 
   thead tr {
