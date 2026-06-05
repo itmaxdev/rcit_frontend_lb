@@ -851,12 +851,13 @@ const CustomsDeclarations = () => {
                       setCurrentPage(currentPage + 1)
                     }
                   />
-                  <PageSizeInput
-                    type="number"
-                    value={pageSize}
-                    min="1"
-                    onChange={handlePageSizeChange}
-                  />
+                  <PageSizeInput value={pageSize} onChange={handlePageSizeChange}>
+                    {[10, 20, 50, 100].map((size) => (
+                      <option key={size} value={size}>
+                        {size} / page
+                      </option>
+                    ))}
+                  </PageSizeInput>
                 </PaginationControls>
               </PaginationBar>
 
@@ -1994,12 +1995,21 @@ const PaginationControls = styled.div`
   gap: 12px;
 `;
 
-const PageSizeInput = styled.input`
-  width: 56px;
+const PageSizeInput = styled.select`
   height: 36px;
+  padding: 0 10px;
   border-radius: 8px;
   border: 1px solid #d4d6df;
-  text-align: center;
+  background: #fff;
+  color: #20294c;
+  font-size: 13px;
+  font-family: inherit;
+  cursor: pointer;
+  outline: none;
+
+  &:focus {
+    border-color: #436c4d;
+  }
 `;
 
 const Table = styled.table`

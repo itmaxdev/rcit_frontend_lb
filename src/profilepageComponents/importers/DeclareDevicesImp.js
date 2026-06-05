@@ -470,12 +470,13 @@ const DeclareDevicesImp = () => {
                       }
                     />
                   </PaginationControls>
-                  <PageSize
-                    type="number"
-                    value={pageSize}
-                    onBlur={handlePageSizeChange}
-                    min="1"
-                  />
+                  <PageSize value={pageSize} onChange={handlePageSizeChange}>
+                    {[10, 20, 50, 100].map((size) => (
+                      <option key={size} value={size}>
+                        {size} / page
+                      </option>
+                    ))}
+                  </PageSize>
                 </Pagination>
               </Header>
 
@@ -986,12 +987,21 @@ const PaginationControls = styled.div`
   gap: 10px;
 `;
 
-const PageSize = styled.input`
-  width: 50px;
-  padding: 5px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  text-align: center;
+const PageSize = styled.select`
+  height: 36px;
+  padding: 0 10px;
+  border: 1px solid #d4d6df;
+  border-radius: 8px;
+  background: #fff;
+  color: #20294c;
+  font-size: 13px;
+  font-family: inherit;
+  cursor: pointer;
+  outline: none;
+
+  &:focus {
+    border-color: #436c4d;
+  }
 `;
 
 const Footer = styled.div`

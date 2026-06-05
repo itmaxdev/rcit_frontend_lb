@@ -12,7 +12,8 @@ export const fetchRegisteredDevices = async (
   size = 10,
   search,
   userId = null,
-  isAdmin = false
+  isAdmin = false,
+  filters = {}
 ) => {
   try {
     const selectedURL = isAdmin ? ADMIN_URL : USER_URL;
@@ -23,6 +24,13 @@ export const fetchRegisteredDevices = async (
     }
     if (isAdmin && userId) {
       params.append("userId", userId);
+    }
+    if (isAdmin && filters) {
+      if (filters.brand) params.append("brand", filters.brand);
+      if (filters.country) params.append("country", filters.country);
+      if (filters.technology) params.append("technology", filters.technology);
+      if (filters.declDateFrom) params.append("declDateFrom", filters.declDateFrom);
+      if (filters.declDateTo) params.append("declDateTo", filters.declDateTo);
     }
 
     const url = `${selectedURL}?${params.toString()}`;
