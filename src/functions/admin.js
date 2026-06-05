@@ -40,13 +40,21 @@ export const fetchUsers = async (
   role = "",
   page = 0,
   pageSize = 10,
-  setTotalElements
+  setTotalElements,
+  search = "",
+  status = ""
 ) => {
   try {
     const token = getToken();
     const params = new URLSearchParams({ page, size: pageSize });
     if (role) {
       params.append("role", role);
+    }
+    if (search) {
+      params.append("search", search);
+    }
+    if (status) {
+      params.append("status", status);
     }
     const url = `${ADMIN_API_BASE_URL}/users?${params.toString()}`;
     const headers = { Authorization: `Bearer ${token}` };

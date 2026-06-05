@@ -450,9 +450,56 @@ const VarianceValue = ({ value }) => {
   );
 };
 
+const polarToCartesian = (cx, cy, radius, angleDeg) => {
+  const angleRad = ((angleDeg - 90) * Math.PI) / 180;
+  return {
+    x: cx + radius * Math.cos(angleRad),
+    y: cy + radius * Math.sin(angleRad),
+  };
+};
+
+const annulusSectorPath = (cx, cy, rOuter, rInner, startAngle, endAngle) => {
+  const largeArc = endAngle - startAngle > 180 ? 1 : 0;
+  const outerStart = polarToCartesian(cx, cy, rOuter, startAngle);
+  const outerEnd = polarToCartesian(cx, cy, rOuter, endAngle);
+  const innerEnd = polarToCartesian(cx, cy, rInner, endAngle);
+  const innerStart = polarToCartesian(cx, cy, rInner, startAngle);
+  return [
+    `M ${outerStart.x} ${outerStart.y}`,
+    `A ${rOuter} ${rOuter} 0 ${largeArc} 1 ${outerEnd.x} ${outerEnd.y}`,
+    `L ${innerEnd.x} ${innerEnd.y}`,
+    `A ${rInner} ${rInner} 0 ${largeArc} 0 ${innerStart.x} ${innerStart.y}`,
+    "Z",
+  ].join(" ");
+};
+
 const DonutChart = ({ slices, total, size = 220, innerSize = 122 }) => {
+  const [hover, setHover] = useState(null);
   const normalizedSlices = slices.filter((slice) => Number(slice.value) > 0);
   const gradient = buildConicGradient(normalizedSlices);
+
+  const sliceTotal = normalizedSlices.reduce(
+    (sum, slice) => sum + Number(slice.value || 0),
+    0
+  );
+  const rOuter = size / 2;
+  const rInner = innerSize / 2;
+  let angleCursor = 0;
+  const arcs = normalizedSlices.map((slice) => {
+    const portion = sliceTotal ? Number(slice.value || 0) / sliceTotal : 0;
+    const startAngle = angleCursor;
+    let endAngle = angleCursor + portion * 360;
+    // A full-circle arc would collapse to a point; nudge it just under 360.
+    if (endAngle - startAngle >= 360) {
+      endAngle = startAngle + 359.999;
+    }
+    angleCursor = endAngle;
+    return {
+      ...slice,
+      portion,
+      path: annulusSectorPath(rOuter, rOuter, rOuter, rInner, startAngle, endAngle),
+    };
+  });
 
   return (
     <DonutContainer $size={size} $gradient={gradient}>
@@ -460,6 +507,45 @@ const DonutChart = ({ slices, total, size = 220, innerSize = 122 }) => {
         <small>Total</small>
         <strong>{formatInteger(total)}</strong>
       </DonutCenter>
+      <DonutHoverSvg
+        viewBox={`0 0 ${size} ${size}`}
+        width={size}
+        height={size}
+        onMouseLeave={() => setHover(null)}
+      >
+        {arcs.map((arc, index) => (
+          <path
+            key={`${arc.label}-${index}`}
+            d={arc.path}
+            fill="transparent"
+            style={{ cursor: "pointer", pointerEvents: "all" }}
+            onMouseMove={(event) =>
+              setHover({
+                index,
+                x: event.nativeEvent.offsetX,
+                y: event.nativeEvent.offsetY,
+              })
+            }
+            onMouseEnter={(event) =>
+              setHover({
+                index,
+                x: event.nativeEvent.offsetX,
+                y: event.nativeEvent.offsetY,
+              })
+            }
+          />
+        ))}
+      </DonutHoverSvg>
+      {hover && arcs[hover.index] && (
+        <DonutTooltip $left={hover.x} $top={hover.y}>
+          <TooltipDot $color={arcs[hover.index].color} />
+          <TooltipLabel>{arcs[hover.index].label}</TooltipLabel>
+          <TooltipValue>
+            {formatInteger(arcs[hover.index].value)} (
+            {Math.round(arcs[hover.index].portion * 100)}%)
+          </TooltipValue>
+        </DonutTooltip>
+      )}
     </DonutContainer>
   );
 };
@@ -483,6 +569,7 @@ const buildConicGradient = (slices) => {
 };
 
 const LineChart = ({ points, series }) => {
+  const [hoverIndex, setHoverIndex] = useState(null);
   const chartWidth = 460;
   const chartHeight = 250;
   const padding = { top: 18, right: 16, bottom: 36, left: 34 };
@@ -496,9 +583,28 @@ const LineChart = ({ points, series }) => {
   const xStep = points.length > 1 ? innerWidth / (points.length - 1) : innerWidth;
   const yTicks = 5;
 
+  const hoveredPoint = hoverIndex != null ? points[hoverIndex] : null;
+  const hoverX =
+    hoverIndex != null ? padding.left + xStep * hoverIndex : 0;
+
   return (
     <ChartWrapper>
-      <svg viewBox={`0 0 ${chartWidth} ${chartHeight}`} width="100%" height="250">
+      <svg
+        viewBox={`0 0 ${chartWidth} ${chartHeight}`}
+        width="100%"
+        height="250"
+        onMouseLeave={() => setHoverIndex(null)}
+      >
+        {hoveredPoint && (
+          <line
+            x1={hoverX}
+            y1={padding.top}
+            x2={hoverX}
+            y2={padding.top + innerHeight}
+            stroke="#c3cad9"
+            strokeWidth="1"
+          />
+        )}
         {Array.from({ length: yTicks + 1 }).map((_, index) => {
           const value = (yMax / yTicks) * (yTicks - index);
           const y = padding.top + (innerHeight / yTicks) * index;
@@ -586,7 +692,60 @@ const LineChart = ({ points, series }) => {
             </g>
           );
         })}
+
+        {hoveredPoint &&
+          series.map((item) => {
+            const y =
+              padding.top +
+              innerHeight -
+              ((Number(hoveredPoint[item.key] || 0) / yMax) * innerHeight || 0);
+            return (
+              <circle
+                key={`hover-${item.key}`}
+                cx={hoverX}
+                cy={y}
+                r="4.5"
+                fill={item.color}
+                stroke="#fff"
+                strokeWidth="2"
+              />
+            );
+          })}
+
+        {points.map((point, index) => {
+          const x = padding.left + xStep * index;
+          return (
+            <rect
+              key={`hover-band-${point.date}-${index}`}
+              x={x - xStep / 2}
+              y={padding.top}
+              width={xStep}
+              height={innerHeight}
+              fill="transparent"
+              style={{ pointerEvents: "all" }}
+              onMouseEnter={() => setHoverIndex(index)}
+            />
+          );
+        })}
       </svg>
+
+      {hoveredPoint && (
+        <ChartTooltip
+          $left={(hoverX / chartWidth) * 100}
+          $top={6}
+        >
+          <TooltipDate>{formatChartDate(hoveredPoint.date)}</TooltipDate>
+          {series.map((item) => (
+            <TooltipRow key={`tip-${item.key}`}>
+              <TooltipDot $color={item.color} />
+              <TooltipLabel>{item.label}</TooltipLabel>
+              <TooltipValue>
+                {formatInteger(Number(hoveredPoint[item.key] || 0))}
+              </TooltipValue>
+            </TooltipRow>
+          ))}
+        </ChartTooltip>
+      )}
 
       <LegendRow>
         {series.map((item) => (
@@ -779,6 +938,13 @@ const DonutContainer = styled.div`
   justify-content: center;
 `;
 
+const DonutHoverSvg = styled.svg`
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+`;
+
 const DonutCenter = styled.div`
   width: ${({ $size }) => $size}px;
   height: ${({ $size }) => $size}px;
@@ -837,6 +1003,74 @@ const LegendDot = styled.span`
 const ChartWrapper = styled.div`
   display: flex;
   flex-direction: column;
+  gap: 8px;
+  position: relative;
+`;
+
+const ChartTooltip = styled.div`
+  position: absolute;
+  top: ${({ $top }) => $top}px;
+  left: ${({ $left }) => $left}%;
+  transform: translateX(-50%);
+  pointer-events: none;
+  z-index: 5;
+  min-width: 120px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #1f2540;
+  color: #fff;
+  box-shadow: 0 8px 24px rgba(17, 24, 39, 0.18);
+  font-size: 12px;
+  white-space: nowrap;
+`;
+
+const TooltipDate = styled.div`
+  font-weight: 700;
+  margin-bottom: 6px;
+  color: #fff;
+`;
+
+const TooltipRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  line-height: 1.6;
+`;
+
+const TooltipDot = styled.span`
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: ${({ $color }) => $color};
+`;
+
+const TooltipLabel = styled.span`
+  color: #c7cce0;
+`;
+
+const TooltipValue = styled.span`
+  margin-left: auto;
+  font-weight: 700;
+  color: #fff;
+`;
+
+const DonutTooltip = styled.div`
+  position: absolute;
+  top: ${({ $top }) => $top}px;
+  left: ${({ $left }) => $left}px;
+  transform: translate(-50%, -120%);
+  pointer-events: none;
+  z-index: 5;
+  padding: 8px 11px;
+  border-radius: 10px;
+  background: #1f2540;
+  color: #fff;
+  box-shadow: 0 8px 24px rgba(17, 24, 39, 0.18);
+  font-size: 12px;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
   gap: 8px;
 `;
 
