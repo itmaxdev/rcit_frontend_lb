@@ -75,7 +75,7 @@ const filterCustomsDeclarations = (list, filters, isPriceAdjustmentEnabled) =>
     return true;
   });
 
-const CustomsDeclarations = () => {
+const CustomsDeclarations = ({ archived = false }) => {
   const { t } = useTranslation();
   const location = useLocation();
   const navigate = useNavigate();
@@ -187,7 +187,8 @@ const CustomsDeclarations = () => {
       activeTab,
       1,
       1000,
-      appliedSearch
+      appliedSearch,
+      archived
     );
     if (response) {
       setDeclarations(response.data || []);
@@ -195,7 +196,7 @@ const CustomsDeclarations = () => {
       setDeclarations([]);
     }
     setIsLoading(false);
-  }, [activeTab, appliedSearch]);
+  }, [activeTab, appliedSearch, archived]);
 
   useEffect(() => {
     loadDeclarations();
@@ -222,7 +223,8 @@ const CustomsDeclarations = () => {
     navigate(location.pathname, { replace: true, state: null });
   }, [location.pathname, location.state, navigate]);
 
-  // Filtered set + the slice shown on the current page (client-side).
+  // The backend already scopes the result to active vs archived (CLOSED)
+  // declarations, so the remaining filtering here is the user's own filters.
   const filteredDeclarations = useMemo(
     () =>
       filterCustomsDeclarations(
@@ -310,13 +312,14 @@ const CustomsDeclarations = () => {
   const rangeStart = totalElements === 0 ? 0 : currentPage * pageSize + 1;
   const rangeEnd = Math.min((currentPage + 1) * pageSize, totalElements);
 
-  const emptyStateTitle = useMemo(
-    () =>
-      activeTab === DECLARATION_TYPES.IMPORTER
-        ? t("Customs_NoImporterDeclarations")
-        : t("Customs_NoIndividualDeclarations"),
-    [activeTab, t]
-  );
+  const emptyStateTitle = useMemo(() => {
+    if (archived) {
+      return t("Customs_NoArchivedDeclarations");
+    }
+    return activeTab === DECLARATION_TYPES.IMPORTER
+      ? t("Customs_NoImporterDeclarations")
+      : t("Customs_NoIndividualDeclarations");
+  }, [activeTab, archived, t]);
 
   const handleTabChange = (tab) => {
     setTableActionError(null);
@@ -714,8 +717,16 @@ const CustomsDeclarations = () => {
     <PageContainer>
       <PageHeader>
         <TextBlock>
-          <Title>{t("Customs_DeclarationTitle")}</Title>
-          <Subtitle>{t("Customs_DeclarationSubtitle")}</Subtitle>
+          <Title>
+            {t(archived ? "Customs_ArchivedTitle" : "Customs_DeclarationTitle")}
+          </Title>
+          <Subtitle>
+            {t(
+              archived
+                ? "Customs_ArchivedSubtitle"
+                : "Customs_DeclarationSubtitle"
+            )}
+          </Subtitle>
         </TextBlock>
       </PageHeader>
 

@@ -63,11 +63,10 @@ const filterDeclarations = (list, filters) =>
     return true;
   });
 
-const ImporterDeclarations = () => {
+const ImporterDeclarations = ({ archived = false }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [declarations, setDeclarations] = useState([]);
-  const [totalDeclarations, setTotalDeclarations] = useState(0);
   const [clearableUpload, setClearableUpload] = useState(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
@@ -145,18 +144,21 @@ const ImporterDeclarations = () => {
   const loadDeclarations = useCallback(async () => {
     setLoading(true);
     setLoadError(false);
-    const response = await fetchImporterDeclarations(1, 1000, appliedSearch);
+    const response = await fetchImporterDeclarations(
+      1,
+      1000,
+      appliedSearch,
+      archived
+    );
     if (!response) {
       setDeclarations([]);
-      setTotalDeclarations(0);
       setLoadError(true);
       setLoading(false);
       return;
     }
     setDeclarations(response.data || []);
-    setTotalDeclarations(response.totalElements || 0);
     setLoading(false);
-  }, [appliedSearch]);
+  }, [appliedSearch, archived]);
 
   const loadClearableUpload = useCallback(async () => {
     const response = await fetchClearableImporterUpload();
@@ -170,7 +172,8 @@ const ImporterDeclarations = () => {
 
   const isSearching = appliedSearch.length > 0;
 
-  // Filtered declarations + filter UI state.
+  // The backend already scopes the result to active vs archived (CLOSED)
+  // declarations, so the remaining filtering here is the user's own filters.
   const visibleDeclarations = useMemo(
     () => filterDeclarations(declarations, appliedFilters),
     [declarations, appliedFilters]
@@ -326,6 +329,17 @@ const ImporterDeclarations = () => {
       );
     }
 
+    if (archived) {
+      return (
+        <EmptyStateContainer>
+          <EmptyStateSVG src={emptySVG} alt="No archived declarations" />
+          <EmptyStateTitle>
+            {t("ImporterDeclarations_NoArchived")}
+          </EmptyStateTitle>
+        </EmptyStateContainer>
+      );
+    }
+
     return (
       <EmptyStateContainer>
         <EmptyStateSVG src={emptySVG} alt="No declarations" />
@@ -345,8 +359,20 @@ const ImporterDeclarations = () => {
     <PageContainer>
       <Header>
         <TextContainer>
-          <Title>{t("ImporterDeclarations_TableTitle")}</Title>
-          <Subtext>{t("ImporterDeclarations_TableSubtitle")}</Subtext>
+          <Title>
+            {t(
+              archived
+                ? "ImporterDeclarations_ArchivedTitle"
+                : "ImporterDeclarations_TableTitle"
+            )}
+          </Title>
+          <Subtext>
+            {t(
+              archived
+                ? "ImporterDeclarations_ArchivedSubtitle"
+                : "ImporterDeclarations_TableSubtitle"
+            )}
+          </Subtext>
         </TextContainer>
         <HeaderActions>
           {clearableUpload?.uploadId && (
@@ -388,7 +414,7 @@ const ImporterDeclarations = () => {
           </ToolbarLeft>
 
           <ResultsText>
-            {visibleDeclarations.length} {t("Out of")} {totalDeclarations}
+            {visibleDeclarations.length} {t("Out of")} {declarations.length}
           </ResultsText>
         </Toolbar>
 

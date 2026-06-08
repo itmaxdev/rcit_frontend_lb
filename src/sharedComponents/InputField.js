@@ -11,6 +11,8 @@ const InputField = ({
   optional = false,
   isPassword = false,
   readOnly = false,
+  multiline = false,
+  rows = 5,
   validation = null,
   errorMessage = null,
   changeValue = () => {},
@@ -100,18 +102,32 @@ const InputField = ({
   return (
     <InputFieldContainer>
       <FieldName>{t(fieldName)}</FieldName>
-      <InputWrapper $isFocused={isFocused} $isValid={isValid}>
-        <Input
-          type={isPassword ? (isPasswordVisible ? "text" : "password") : "text"}
-          readOnly={readOnly}
-          placeholder={
-            t(fieldName) + " " + (optional ? t("Input_Optional") : "")
-          }
-          value={value}
-          onChange={handleInputChange}
-          onBlur={handleInputBlur}
-          onFocus={handleInputFocus}
-        />
+      <InputWrapper $isFocused={isFocused} $isValid={isValid} $multiline={multiline}>
+        {multiline ? (
+          <TextArea
+            readOnly={readOnly}
+            rows={rows}
+            placeholder={
+              t(fieldName) + " " + (optional ? t("Input_Optional") : "")
+            }
+            value={value}
+            onChange={handleInputChange}
+            onBlur={handleInputBlur}
+            onFocus={handleInputFocus}
+          />
+        ) : (
+          <Input
+            type={isPassword ? (isPasswordVisible ? "text" : "password") : "text"}
+            readOnly={readOnly}
+            placeholder={
+              t(fieldName) + " " + (optional ? t("Input_Optional") : "")
+            }
+            value={value}
+            onChange={handleInputChange}
+            onBlur={handleInputBlur}
+            onFocus={handleInputFocus}
+          />
+        )}
         {isPassword && (
           <EyeIcon
             src={eye}
@@ -153,7 +169,7 @@ const FieldName = styled.label`
 
 const InputWrapper = styled.div`
   display: flex;
-  align-items: center;
+  align-items: ${(props) => (props.$multiline ? "flex-start" : "center")};
   border-bottom: 1.5px solid
     ${(props) => {
       if (props.$isFocused) return "#436C4D";
@@ -173,6 +189,28 @@ const Input = styled.input`
   color: #20294c;
   caret-color: #436C4D;
   font-family: "Lato", sans-serif;
+
+  &::placeholder {
+    color: #c6cace;
+    font-weight: 500;
+    font-family: "Lato", sans-serif;
+  }
+`;
+
+const TextArea = styled.textarea`
+  flex: 1;
+  border: none;
+  outline: none;
+  font-size: 16px;
+  font-weight: 500;
+  padding: 8px 0px;
+  background: none;
+  color: #20294c;
+  caret-color: #436c4d;
+  font-family: "Lato", sans-serif;
+  resize: vertical;
+  min-height: 96px;
+  line-height: 1.5;
 
   &::placeholder {
     color: #c6cace;

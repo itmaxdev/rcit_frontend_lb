@@ -146,10 +146,11 @@ export const bulkUpload = async (file, options = {}) => {
 export const fetchImporterDeclarations = async (
   page = 1,
   pageSize = 100,
-  search = ""
+  search = "",
+  archived = false
 ) => {
   const token = getToken();
-  const params = new URLSearchParams({ page, pageSize });
+  const params = new URLSearchParams({ page, pageSize, archived });
   if (search) {
     params.append("search", search);
   }

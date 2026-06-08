@@ -80,6 +80,10 @@ const ProfilePage = () => {
               <Route path="VerifyIMEI" element={<IMEIVerify />} />
               <Route path="DeclareDevices" element={<ImporterDeclarations />} />
               <Route
+                path="DeclareDevices/Archived"
+                element={<ImporterDeclarations archived />}
+              />
+              <Route
                 path="DeclareDevices/:declarationId"
                 element={<ImporterDeclarationDetail />}
               />
@@ -119,6 +123,10 @@ const ProfilePage = () => {
               <Route path="" element={<Navigate to="Dashboard" />} />
               <Route path="Dashboard" element={<CustomsDashboard />} />
               <Route path="Declaration" element={<CustomsDeclarations />} />
+              <Route
+                path="Declaration/Archived"
+                element={<CustomsDeclarations archived />}
+              />
               <Route path="Help" element={<SupportCard />} />
               <Route path="Profile" element={<Profile />} />
             </Route>

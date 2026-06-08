@@ -58,7 +58,8 @@ export const fetchCustomsDeclarations = async (
   declarationType = "IMPORTER",
   page = 1,
   pageSize = 10,
-  search = ""
+  search = "",
+  archived = false
 ) => {
   try {
     const token = getToken();
@@ -66,6 +67,7 @@ export const fetchCustomsDeclarations = async (
       type: declarationType,
       page,
       pageSize,
+      archived,
     });
 
     if (search) {

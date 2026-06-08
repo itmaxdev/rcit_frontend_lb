@@ -20,6 +20,7 @@ import permissionSvg from "../assets/permissions.svg";
 import {
   ROLE_ADMIN,
   ROLE_CUSTOMS,
+  ROLE_IMPORTER,
 } from "../config/roles";
 
 const Sidebar = ({ basePath }) => {
@@ -53,7 +54,49 @@ const Sidebar = ({ basePath }) => {
             label: "Declaration",
             translationKey: "Declarations",
             disabled: false,
+            children: [
+              {
+                label: "Declaration",
+                translationKey: "Active",
+                disabled: false,
+              },
+              {
+                label: "Declaration/Archived",
+                translationKey: "Archived",
+                disabled: false,
+              },
+            ],
           },
+        ]
+      : accountType === ROLE_IMPORTER
+      ? [
+          { icon: dashboardSvg, label: "Dashboard", disabled: true },
+          { icon: verifyIMEISvg, label: "VerifyIMEI", disabled: false },
+          {
+            icon: declareDevicesSvg,
+            label: "DeclareDevices",
+            disabled: false,
+            children: [
+              {
+                label: "DeclareDevices",
+                translationKey: "Active",
+                disabled: false,
+              },
+              {
+                label: "DeclareDevices/Archived",
+                translationKey: "Archived",
+                disabled: false,
+              },
+            ],
+          },
+          {
+            icon: registerDevicesSvg,
+            label: "RegisterDevices",
+            disabled: true,
+          },
+          { icon: digitalWalletSvg, label: "DigitalWallet", disabled: true },
+          { icon: reportsSvg, label: "Reports", disabled: true },
+          { icon: helpSvg, label: "Help", disabled: false },
         ]
       : [
           { icon: dashboardSvg, label: "Dashboard", disabled: true },
@@ -85,6 +128,9 @@ const Sidebar = ({ basePath }) => {
     if (!tab.disabled) {
       if (tab.function) {
         tab.function();
+      } else if (tab.children?.length) {
+        // Selecting a parent defaults to its first sub-item.
+        navigate(basePath + tab.children[0].label);
       } else {
         navigate(basePath + tab.label);
       }
@@ -103,6 +149,28 @@ const Sidebar = ({ basePath }) => {
     );
   };
 
+  // Length of the matched prefix for a tab path, or -1 when it does not match.
+  const matchLength = (label) => {
+    const tabPath = `${basePath}${label}`;
+    return location.pathname === tabPath ||
+      location.pathname.startsWith(`${tabPath}/`)
+      ? tabPath.length
+      : -1;
+  };
+
+  // Among a set of children, the active one is the longest matching path so
+  // that e.g. "Declaration/Archived" wins over "Declaration".
+  const activeChild = (children) =>
+    children.reduce(
+      (best, child) => {
+        const len = matchLength(child.label);
+        return len > best.len ? { child, len } : best;
+      },
+      { child: null, len: -1 }
+    ).child;
+
+  const isChildActive = (children, child) => activeChild(children) === child;
+
   return (
     <SidebarContainer>
       <Header closed={closed}>
@@ -120,19 +188,50 @@ const Sidebar = ({ basePath }) => {
       <Divider />
 
       <MainTabs>
-        {mainTabs.map((tab, index) => (
-          <Tab
-            key={index}
-            disabled={tab.disabled}
-            $active={isTabActive(tab)}
-            onClick={() => handleTabClick(tab)}
-          >
-            <TabIcon src={tab.icon} alt={tab.label} />
-            <TabText closed={closed}>
-              {t("Sidebar_" + (tab.translationKey || tab.label))}
-            </TabText>
-          </Tab>
-        ))}
+        {mainTabs.map((tab, index) =>
+          tab.children ? (
+            <React.Fragment key={index}>
+              <Tab
+                disabled={tab.disabled}
+                $active={Boolean(activeChild(tab.children))}
+                onClick={() => handleTabClick(tab)}
+              >
+                <TabIcon src={tab.icon} alt={tab.label} />
+                <TabText closed={closed}>
+                  {t("Sidebar_" + (tab.translationKey || tab.label))}
+                </TabText>
+              </Tab>
+              {!closed && (
+                <SubTabs>
+                  {tab.children.map((child, childIndex) => (
+                    <SubTab
+                      key={childIndex}
+                      disabled={child.disabled}
+                      $active={isChildActive(tab.children, child)}
+                      onClick={() => handleTabClick(child)}
+                    >
+                      <SubTabText $active={isChildActive(tab.children, child)}>
+                        {t("Sidebar_" + (child.translationKey || child.label))}
+                      </SubTabText>
+                    </SubTab>
+                  ))}
+                </SubTabs>
+              )}
+            </React.Fragment>
+          ) : (
+            <Tab
+              key={index}
+              disabled={tab.disabled}
+              $active={isTabActive(tab)}
+              onClick={() => handleTabClick(tab)}
+            >
+              <TabIcon src={tab.icon} alt={tab.label} />
+              <TabText closed={closed}>
+                {t("Sidebar_" + (tab.translationKey || tab.label))}
+              </TabText>
+            </Tab>
+          )
+        )}
       </MainTabs>
 
       <Divider />
@@ -239,6 +338,33 @@ const Tab = styled.div`
 
 const TabIcon = styled.img`
   height: 18px;
+`;
+
+const SubTabs = styled.div`
+  display: flex;
+  flex-direction: column;
+  margin: 2px 0 2px 22px;
+  padding-left: 14px;
+  border-left: 1px solid rgba(144, 152, 160, 0.3);
+`;
+
+const SubTab = styled.div`
+  display: flex;
+  align-items: center;
+  padding: 8px 10px;
+  cursor: ${({ disabled }) => (disabled ? "not-allowed" : "pointer")};
+  border-radius: 10px;
+  opacity: ${({ disabled }) => (disabled ? 0.3 : 1)};
+`;
+
+const SubTabText = styled.p`
+  font-size: 12px;
+  color: ${({ $active }) => ($active ? "white" : "#9098a0")};
+  font-weight: ${({ $active }) => ($active ? 600 : 400)};
+
+  &:hover {
+    color: white;
+  }
 `;
 
 const TabText = styled.p`
