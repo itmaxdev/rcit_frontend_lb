@@ -1,5 +1,5 @@
 // src/homepageComponents/SupportCard.js
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import styled from "styled-components";
 import { useTranslation } from "react-i18next";
 import InputField from "../sharedComponents/InputField";
@@ -15,6 +15,8 @@ const SupportCard = () => {
   const location = useLocation();
   const [defaultValue, setDefaultValue] = useState("");
   const [formData, setFormData] = useState({
+    firstName: "",
+    lastName: "",
     email: "",
     phoneNumber: "",
     message: "",
@@ -22,22 +24,42 @@ const SupportCard = () => {
 
   const isUser = location.pathname === "/" ? false : true;
 
-  const isDisabled =
-    !formData.firstName ||
-    !formData.lastName ||
-    !formData.phoneNumber ||
-    !formData.email ||
-    !formData.message;
+  // Logged-in users have their contact details derived from the token.
+  const tokenContact = useMemo(() => {
+    if (!isUser) {
+      return { email: "", phoneNumber: "" };
+    }
+    const token = getToken();
+    const decodedToken = token ? parseJwt(token) : null;
+    return {
+      email: decodedToken?.sub || "",
+      phoneNumber: decodedToken?.USER_PHONE || "",
+    };
+  }, [isUser]);
+
+  // Some accounts have no registered phone number; without one they cannot
+  // submit a support request and must ask their administrator to add it.
+  const isPhoneMissing = isUser && !tokenContact.phoneNumber;
+
+  // Logged-in users only supply a message — their email/phone come from the
+  // token. Public visitors must fill in their contact details.
+  const isDisabled = isUser
+    ? !formData.message || isPhoneMissing
+    : !formData.firstName ||
+      !formData.lastName ||
+      !formData.phoneNumber ||
+      !formData.email ||
+      !formData.message;
 
   useEffect(() => {
-    const token = getToken();
+    if (!isUser) return;
 
-    if (isUser && token) {
-      const decodedToken = parseJwt(token);
-      formData.email = decodedToken.sub;
-      formData.phoneNumber = decodedToken.USER_PHONE;
-    }
-  });
+    setFormData((prev) => ({
+      ...prev,
+      email: tokenContact.email,
+      phoneNumber: tokenContact.phoneNumber,
+    }));
+  }, [isUser, tokenContact]);
 
   const handleChange = (field) => (value) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -47,11 +69,14 @@ const SupportCard = () => {
     await sendSupportRequest(formData, isUser);
     setDefaultValue(".");
     setDefaultValue("");
-    setFormData({
-      email: "",
-      phoneNumber: "",
+    setFormData((prev) => ({
+      firstName: "",
+      lastName: "",
+      // Keep the logged-in user's contact details prefilled from the token.
+      email: isUser ? prev.email : "",
+      phoneNumber: isUser ? prev.phoneNumber : "",
       message: "",
-    });
+    }));
   };
 
   return (
@@ -67,56 +92,78 @@ const SupportCard = () => {
         </Number>
       </CardContainer>
       <FormContainer>
-        {!isUser && (
-          <>
-            <InputRow>
-              <InputField
-                fieldName="Input_FirstName"
-                changeValue={handleChange("firstName")}
-                validation={(value) => /^[\p{L} ]+$/u.test(value)}
-                errorMessage={t("Error_Name")}
-                defaultValue={defaultValue}
-              />
-              <InputField
-                fieldName="Input_LastName"
-                changeValue={handleChange("lastName")}
-                validation={(value) => /^[\p{L} ]+$/u.test(value)}
-                errorMessage={t("Error_Name")}
-                defaultValue={defaultValue}
-              />
-            </InputRow>
+        <FormInner>
+          {isPhoneMissing && (
+            <PhoneAlert role="alert">
+              <AlertIcon aria-hidden="true">!</AlertIcon>
+              <span>{t("SupportCard_NoPhoneAlert")}</span>
+            </PhoneAlert>
+          )}
+          {isUser ? (
             <InputRow>
               <InputField
                 fieldName="Input_Email"
-                validation={(value) =>
-                  /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(value)
-                }
-                changeValue={handleChange("email")}
-                errorMessage={t("Error_Email")}
-                defaultValue={defaultValue}
+                defaultValue={formData.email}
+                readOnly
               />
               <InputField
                 fieldName="Input_PhoneNumber"
-                validation={(value) =>
-                  /^\+(\d{1,3})[\s-]?\(?(\d{1,4})\)?[\s-]?\d{1,4}[\s-]?\d{1,4}[\s-]?\d{1,4}$/.test(
-                    value
-                  )
-                }
-                changeValue={handleChange("phoneNumber")}
-                errorMessage={t("Error_Phone")}
-                defaultValue={defaultValue}
+                defaultValue={formData.phoneNumber}
+                readOnly
               />
             </InputRow>
-          </>
-        )}
-        <InputField
-          fieldName="Input_Message"
-          changeValue={handleChange("message")}
-          defaultValue={defaultValue}
-        />
-        <SendButton disabled={isDisabled} onClick={() => handleSendClick()}>
-          {t("SupportCard_Send")}
-        </SendButton>
+          ) : (
+            <>
+              <InputRow>
+                <InputField
+                  fieldName="Input_FirstName"
+                  changeValue={handleChange("firstName")}
+                  validation={(value) => /^[\p{L} ]+$/u.test(value)}
+                  errorMessage={t("Error_Name")}
+                  defaultValue={defaultValue}
+                />
+                <InputField
+                  fieldName="Input_LastName"
+                  changeValue={handleChange("lastName")}
+                  validation={(value) => /^[\p{L} ]+$/u.test(value)}
+                  errorMessage={t("Error_Name")}
+                  defaultValue={defaultValue}
+                />
+              </InputRow>
+              <InputRow>
+                <InputField
+                  fieldName="Input_Email"
+                  validation={(value) =>
+                    /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(value)
+                  }
+                  changeValue={handleChange("email")}
+                  errorMessage={t("Error_Email")}
+                  defaultValue={defaultValue}
+                />
+                <InputField
+                  fieldName="Input_PhoneNumber"
+                  validation={(value) =>
+                    /^\+(\d{1,3})[\s-]?\(?(\d{1,4})\)?[\s-]?\d{1,4}[\s-]?\d{1,4}[\s-]?\d{1,4}$/.test(
+                      value
+                    )
+                  }
+                  changeValue={handleChange("phoneNumber")}
+                  errorMessage={t("Error_Phone")}
+                  defaultValue={defaultValue}
+                />
+              </InputRow>
+            </>
+          )}
+          <InputField
+            fieldName="Input_Message"
+            changeValue={handleChange("message")}
+            defaultValue={defaultValue}
+            multiline
+          />
+          <SendButton disabled={isDisabled} onClick={() => handleSendClick()}>
+            {t("SupportCard_Send")}
+          </SendButton>
+        </FormInner>
       </FormContainer>
     </SupportCardContainer>
   );
@@ -129,6 +176,7 @@ const SupportCardContainer = styled.div`
   display: flex;
   width: 100%;
   height: 100%;
+  flex: 1;
 
   @media (max-width: 768px) {
     flex-direction: column;
@@ -183,10 +231,49 @@ const SVG = styled.img`
 const FormContainer = styled.div`
   padding: 80px;
   flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 
   @media (max-width: 768px) {
     padding: 50px 30px;
   }
+`;
+
+const FormInner = styled.div`
+  width: 100%;
+  max-width: 620px;
+  display: flex;
+  flex-direction: column;
+`;
+
+const PhoneAlert = styled.div`
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 30px;
+  padding: 14px 16px;
+  border-radius: 10px;
+  border: 1px solid #f3c98b;
+  background: #fdf4e3;
+  color: #8a5a00;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.45;
+`;
+
+const AlertIcon = styled.span`
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #e08a00;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 `;
 
 const InputRow = styled.div`

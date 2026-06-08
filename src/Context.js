@@ -1,15 +1,36 @@
 // src/Context.js
-import React, { createContext, useState, useEffect } from "react";
+import React, { createContext, useState } from "react";
 import { handleLogin } from "./functions/login";
 import { getToken, deleteToken, parseJwt } from "./functions/token";
 import { handleSignup } from "./functions/signup";
 
 export const Context = createContext();
 
+// Resolve the auth state from a stored token synchronously, so the first
+// render already reflects the logged-in user. Doing this in an effect instead
+// caused a refresh to briefly render as logged-out, bouncing the user to
+// /login and then to their default landing page (losing the current route).
+const resolveStoredAuth = () => {
+  const storedToken = getToken();
+  if (storedToken) {
+    const decodedToken = parseJwt(storedToken);
+    if (decodedToken) {
+      const authority = decodedToken.authorities?.[0]?.authority;
+      return {
+        isLoggedIn: true,
+        accountType: authority || "Unknown",
+        accountState: "Enabled",
+      };
+    }
+  }
+  return { isLoggedIn: false, accountType: "Unknown", accountState: "Unknown" };
+};
+
 export const ContextProvider = ({ children }) => {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [accountType, setAccountType] = useState("Unknown");
-  const [accountState, setAccountState] = useState("Unknown");
+  const initialAuth = resolveStoredAuth();
+  const [isLoggedIn, setIsLoggedIn] = useState(initialAuth.isLoggedIn);
+  const [accountType, setAccountType] = useState(initialAuth.accountType);
+  const [accountState, setAccountState] = useState(initialAuth.accountState);
   const [userEmail, setUserEmail] = useState("");
   const [userPhone, setUserPhone] = useState("");
   const [emailVerified, setEmailVerified] = useState(false);
@@ -53,23 +74,6 @@ export const ContextProvider = ({ children }) => {
       setPhoneVerified(false);
     }
   };
-
-  // Check for token on initial load and set login state
-  useEffect(() => {
-    const storedToken = getToken();
-    if (storedToken) {
-      const decodedToken = parseJwt(storedToken);
-      if (decodedToken) {
-        const authority = decodedToken.authorities?.[0]?.authority;
-        if (authority) {
-          setAccountType(authority); // Save the authority in state
-        }
-        setIsLoggedIn(true);
-        setAccountState("Enabled");
-      }
-    }
-    // eslint-disable-next-line
-  }, []);
 
   return (
     <Context.Provider
