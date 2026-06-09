@@ -33,6 +33,7 @@ const DeclareDevicesInd = () => {
   const [errorText, setErrorText] = useState("");
   const [loading, setLoading] = useState(false);
   const [popupOpen, setPopupOpen] = useState(false);
+  const [submittedDeclarationId, setSubmittedDeclarationId] = useState(null);
   const [formData, setFormData] = useState(EMPTY_FORM);
 
   const navigate = useNavigate();
@@ -120,11 +121,7 @@ const DeclareDevicesInd = () => {
             setValidity(false);
             setErrorText("DeviceInfo_MaxDevices");
           } else if (response.status === 400) {
-            setErrorText(
-              response.message?.indexOf("already") != -1
-                ? response.message
-                : "DeviceInfo_Invalid"
-            );
+            setErrorText(response.message || "DeviceInfo_Invalid");
             setValidity(false);
           } else {
             setValidity(true);
@@ -137,14 +134,11 @@ const DeclareDevicesInd = () => {
         const response = await handleIMEI(payload, true);
         setLoading(false);
 
-        if (response && response?.status == 200) {
+        if (response && response?.status === 200) {
+          setSubmittedDeclarationId(response.declarationId || null);
           setPopupOpen(true);
         } else {
-          setErrorText(
-            response.message?.indexOf("already") != -1
-              ? response.message
-              : "DeviceInfo_Invalid"
-          );
+          setErrorText(response?.message || "DeviceInfo_Invalid");
           setValidity(false);
         }
       }
@@ -158,13 +152,20 @@ const DeclareDevicesInd = () => {
 
   const handlePopupClose = () => {
     setFormData(EMPTY_FORM);
-    navigate("/profile/role_user/dashboard");
+    setSubmittedDeclarationId(null);
     setPopupOpen(false);
   };
 
   const handlePopupAction = () => {
+    const targetId = submittedDeclarationId;
     setFormData(EMPTY_FORM);
+    setSubmittedDeclarationId(null);
     setPopupOpen(false);
+    if (targetId) {
+      navigate(`/profile/role_user/DeclareDevices/${targetId}`);
+    } else {
+      navigate("/profile/role_user/DeclareDevices");
+    }
   };
 
   return (
@@ -253,7 +254,7 @@ const DeclareDevicesInd = () => {
         {loading
           ? t("Loading")
           : validity
-            ? t("Declare")
+            ? t("Submit to Customs")
             : t("DeclareDevicesInd_CheckDevice")}
       </CheckButton>
       <DeclareDevicesIndCard />
@@ -405,8 +406,8 @@ const Validity = styled.div`
   padding: 10px;
   margin: 15px 0;
   background-color: ${({ validity }) =>
-    validity == "true" ? "rgba(0, 149, 63, 0.05)" : "rgba(255, 0, 0, 0.05)"};
-  color: ${({ validity }) => (validity == "true" ? "#00953F" : "#FF0000")};
+    validity === "true" ? "rgba(0, 149, 63, 0.05)" : "rgba(255, 0, 0, 0.05)"};
+  color: ${({ validity }) => (validity === "true" ? "#00953F" : "#FF0000")};
 `;
 
 const SVG = styled.img`

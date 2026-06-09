@@ -487,10 +487,7 @@ const CustomsDeclarations = ({ archived = false }) => {
 
     const rect = e.currentTarget.getBoundingClientRect();
 
-    if (
-      row.declarationType === DECLARATION_TYPES.IMPORTER &&
-      row.status === "SUBMITTED"
-    ) {
+    if (row.status === "SUBMITTED") {
       const updatedRow = await startCustomsDeclarationReview(
         row.declarationType,
         row.id
@@ -1086,11 +1083,20 @@ const CustomsDeclarations = ({ archived = false }) => {
                                       );
                                       if (result) {
                                         setDeclarations((previousRows) =>
-                                          previousRows.map((item) =>
-                                            item.id === row.id && item.declarationType === row.declarationType
-                                              ? result
-                                              : item
-                                          )
+                                          archived
+                                            ? previousRows.map((item) =>
+                                                item.id === row.id &&
+                                                item.declarationType === row.declarationType
+                                                  ? result
+                                                  : item
+                                              )
+                                            : previousRows.filter(
+                                                (item) =>
+                                                  !(
+                                                    item.id === row.id &&
+                                                    item.declarationType === row.declarationType
+                                                  )
+                                              )
                                         );
                                       } else {
                                         setTableActionError(t("Failed to close declaration. Please try again."));
@@ -1781,13 +1787,15 @@ const formatImeis = (imeis) => (imeis ? imeis.split("|").join("\n") : "-");
 
 const hasPendingApprovalAdjustment = (row, isPriceAdjustmentEnabled = true) =>
   isPriceAdjustmentEnabled &&
-  row?.declarationType === DECLARATION_TYPES.IMPORTER &&
+  (row?.declarationType === DECLARATION_TYPES.IMPORTER ||
+    row?.declarationType === DECLARATION_TYPES.INDIVIDUAL) &&
   row?.status === "UNDER_REVIEW" &&
   row?.approvedPriceUsd != null &&
   Boolean(row?.adjustmentReason?.trim());
 
 const hasAdjustedApprovedValue = (row, isPriceAdjustmentEnabled = true) =>
-  row?.declarationType === DECLARATION_TYPES.IMPORTER &&
+  (row?.declarationType === DECLARATION_TYPES.IMPORTER ||
+    row?.declarationType === DECLARATION_TYPES.INDIVIDUAL) &&
   (row?.status !== "UNDER_REVIEW" || isPriceAdjustmentEnabled) &&
   row?.approvedPriceUsd != null &&
   Boolean(row?.adjustmentReason?.trim());
@@ -1799,28 +1807,35 @@ const getDisplayStatus = (row, isPriceAdjustmentEnabled = true) =>
 
 const canAdjustDeclaration = (row, isPriceAdjustmentEnabled) =>
   isPriceAdjustmentEnabled &&
-  row.declarationType === DECLARATION_TYPES.IMPORTER &&
+  (row.declarationType === DECLARATION_TYPES.IMPORTER ||
+    row.declarationType === DECLARATION_TYPES.INDIVIDUAL) &&
   row.status === "UNDER_REVIEW";
 
 const canApproveDeclaration = (row) =>
-  row.declarationType === DECLARATION_TYPES.IMPORTER &&
+  (row.declarationType === DECLARATION_TYPES.IMPORTER ||
+    row.declarationType === DECLARATION_TYPES.INDIVIDUAL) &&
   row.status === "UNDER_REVIEW";
 
 const canViewInvoice = (row) =>
-  row.declarationType === DECLARATION_TYPES.IMPORTER &&
   (
     row.status === "AWAITING_PAYMENT" ||
     row.status === "PAID" ||
     row.status === "CLOSED" ||
     (row.status === "APPROVED" && row.invoiceGenerated)
+  ) &&
+  (
+    row.declarationType === DECLARATION_TYPES.IMPORTER ||
+    row.declarationType === DECLARATION_TYPES.INDIVIDUAL
   );
 
 const canCloseDeclaration = (row) =>
-  row.declarationType === DECLARATION_TYPES.IMPORTER &&
+  (row.declarationType === DECLARATION_TYPES.IMPORTER ||
+    row.declarationType === DECLARATION_TYPES.INDIVIDUAL) &&
   row.status === "PAID";
 
 const canRejectDeclaration = (row) =>
-  row.declarationType === DECLARATION_TYPES.IMPORTER &&
+  (row.declarationType === DECLARATION_TYPES.IMPORTER ||
+    row.declarationType === DECLARATION_TYPES.INDIVIDUAL) &&
   (row.status === "SUBMITTED" || row.status === "UNDER_REVIEW");
 
 const AdjustedEstimatedValue = ({ row, isPriceAdjustmentEnabled }) => {

@@ -5,6 +5,7 @@ import { API_BASE_URL } from "../config/api";
 
 const VERIFY_URL = `${API_BASE_URL}/user/verify-imei`;
 const DECLARE_URL = `${API_BASE_URL}/user/declare-imei`;
+const DECLARATIONS_URL = `${API_BASE_URL}/user/declarations`;
 
 export const handleIMEI = async (data, declare = false) => {
   const token = getToken();
@@ -42,5 +43,93 @@ export const handleIMEI = async (data, declare = false) => {
   } catch (error) {
     console.error("Error handling IMEI request:", error);
     throw error;
+  }
+};
+
+export const fetchUserDeclarations = async (
+  page = 1,
+  pageSize = 10,
+  search = ""
+) => {
+  const token = getToken();
+  const params = new URLSearchParams({ page, pageSize });
+  if (search) {
+    params.append("search", search);
+  }
+
+  try {
+    const response = await makeAuthenticatedRequest(
+      `${DECLARATIONS_URL}?${params.toString()}`,
+      {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    if (!response?.ok) {
+      const errorData = response ? await response.json() : null;
+      throw new Error(errorData?.message || "Failed to fetch declarations");
+    }
+
+    return response.json();
+  } catch (error) {
+    console.error("Error fetching user declarations:", error);
+    return null;
+  }
+};
+
+export const fetchUserDeclarationById = async (declarationId) => {
+  const token = getToken();
+
+  try {
+    const response = await makeAuthenticatedRequest(
+      `${DECLARATIONS_URL}/${declarationId}`,
+      {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    if (!response?.ok) {
+      const errorData = response ? await response.json() : null;
+      throw new Error(errorData?.message || "Failed to fetch declaration");
+    }
+
+    return response.json();
+  } catch (error) {
+    console.error("Error fetching user declaration detail:", error);
+    return null;
+  }
+};
+
+export const initiateUserDeclarationPayment = async (declarationId) => {
+  const token = getToken();
+
+  try {
+    const response = await makeAuthenticatedRequest(
+      `${DECLARATIONS_URL}/${declarationId}/payments`,
+      {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    if (!response?.ok) {
+      const errorData = response ? await response.json() : null;
+      throw new Error(
+        errorData?.message || "Failed to initiate declaration payment"
+      );
+    }
+
+    return response.json();
+  } catch (error) {
+    console.error("Error initiating user declaration payment:", error);
+    return null;
   }
 };

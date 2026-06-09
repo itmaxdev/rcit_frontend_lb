@@ -7,6 +7,8 @@ import { Context } from "../Context";
 import Sidebar from "../profilepageComponents/Sidebar";
 import Header from "../profilepageComponents/Header";
 import DeclareDevicesInd from "../profilepageComponents/individuals/DeclareDevicesInd";
+import IndividualDeclarations from "../profilepageComponents/individuals/IndividualDeclarations";
+import IndividualDeclarationDetail from "../profilepageComponents/individuals/IndividualDeclarationDetail";
 import DeclareDevicesImp from "../profilepageComponents/importers/DeclareDevicesImp";
 import ImporterDeclarations from "../profilepageComponents/importers/ImporterDeclarations";
 import ImporterDeclarationDetail from "../profilepageComponents/importers/ImporterDeclarationDetail";
@@ -58,7 +60,12 @@ const ProfilePage = () => {
                 element={<Placeholder title="Dashboard" />}
               />
               <Route path="VerifyIMEI" element={<IMEIVerify />} />
-              <Route path="DeclareDevices" element={<RegisteredDevices />} />
+              <Route path="DeclareDevices" element={<IndividualDeclarations />} />
+              <Route
+                path="DeclareDevices/:declarationId"
+                element={<IndividualDeclarationDetail />}
+              />
+              <Route path="RegisteredDevices" element={<RegisteredDevices />} />
               <Route path="RegisterDevices" element={<DeclareDevicesInd />} />
               <Route
                 path="DigitalWallet"

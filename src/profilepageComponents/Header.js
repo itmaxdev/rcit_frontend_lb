@@ -122,7 +122,7 @@ const getHeaderTitle = (t, segments, accountType) => {
   }
 
   if (accountType === ROLE_USER && lastSegment === "DeclareDevices") {
-    return t("Header_MyDevices");
+    return t("Header_MyDeclarations");
   }
 
   if (accountType === ROLE_CUSTOMS && lastSegment === "Declaration") {

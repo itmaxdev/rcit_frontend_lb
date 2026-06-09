@@ -157,8 +157,8 @@ const getPrimaryAction = (t, registrationState, isLoggedIn, accountType) => {
       registrationState === "DECLARATION_IN_PROGRESS"
     ) {
       return {
-        label: t("DeviceInfo_ContactSupport"),
-        to: "/profile/role_user/Help",
+        label: t("DeviceInfo_ViewDeclarations"),
+        to: "/profile/role_user/DeclareDevices",
       };
     }
 

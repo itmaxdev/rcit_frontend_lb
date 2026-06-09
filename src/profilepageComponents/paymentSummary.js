@@ -8,7 +8,13 @@ import libanPostImg from "../assets/libanpost.png";
 import paymentMethodsImg from "../assets/paymentmethods.png";
 import lockImg from "../assets/lock.png";
 
-const PaymentSummary = ({ data, busy, onPay, paid = false }) => {
+const PaymentSummary = ({
+  data,
+  busy,
+  onPay,
+  paid = false,
+  baseValueLabel,
+}) => {
   const { t } = useTranslation();
   const [currency, setCurrency] = useState("USD");
   const [method, setMethod] = useState("card");
@@ -40,7 +46,7 @@ const PaymentSummary = ({ data, busy, onPay, paid = false }) => {
 
       <SummaryBox>
         <SummaryRow>
-          <span>{t("Total Approved Value")}</span>
+          <span>{baseValueLabel || t("Total Approved Value")}</span>
           <span>{formatted(approvedTotal)}</span>
         </SummaryRow>
         <SummaryRow>

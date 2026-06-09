@@ -101,7 +101,23 @@ const Sidebar = ({ basePath }) => {
       : [
           { icon: dashboardSvg, label: "Dashboard", disabled: true },
           { icon: verifyIMEISvg, label: "VerifyIMEI", disabled: false },
-          { icon: declareDevicesSvg, label: "DeclareDevices", disabled: false },
+          {
+            icon: declareDevicesSvg,
+            label: "DeclareDevices",
+            disabled: false,
+            children: [
+              {
+                label: "DeclareDevices",
+                translationKey: "Active",
+                disabled: false,
+              },
+              {
+                label: "RegisteredDevices",
+                translationKey: "RegisteredDevices",
+                disabled: false,
+              },
+            ],
+          },
           {
             icon: registerDevicesSvg,
             label: "RegisterDevices",

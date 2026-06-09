@@ -43,12 +43,10 @@ const Popup = ({ data, purpose, onClose, onAction, reason, onReasonChange, reaso
     actionText = t("Confirm");
   } else if (purpose === "userDeclare") {
     img = userApprove;
-    headerText = t("Congratulations!");
-    subheaderText = t(
-      "Your device have been successfully declared. Note that you can declare up to 3 devices."
-    );
-    actionText = t("Declare a new device");
-    cancelText = t("Go to dashboard");
+    headerText = t("IndividualDeclaration_SubmittedTitle");
+    subheaderText = t("IndividualDeclaration_SubmittedMessage");
+    actionText = t("IndividualDeclaration_TrackStatus");
+    cancelText = t("IndividualDeclaration_SubmitAnother");
     isColumn = true;
   } else if (purpose === "submitDevicesSuccess") {
     img = userApprove;
