@@ -1,71 +1,100 @@
 // src/profilepageComponents/individuals/DeclareDevicesInd.js
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
 import styled from "styled-components";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom"; // to handle navigation
 import { handleIMEI } from "../../functions/indDeclare";
+import { searchBrands, searchModels } from "../../functions/catalog";
 
-import InputField from "../../sharedComponents/InputField";
+import AutocompleteField from "../../sharedComponents/AutocompleteField";
+import DateField from "../../sharedComponents/DateField";
+import IMEIInput from "../../sharedComponents/IMEIInput";
 import DeclareDevicesIndCard from "./DeclareDevicesIndCard";
 import Popup from "../Popup";
 
 import valid from "../../assets/valid.svg";
 import invalid from "../../assets/invalid.svg";
+import xcircle from "../../assets/xcircle.svg";
+
+const MAX_IMEIS = 4;
+const IMEI_REGEX = /^\d{15}$/;
+
+const EMPTY_FORM = {
+  brand: "",
+  brandId: "",
+  model: "",
+  date: "",
+  IMEIs: [""],
+};
 
 const DeclareDevicesInd = () => {
   const { t } = useTranslation();
   const [validity, setValidity] = useState(null);
   const [errorText, setErrorText] = useState("");
-  // const [maxDevices, ] = useState(false);
   const [loading, setLoading] = useState(false);
   const [popupOpen, setPopupOpen] = useState(false);
-  const [formData, setFormData] = useState({
-    brand: "",
-    model: "",
-    numberIMEIs: "",
-    date: "",
-    IMEIs: [],
-  });
+  const [formData, setFormData] = useState(EMPTY_FORM);
 
   const navigate = useNavigate();
 
-  const handleChange = (field) => (value) => {
+  // Selecting a brand changes which models are valid, so the model is reset.
+  const handleBrandChange = (value) => {
     setValidity(null);
-    setFormData((prev) => {
-      if (field === "numberIMEIs") {
-        const updatedIMEIs = prev.IMEIs.slice(0, Number(value));
-        return {
-          ...prev,
-          [field]: value,
-          IMEIs: updatedIMEIs,
-        };
-      }
+    setFormData((prev) => ({ ...prev, brand: value, brandId: "", model: "" }));
+  };
 
-      return {
-        ...prev,
-        [field]: value,
-      };
-    });
+  const handleBrandSelect = (item) => {
+    setValidity(null);
+    setFormData((prev) => ({ ...prev, brand: item.name, brandId: item.id }));
+  };
+
+  const handleModelChange = (value) => {
+    setValidity(null);
+    setFormData((prev) => ({ ...prev, model: value }));
+  };
+
+  const handleDateChange = (value) => {
+    setValidity(null);
+    setFormData((prev) => ({ ...prev, date: value }));
   };
 
   const handleIMEIChange = (index) => (value) => {
     setValidity(null);
-    const newIMEIs = [...formData.IMEIs];
-    newIMEIs[index] = value;
-    setFormData((prev) => ({
-      ...prev,
-      IMEIs: newIMEIs,
-    }));
+    setFormData((prev) => {
+      const IMEIs = [...prev.IMEIs];
+      IMEIs[index] = value;
+      return { ...prev, IMEIs };
+    });
   };
+
+  const addIMEI = () => {
+    setValidity(null);
+    setFormData((prev) =>
+      prev.IMEIs.length >= MAX_IMEIS
+        ? prev
+        : { ...prev, IMEIs: [...prev.IMEIs, ""] }
+    );
+  };
+
+  const removeIMEI = (index) => {
+    setValidity(null);
+    setFormData((prev) => {
+      if (prev.IMEIs.length <= 1) return prev;
+      return { ...prev, IMEIs: prev.IMEIs.filter((_, i) => i !== index) };
+    });
+  };
+
+  const fetchModels = useCallback(
+    (query) => searchModels(query, formData.brandId),
+    [formData.brandId]
+  );
 
   const isButtonDisabled =
     !formData.brand ||
     !formData.model ||
-    !formData.numberIMEIs ||
-    formData.IMEIs.slice(0, Number(formData.numberIMEIs)).some(
-      (imei) => imei.trim() === ""
-    ) ||
-    formData.IMEIs.length !== Number(formData.numberIMEIs);
+    !formData.date ||
+    formData.IMEIs.length === 0 ||
+    formData.IMEIs.some((imei) => !IMEI_REGEX.test(imei.trim()));
 
   const onCheckDevice = async () => {
     if (isButtonDisabled) return;
@@ -89,15 +118,19 @@ const DeclareDevicesInd = () => {
         if (response) {
           if (response.status === 409) {
             setValidity(false);
-            setErrorText("DeviceInfo_MaxDevices")
+            setErrorText("DeviceInfo_MaxDevices");
           } else if (response.status === 400) {
-            setErrorText(response.message?.indexOf("already") != -1 ? response.message : "DeviceInfo_Invalid")
+            setErrorText(
+              response.message?.indexOf("already") != -1
+                ? response.message
+                : "DeviceInfo_Invalid"
+            );
             setValidity(false);
           } else {
             setValidity(true);
           }
         } else {
-          setErrorText("DeviceInfo_Invalid")
+          setErrorText("DeviceInfo_Invalid");
           setValidity(false);
         }
       } else if (validity) {
@@ -107,7 +140,11 @@ const DeclareDevicesInd = () => {
         if (response && response?.status == 200) {
           setPopupOpen(true);
         } else {
-          setErrorText(response.message?.indexOf("already") != -1 ? response.message : "DeviceInfo_Invalid")
+          setErrorText(
+            response.message?.indexOf("already") != -1
+              ? response.message
+              : "DeviceInfo_Invalid"
+          );
           setValidity(false);
         }
       }
@@ -115,30 +152,18 @@ const DeclareDevicesInd = () => {
       console.error("Error checking device validity:", error);
       setLoading(false);
       setValidity(false);
-      setErrorText("")
+      setErrorText("");
     }
   };
 
   const handlePopupClose = () => {
-    setFormData({
-      brand: "",
-      model: "",
-      numberIMEIs: "",
-      date: "",
-      IMEIs: [],
-    });
+    setFormData(EMPTY_FORM);
     navigate("/profile/role_user/dashboard");
     setPopupOpen(false);
   };
 
   const handlePopupAction = () => {
-    setFormData({
-      brand: "",
-      model: "",
-      numberIMEIs: "",
-      date: "",
-      IMEIs: [],
-    });
+    setFormData(EMPTY_FORM);
     setPopupOpen(false);
   };
 
@@ -148,53 +173,74 @@ const DeclareDevicesInd = () => {
       <Subtext>{t("DeclareDevicesInd_SubText")}</Subtext>
       <Subheader>{t("DeclareDevicesInd_SubHeader")}</Subheader>
       <InputRow>
-        <InputField
-          defaultValue={formData.brand}
+        <AutocompleteField
           fieldName="Input_Brand"
-          changeValue={handleChange("brand")}
+          value={formData.brand}
+          fetchSuggestions={searchBrands}
+          changeValue={handleBrandChange}
+          onSelect={handleBrandSelect}
+          minChars={1}
         />
-        <InputField
-          defaultValue={formData.model}
+        <AutocompleteField
           fieldName="Input_Model"
-          changeValue={handleChange("model")}
+          value={formData.model}
+          fetchSuggestions={fetchModels}
+          changeValue={handleModelChange}
+          minChars={3}
+          noResultsText={
+            formData.brandId ? "Autocomplete_NoResults" : "Model_SelectBrandFirst"
+          }
         />
       </InputRow>
       <InputRow>
-        <InputField
-          defaultValue={formData.numberIMEIs}
-          fieldName="Input_NumberofIMEIs"
-          validation={(value) => ["1", "2", "3", "4"].includes(value)}
-          changeValue={handleChange("numberIMEIs")}
-        />
-        <InputField
-          defaultValue={formData.date}
+        <DateField
           fieldName="Input_Date"
-          validation={(value) =>
-            /^(0[1-9]|[12][0-9]|3[01])\/(0[1-9]|1[0-2])\/\d{4}$/.test(value)
-          }
-          changeValue={handleChange("date")}
+          value={formData.date}
+          changeValue={handleDateChange}
         />
+        <Spacer />
       </InputRow>
-      {Array.from({ length: Math.ceil(Number(formData.numberIMEIs) / 2) }).map(
+
+      <IMEISectionLabel>{t("DeclareDevicesInd_IMEIsLabel")}</IMEISectionLabel>
+      {Array.from({ length: Math.ceil(formData.IMEIs.length / 2) }).map(
         (_, rowIndex) => (
           <InputRow key={rowIndex}>
-            {[...Array(2)].map((_, index) => {
-              const imeiIndex = rowIndex * 2 + index;
-              return imeiIndex < Number(formData.numberIMEIs) ? (
-                <InputField
-                  key={imeiIndex}
-                  defaultValue={formData.IMEIs[rowIndex]}
-                  fieldName={`IMEI ${imeiIndex + 1}`}
-                  validation={(value) => /^\d{15}$/.test(value)}
-                  changeValue={handleIMEIChange(imeiIndex)}
-                />
-              ) : null;
+            {[0, 1].map((col) => {
+              const imeiIndex = rowIndex * 2 + col;
+              if (imeiIndex >= formData.IMEIs.length) {
+                return <Spacer key={col} />;
+              }
+              return (
+                <IMEIItem key={imeiIndex}>
+                  <IMEIInput
+                    value={formData.IMEIs[imeiIndex]}
+                    label={`IMEI ${imeiIndex + 1}`}
+                    changeValue={handleIMEIChange(imeiIndex)}
+                  />
+                  {formData.IMEIs.length > 1 && (
+                    <RemoveButton
+                      type="button"
+                      onClick={() => removeIMEI(imeiIndex)}
+                      title={t("DeclareDevicesInd_RemoveIMEI")}
+                    >
+                      <RemoveIcon src={xcircle} alt="remove" />
+                    </RemoveButton>
+                  )}
+                </IMEIItem>
+              );
             })}
           </InputRow>
         )
       )}
 
-      <Validity validity={validity === null ? null : (validity ? "true" : "false")}>
+      {formData.IMEIs.length < MAX_IMEIS && (
+        <AddIMEIButton type="button" onClick={addIMEI}>
+          <PlusSign>+</PlusSign>
+          {t("DeclareDevicesInd_AddIMEI")}
+        </AddIMEIButton>
+      )}
+
+      <Validity validity={validity === null ? null : validity ? "true" : "false"}>
         <SVG src={validity ? valid : invalid} alt="status icon" />
         {validity && t("DeviceInfo_Unregistered")}
         {!validity && t(errorText)}
@@ -244,7 +290,7 @@ const DeclareDevicesIndContainer = styled.div`
 const Title = styled.h1`
   font-size: 20px;
   font-weight: 700;
-  color: #436C4D;
+  color: #436c4d;
   margin-bottom: 10px;
 `;
 
@@ -270,6 +316,84 @@ const InputRow = styled.div`
     gap: 20px;
     margin-bottom: 20px;
   }
+`;
+
+const Spacer = styled.div`
+  width: 100%;
+
+  @media (max-width: 768px) {
+    display: none;
+  }
+`;
+
+const IMEISectionLabel = styled.div`
+  font-size: 14px;
+  font-weight: 700;
+  color: #20294c;
+  margin-bottom: 14px;
+`;
+
+const IMEIItem = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+`;
+
+const RemoveButton = styled.button`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  opacity: 0.6;
+  transition: opacity 0.2s ease;
+
+  &:hover {
+    opacity: 1;
+  }
+`;
+
+const RemoveIcon = styled.img`
+  width: 20px;
+  height: 20px;
+`;
+
+const AddIMEIButton = styled.button`
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  align-self: flex-start;
+  margin: 4px 0 16px;
+  padding: 0;
+  background: none;
+  border: none;
+  color: #436c4d;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+
+  &:hover {
+    opacity: 0.75;
+  }
+`;
+
+const PlusSign = styled.span`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #436c4d;
+  color: #fff;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1;
 `;
 
 const Validity = styled.div`
