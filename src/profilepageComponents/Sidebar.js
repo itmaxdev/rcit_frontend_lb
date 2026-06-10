@@ -121,7 +121,7 @@ const Sidebar = ({ basePath }) => {
           {
             icon: registerDevicesSvg,
             label: "RegisterDevices",
-            disabled: true,
+            disabled: false,
           },
           { icon: digitalWalletSvg, label: "DigitalWallet", disabled: true },
           { icon: reportsSvg, label: "Reports", disabled: true },

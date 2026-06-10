@@ -4,6 +4,7 @@ import styled from "styled-components";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { statusColors } from "../functions/badgesColors"
+import { formatMoney, formatCount } from "../functions/format";
 
 
 const DevicesTable = ({ data, isAdmin = false }) => {
@@ -41,7 +42,7 @@ const DevicesTable = ({ data, isAdmin = false }) => {
                 }
                 isAdmin={isAdmin}
               >
-                <TableCell>{device.imeiCount || 1}</TableCell>
+                <TableCell>{formatCount(device.imeiCount || 1)}</TableCell>
                 <TableCell>
                   {device.imei || device.imeis.replace("|", " ") || "-"}
                 </TableCell>
@@ -55,8 +56,8 @@ const DevicesTable = ({ data, isAdmin = false }) => {
                     {t(device.status || "Registered")}
                   </StatusBadge>
                 </TableCell>
-                <TableCell>{device.declaredValue ?? "-"}</TableCell>
-                <TableCell>{device.dutyFee ?? "-"}</TableCell>
+                <TableCell>{formatMoney(device.declaredValue)}</TableCell>
+                <TableCell>{formatMoney(device.dutyFee)}</TableCell>
               </TableRow>
             ))
           ) : (

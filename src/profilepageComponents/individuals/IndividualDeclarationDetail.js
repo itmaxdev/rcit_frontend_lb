@@ -8,6 +8,7 @@ import {
   fetchUserDeclarationById,
   initiateUserDeclarationPayment,
 } from "../../functions/indDeclare";
+import { formatCount } from "../../functions/format";
 
 const TRACKER_COMPLETE_COLOR = "#1c9d4b";
 
@@ -171,7 +172,7 @@ const IndividualDeclarationDetail = () => {
           <DetailDivider />
           <DetailItem>
             <DetailLabel>{t("Nbr of Devices")}</DetailLabel>
-            <DetailValue>{declaration.devicesCount}</DetailValue>
+            <DetailValue>{formatCount(declaration.devicesCount)}</DetailValue>
           </DetailItem>
           <DetailDivider />
           <DetailItem>

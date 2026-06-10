@@ -11,6 +11,7 @@ import {
 } from "../../functions/impDeclare";
 import PaymentSummary from "../paymentSummary";
 import { StatusBadge } from "../statusBadge";
+import { formatCount } from "../../functions/format";
 import ministryLogo from "../../assets/ministry_logo.jpeg";
 
 const TRACKER_COMPLETE_COLOR = "#1c9d4b";
@@ -230,7 +231,7 @@ const ImporterDeclarationDetail = () => {
           <DetailDivider />
           <DetailItem>
             <DetailLabel>{t("Nbr of Devices")}</DetailLabel>
-            <DetailValue>{declaration.devicesCount ?? 0}</DetailValue>
+            <DetailValue>{formatCount(declaration.devicesCount ?? 0)}</DetailValue>
           </DetailItem>
           <DetailDivider />
           <DetailItem>
@@ -366,7 +367,7 @@ const ImporterDeclarationDetail = () => {
                   </InvoiceMetaItem>
                   <InvoiceMetaItem>
                     <InvoiceMetaLabel>{t("Devices Count")}</InvoiceMetaLabel>
-                    <InvoiceMetaValue>{invoice.devicesCount}</InvoiceMetaValue>
+                    <InvoiceMetaValue>{formatCount(invoice.devicesCount)}</InvoiceMetaValue>
                   </InvoiceMetaItem>
                   <InvoiceMetaItem>
                     <InvoiceMetaLabel>{t("Importer")}</InvoiceMetaLabel>

@@ -9,6 +9,7 @@ import React, {
 import styled from "styled-components";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
+import { formatCount } from "../functions/format";
 import {
   clearImporterUploadData,
   fetchClearableImporterUpload,
@@ -285,11 +286,11 @@ const RegisteredDevices = () => {
           <Pagination>
             <PageNumber>
               <span>
-                {pageStart}
+                {formatCount(pageStart)}
                 {" - "}
-                {pageEnd}
+                {formatCount(pageEnd)}
               </span>{" "}
-              {t("Out of")} <span>{totalElements}</span>
+              {t("Out of")} <span>{formatCount(totalElements)}</span>
             </PageNumber>
             <PaginationControls>
               <img

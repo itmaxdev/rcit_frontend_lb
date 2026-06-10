@@ -17,6 +17,7 @@ import {
   fetchClearableImporterUpload,
 } from "../../functions/registered";
 import { StatusBadge, StatusIcon } from "../statusBadge";
+import { formatCount } from "../../functions/format";
 
 const EMPTY_FILTERS = {
   status: "All",
@@ -510,7 +511,7 @@ const ImporterDeclarations = ({ archived = false }) => {
                           {formatDeclarationNumber(declaration.id)}
                         </DeclarationNumberCell>
                         <Td>{formatDate(declaration.createdAt)}</Td>
-                        <Td>{declaration.devicesCount ?? 0}</Td>
+                        <Td>{formatCount(declaration.devicesCount ?? 0)}</Td>
                         <Td>
                           <StatusBadge $status={currentStatus}>
                             <StatusIcon status={currentStatus} />
@@ -665,7 +666,7 @@ const ImporterDeclarations = ({ archived = false }) => {
                                         <ExpandedBodyTd>{item.brand || "-"}</ExpandedBodyTd>
                                         <ExpandedBodyTd>{item.model || "-"}</ExpandedBodyTd>
                                         <ExpandedBodyTd $preserveLines>{item.imeis || "-"}</ExpandedBodyTd>
-                                        <ExpandedBodyTd>{item.imeiCount ?? 0}</ExpandedBodyTd>
+                                        <ExpandedBodyTd>{formatCount(item.imeiCount ?? 0)}</ExpandedBodyTd>
                                         <ExpandedBodyTd>{item.deviceStatus || "-"}</ExpandedBodyTd>
                                         <ExpandedBodyTd>{formatMoney(item.declaredValueUsd)}</ExpandedBodyTd>
                                       </tr>

@@ -9,6 +9,7 @@ import {
   declareInformation,
 } from "../../functions/impDeclare";
 import DevicesTable from "../DevicesTableImporters";
+import { formatMoney, formatCount } from "../../functions/format";
 import Popup from "../Popup";
 
 import chevronSVG from "../../assets/chevron-down.svg";
@@ -107,7 +108,7 @@ const DeclareDevicesImp = () => {
     link.click();
   };
 
-  const displayCount = (value) => (value ?? "-");
+  const displayCount = (value) => formatCount(value);
 
   // Full filtered set + the slice shown on the current page (client-side).
   const filteredDevices = useMemo(
@@ -429,11 +430,11 @@ const DeclareDevicesImp = () => {
                 <Pagination>
                   <PageNumber>
                     <span>
-                      {currentPage * pageSize + 1}
+                      {formatCount(currentPage * pageSize + 1)}
                       {" - "}
-                      {Math.min((currentPage + 1) * pageSize, totalElements)}
+                      {formatCount(Math.min((currentPage + 1) * pageSize, totalElements))}
                     </span>{" "}
-                    out of <span>{totalElements}</span>
+                    out of <span>{formatCount(totalElements)}</span>
                   </PageNumber>
                   <PaginationControls>
                     <img
@@ -524,11 +525,11 @@ const DeclareDevicesImp = () => {
                 </Stat>
                 <Stat>
                   <StatText>{t("Total Declared Value (USD)")}</StatText>
-                  <strong>{summaryData?.totalDeclaredValue ?? "-"}</strong>
+                  <strong>{formatMoney(summaryData?.totalDeclaredValue)}</strong>
                 </Stat>
                 <Stat style={{ borderRight: 0 }}>
                   <StatText>{t("Total Customs Duty")} (USD)</StatText>
-                  <strong>{summaryData?.totalCustomsDuty ?? "-"}</strong>
+                  <strong>{formatMoney(summaryData?.totalCustomsDuty)}</strong>
                 </Stat>
               </Stats>
               <ButtonContainer>

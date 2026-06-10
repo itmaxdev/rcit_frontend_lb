@@ -6,6 +6,7 @@ import { useTranslation } from "react-i18next";
 import documentIcon from "../../assets/document.svg";
 import xcircle from "../../assets/xcircle.svg";
 import upload from "../../assets/upload.svg";
+import { formatMoney } from "../../functions/format";
 
 const AdminDocumentUpload = ({
   fieldName,
@@ -87,7 +88,7 @@ const AdminDocumentUpload = ({
                 {uploadedFile.fileName}
               </FileName>
               <FileSize>
-                {(uploadedFile.blob.size / 1024).toFixed(2)} KBs
+                {formatMoney(uploadedFile.blob.size / 1024)} KBs
               </FileSize>
             </FileDetails>
             {!readOnly && (

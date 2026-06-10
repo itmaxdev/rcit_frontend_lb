@@ -22,6 +22,7 @@ import {
   startCustomsDeclarationReview,
 } from "../../functions/customs";
 import { StatusBadge, StatusIcon } from "../statusBadge";
+import { formatCount } from "../../functions/format";
 
 const DECLARATION_TYPES = {
   IMPORTER: "IMPORTER",
@@ -822,10 +823,10 @@ const CustomsDeclarations = ({ archived = false }) => {
             <TableWrapper>
               <PaginationBar>
                 <PaginationText>
-                  <span>{rangeStart}</span>
+                  <span>{formatCount(rangeStart)}</span>
                   {" - "}
-                  <span>{rangeEnd}</span> {t("Out of")}{" "}
-                  <span>{totalElements}</span>
+                  <span>{formatCount(rangeEnd)}</span> {t("Out of")}{" "}
+                  <span>{formatCount(totalElements)}</span>
                 </PaginationText>
                 <PaginationControls>
                   <img
@@ -942,7 +943,7 @@ const CustomsDeclarations = ({ archived = false }) => {
                         <NameCell>{row.submitterName}</NameCell>
                         <Td>{row.declarationNumber}</Td>
                         <Td>{formatDate(row.declarationDate)}</Td>
-                        <Td>{row.devicesCount}</Td>
+                        <Td>{formatCount(row.devicesCount)}</Td>
                         <Td>{formatMoney(row.declaredTotalUsd)}</Td>
                         <Td>
                           <AdjustedEstimatedValue
@@ -1187,7 +1188,7 @@ const CustomsDeclarations = ({ archived = false }) => {
                                         <ExpandedBodyTd>{item.brand || "-"}</ExpandedBodyTd>
                                         <ExpandedBodyTd>{item.model || "-"}</ExpandedBodyTd>
                                         <ExpandedBodyTd $preserveLines>{formatImeis(item.imeis)}</ExpandedBodyTd>
-                                        <ExpandedBodyTd>{item.imeiCount}</ExpandedBodyTd>
+                                        <ExpandedBodyTd>{formatCount(item.imeiCount)}</ExpandedBodyTd>
                                         <ExpandedBodyTd>{formatStatusLabel(item.status)}</ExpandedBodyTd>
                                         <ExpandedBodyTd>{formatMoney(item.declaredValueUsd)}</ExpandedBodyTd>
                                       </tr>
@@ -1263,7 +1264,7 @@ const CustomsDeclarations = ({ archived = false }) => {
                     </InvoiceMetaItem>
                     <InvoiceMetaItem>
                       <InvoiceMetaLabel className="invoice-meta-label">{t("Devices Count")}</InvoiceMetaLabel>
-                      <InvoiceMetaValue className="invoice-meta-value">{selectedInvoice.devicesCount}</InvoiceMetaValue>
+                      <InvoiceMetaValue className="invoice-meta-value">{formatCount(selectedInvoice.devicesCount)}</InvoiceMetaValue>
                     </InvoiceMetaItem>
                     <InvoiceMetaItem>
                       <InvoiceMetaLabel className="invoice-meta-label">{t("Importer")}</InvoiceMetaLabel>
@@ -1380,7 +1381,7 @@ const CustomsDeclarations = ({ archived = false }) => {
                 <AdjustDetailValue>{formatDate(adjustRow.declarationDate)}</AdjustDetailValue>
 
                 <AdjustDetailLabel>{t("Devices Count")}</AdjustDetailLabel>
-                <AdjustDetailValue>{adjustRow.devicesCount}</AdjustDetailValue>
+                <AdjustDetailValue>{formatCount(adjustRow.devicesCount)}</AdjustDetailValue>
 
                 <AdjustDetailLabel>{t("Status")}</AdjustDetailLabel>
                   <AdjustDetailValue>
@@ -1551,7 +1552,7 @@ const CustomsDeclarations = ({ archived = false }) => {
                     <AdjustDetailValue>{formatDate(detailsDrawerRow.declarationDate)}</AdjustDetailValue>
 
                     <AdjustDetailLabel>{t("Devices Count")}</AdjustDetailLabel>
-                    <AdjustDetailValue>{detailsDrawerRow.devicesCount}</AdjustDetailValue>
+                    <AdjustDetailValue>{formatCount(detailsDrawerRow.devicesCount)}</AdjustDetailValue>
 
                     <AdjustDetailLabel>{t("Status")}</AdjustDetailLabel>
                     <AdjustDetailValue>

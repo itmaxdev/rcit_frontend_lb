@@ -163,7 +163,8 @@ const DateField = ({ fieldName, value = "", changeValue = () => {} }) => {
           placeholder={t("DateField_Placeholder")}
           value={text}
           onChange={handleTextChange}
-          onFocus={() => setOpen(false)}
+          onFocus={() => setOpen(true)}
+          onClick={() => setOpen(true)}
         />
         <ToggleButton
           type="button"

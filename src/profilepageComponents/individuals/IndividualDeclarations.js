@@ -7,6 +7,7 @@ import plusSVG from "../../assets/plus.svg";
 import searchSVG from "../../assets/search3.svg";
 import { fetchUserDeclarations } from "../../functions/indDeclare";
 import { StatusBadge } from "../statusBadge";
+import { formatCount } from "../../functions/format";
 
 const IndividualDeclarations = () => {
   const { t } = useTranslation();
@@ -108,7 +109,8 @@ const IndividualDeclarations = () => {
 
           <PaginationMeta>
             <RangeText>
-              {pageStart}-{pageEnd} {t("Out of")} {totalElements}
+              {formatCount(pageStart)}-{formatCount(pageEnd)} {t("Out of")}{" "}
+              {formatCount(totalElements)}
             </RangeText>
             <PageButton
               type="button"
@@ -171,7 +173,7 @@ const IndividualDeclarations = () => {
                   <TableRow key={declaration.id}>
                     <TableCell>{declaration.declarationNumber}</TableCell>
                     <TableCell>{formatDate(declaration.declarationDate)}</TableCell>
-                    <TableCell>{declaration.devicesCount}</TableCell>
+                    <TableCell>{formatCount(declaration.devicesCount)}</TableCell>
                     <TableCell>{declaration.brand || "-"}</TableCell>
                     <TableCell>{declaration.model || "-"}</TableCell>
                     <TableCell>{formatMoney(declaration.totalPayableUsd)}</TableCell>
