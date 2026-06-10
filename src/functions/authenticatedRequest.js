@@ -20,6 +20,13 @@ const buildAuthFailureResponse = (message = 'Authentication failed') =>
 const redirectToLogin = () => {
   deleteToken();
   if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
+    // Flag the involuntary logout so the login page can explain why. Survives
+    // the full-page reload below and is scoped to this tab.
+    try {
+      window.sessionStorage.setItem('sessionExpired', '1');
+    } catch (e) {
+      // Ignore storage failures (e.g. privacy mode); redirect still happens.
+    }
     window.location.replace('/login');
   }
 };

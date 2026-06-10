@@ -26,8 +26,34 @@ const LoginPage = () => {
   } = useContext(Context);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  // Shown once when the user was logged out due to an expired/invalid session.
+  const [sessionExpired, setSessionExpired] = useState(false);
+
+  useEffect(() => {
+    try {
+      if (window.sessionStorage.getItem("sessionExpired")) {
+        setSessionExpired(true);
+        window.sessionStorage.removeItem("sessionExpired");
+      }
+    } catch (e) {
+      // Ignore storage access failures.
+    }
+  }, []);
 
   const isDisabled = !username || !password;
+
+  const handleLogin = () => {
+    if (!isDisabled) {
+      triggerLogIn(username, password);
+    }
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      handleLogin();
+    }
+  };
 
   useEffect(() => {
     if (isLoggedIn) {
@@ -87,9 +113,14 @@ const LoginPage = () => {
             {i18n.resolvedLanguage === "en" ? "EN" : "FR"}
           </LanguageButton>
         </TopRow>
-        <CenterContainer>
+        <CenterContainer onKeyDown={handleKeyDown}>
           <Header>{t("Login")}</Header>
           <Subtext>{t("LoginPage_SubHeader")}</Subtext>
+          {sessionExpired && (
+            <SessionExpiredBanner role="alert">
+              {t("LoginPage_SessionExpired")}
+            </SessionExpiredBanner>
+          )}
           <InputField
             fieldName="Input_EmailorPhoneNumber"
             validation={(value) =>
@@ -111,7 +142,7 @@ const LoginPage = () => {
           </Forgot>
           <LoginButton
             disabled={isDisabled}
-            onClick={() => triggerLogIn(username, password)}
+            onClick={handleLogin}
           >
             {t("Login")}
           </LoginButton>
@@ -262,6 +293,17 @@ const Header = styled.h1`
 const Subtext = styled.p`
   font-size: 16px;
   margin-bottom: 30px;
+`;
+
+const SessionExpiredBanner = styled.div`
+  width: 100%;
+  margin-top: -20px;
+  padding: 12px 16px;
+  border-radius: 12px;
+  background: rgba(236, 1, 26, 0.06);
+  color: #ec011a;
+  font-size: 14px;
+  font-weight: 500;
 `;
 
 const Forgot = styled.div`

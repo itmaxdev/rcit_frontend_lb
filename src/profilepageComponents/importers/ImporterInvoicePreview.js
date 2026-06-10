@@ -2,6 +2,7 @@ import React from "react";
 import styled from "styled-components";
 import { useTranslation } from "react-i18next";
 import { StatusBadge } from "../statusBadge";
+import { formatCount } from "../../functions/format";
 import ministryLogo from "../../assets/ministry_logo.jpeg";
 
 const ImporterInvoicePreview = ({
@@ -45,7 +46,7 @@ const ImporterInvoicePreview = ({
         </InvoiceMetaItem>
         <InvoiceMetaItem>
           <InvoiceMetaLabel>{t("Devices Count")}</InvoiceMetaLabel>
-          <InvoiceMetaValue>{invoice.devicesCount}</InvoiceMetaValue>
+          <InvoiceMetaValue>{formatCount(invoice.devicesCount)}</InvoiceMetaValue>
         </InvoiceMetaItem>
         <InvoiceMetaItem>
           <InvoiceMetaLabel>{t("Importer")}</InvoiceMetaLabel>

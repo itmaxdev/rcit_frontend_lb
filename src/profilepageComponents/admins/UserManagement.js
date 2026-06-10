@@ -14,6 +14,7 @@ import UsersTable from "./UsersTable";
 import chevronSVG from "../../assets/chevron-down.svg";
 import searchSVG from "../../assets/search3.svg";
 import filtersSVG from "../../assets/filters.svg";
+import { formatCount } from "../../functions/format";
 
 const USER_ROLE_FILTERS = [
   { key: "ALL", labelKey: "All Users", value: "" },
@@ -184,11 +185,11 @@ const UserManagement = () => {
           <Pagination>
             <PageNumber>
               <span>
-                {pageStart}
+                {formatCount(pageStart)}
                 {" - "}
-                {pageEnd}
+                {formatCount(pageEnd)}
               </span>{" "}
-              {t("Out of")} <span>{totalElements}</span>
+              {t("Out of")} <span>{formatCount(totalElements)}</span>
             </PageNumber>
             <PaginationControls>
               <img

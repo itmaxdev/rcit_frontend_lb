@@ -133,6 +133,7 @@
   "DeclareFooter": "Prêt à déclarer vos appareils ?",
   "LoginPage_Title": "Restez conforme au RCIT",
   "LoginPage_SubHeader": "Content de te revoir! ",
+  "LoginPage_SessionExpired": "Votre session a expiré. Veuillez vous reconnecter.",
   "LoginPage_Footer": "Vous n'avez pas de compte ? ",
   "LoginPage_Create": "Créer un compte",
   "LoginPage_Forgot": "Mot de passe oublié ?",

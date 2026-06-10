@@ -4,6 +4,7 @@ import styled from "styled-components";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { statusColors } from "../functions/badgesColors"
+import { formatCount } from "../functions/format";
 
 const DevicesTable = ({ data, isAdmin = false }) => {
   const { t } = useTranslation();
@@ -34,7 +35,7 @@ const DevicesTable = ({ data, isAdmin = false }) => {
           {data && data.length > 0 ? (
             data.map((device, index) => (
               <TableRow key={device.id || `${device.userId}-${index}`}>
-                <TableCell>{device.imeiCount || 1}</TableCell>
+                <TableCell>{formatCount(device.imeiCount || 1)}</TableCell>
                 <TableCell>
                   {device.imei || device.imeis?.replace("|", " ") || "-"}
                 </TableCell>

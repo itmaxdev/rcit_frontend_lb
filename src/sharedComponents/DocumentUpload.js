@@ -6,6 +6,7 @@ import { useTranslation } from "react-i18next";
 import documentIcon from "../assets/document.svg";
 import xcircle from "../assets/xcircle.svg";
 import upload from "../assets/upload.svg";
+import { formatMoney } from "../functions/format";
 
 const DocumentUpload = ({ fieldName, changeDocument, defaultValue = null }) => {
   const { t } = useTranslation();
@@ -55,7 +56,7 @@ const DocumentUpload = ({ fieldName, changeDocument, defaultValue = null }) => {
             <img src={documentIcon} alt="Document icon" />
             <FileDetails>
               <FileName>{uploadedFile.name}</FileName>
-              <FileSize>{(uploadedFile.size / 1024).toFixed(2)} KBs</FileSize>
+              <FileSize>{formatMoney(uploadedFile.size / 1024)} KBs</FileSize>
             </FileDetails>
             <RemoveIcon
               src={xcircle}

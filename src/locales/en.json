@@ -133,6 +133,7 @@
   "DeclareFooter": "Ready to declare your devices?",
   "LoginPage_Title": "Stay Compliant with CEIR",
   "LoginPage_SubHeader": "Welcome back! Enter your credentials to access your services",
+  "LoginPage_SessionExpired": "Your session has expired. Please log in again.",
   "LoginPage_Footer": "Don't have an account? ",
   "LoginPage_Create": "Create account",
   "LoginPage_Forgot": "Forgot password?",

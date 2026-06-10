@@ -265,7 +265,7 @@ const CustomsDashboard = () => {
                             <td>{row.submitterName}</td>
                             <td>{row.declarationNumber}</td>
                             <td>{formatDate(row.declarationDate)}</td>
-                            <td>{row.devicesCount}</td>
+                            <td>{formatInteger(row.devicesCount)}</td>
                             <td>{formatMoney(row.declaredTotalUsd)}</td>
                             <td>
                               <AdjustedEstimatedValue row={row} />
