@@ -1,8 +1,7 @@
-// src/profilepageComponents/individuals/DeclareDevicesInd.js
-import React, { useState, useCallback } from "react";
+import React, { useState } from "react";
 import styled from "styled-components";
 import { useTranslation } from "react-i18next";
-import { useNavigate } from "react-router-dom"; // to handle navigation
+import { useNavigate } from "react-router-dom";
 import { handleIMEI } from "../../functions/indDeclare";
 import { searchBrands, searchModels } from "../../functions/catalog";
 
@@ -16,15 +15,21 @@ import valid from "../../assets/valid.svg";
 import invalid from "../../assets/invalid.svg";
 import xcircle from "../../assets/xcircle.svg";
 
-const MAX_IMEIS = 4;
+const MAX_DEVICES = 4;
 const IMEI_REGEX = /^\d{15}$/;
+const DECLARED_VALUE_REGEX = /^[1-9]\d*$/;
 
-const EMPTY_FORM = {
+const createEmptyDevice = () => ({
   brand: "",
   brandId: "",
   model: "",
   date: "",
-  IMEIs: [""],
+  declaredValue: "",
+  imei: "",
+});
+
+const EMPTY_FORM = {
+  devices: [createEmptyDevice()],
 };
 
 const DeclareDevicesInd = () => {
@@ -38,77 +43,103 @@ const DeclareDevicesInd = () => {
 
   const navigate = useNavigate();
 
-  // Selecting a brand changes which models are valid, so the model is reset.
-  const handleBrandChange = (value) => {
+  const resetValidation = () => {
     setValidity(null);
-    setFormData((prev) => ({ ...prev, brand: value, brandId: "", model: "" }));
+    setErrorText("");
   };
 
-  const handleBrandSelect = (item) => {
-    setValidity(null);
-    setFormData((prev) => ({ ...prev, brand: item.name, brandId: item.id }));
+  const updateDevice = (index, updater) => {
+    resetValidation();
+    setFormData((prev) => ({
+      ...prev,
+      devices: prev.devices.map((device, deviceIndex) =>
+        deviceIndex === index ? updater(device) : device
+      ),
+    }));
   };
 
-  const handleModelChange = (value) => {
-    setValidity(null);
-    setFormData((prev) => ({ ...prev, model: value }));
+  const handleBrandChange = (index) => (value) => {
+    updateDevice(index, (device) => ({
+      ...device,
+      brand: value,
+      brandId: "",
+      model: "",
+    }));
   };
 
-  const handleDateChange = (value) => {
-    setValidity(null);
-    setFormData((prev) => ({ ...prev, date: value }));
+  const handleBrandSelect = (index) => (item) => {
+    updateDevice(index, (device) => ({
+      ...device,
+      brand: item.name,
+      brandId: item.id,
+    }));
+  };
+
+  const handleModelChange = (index) => (value) => {
+    updateDevice(index, (device) => ({ ...device, model: value }));
+  };
+
+  const handleDateChange = (index) => (value) => {
+    updateDevice(index, (device) => ({ ...device, date: value }));
+  };
+
+  const handleDeclaredValueChange = (index) => (value) => {
+    const digitsOnly = value.replace(/\D/g, "").slice(0, 9);
+    updateDevice(index, (device) => ({ ...device, declaredValue: digitsOnly }));
   };
 
   const handleIMEIChange = (index) => (value) => {
-    setValidity(null);
-    setFormData((prev) => {
-      const IMEIs = [...prev.IMEIs];
-      IMEIs[index] = value;
-      return { ...prev, IMEIs };
-    });
+    updateDevice(index, (device) => ({ ...device, imei: value }));
   };
 
-  const addIMEI = () => {
-    setValidity(null);
+  const addDevice = () => {
+    resetValidation();
     setFormData((prev) =>
-      prev.IMEIs.length >= MAX_IMEIS
+      prev.devices.length >= MAX_DEVICES
         ? prev
-        : { ...prev, IMEIs: [...prev.IMEIs, ""] }
+        : { ...prev, devices: [...prev.devices, createEmptyDevice()] }
     );
   };
 
-  const removeIMEI = (index) => {
-    setValidity(null);
+  const removeDevice = (index) => {
+    resetValidation();
     setFormData((prev) => {
-      if (prev.IMEIs.length <= 1) return prev;
-      return { ...prev, IMEIs: prev.IMEIs.filter((_, i) => i !== index) };
+      if (prev.devices.length <= 1) {
+        return prev;
+      }
+      return {
+        ...prev,
+        devices: prev.devices.filter((_, deviceIndex) => deviceIndex !== index),
+      };
     });
   };
 
-  const fetchModels = useCallback(
-    (query) => searchModels(query, formData.brandId),
-    [formData.brandId]
-  );
+  const isDeviceComplete = (device) =>
+    device.brand.trim() &&
+    device.model.trim() &&
+    device.date &&
+    DECLARED_VALUE_REGEX.test(device.declaredValue) &&
+    IMEI_REGEX.test(device.imei.trim());
 
   const isButtonDisabled =
-    !formData.brand ||
-    !formData.model ||
-    !formData.date ||
-    formData.IMEIs.length === 0 ||
-    formData.IMEIs.some((imei) => !IMEI_REGEX.test(imei.trim()));
+    formData.devices.length === 0 ||
+    formData.devices.length > MAX_DEVICES ||
+    formData.devices.some((device) => !isDeviceComplete(device));
+
+  const buildPayload = () => ({
+    devices: formData.devices.map((device) => ({
+      brand: device.brand.trim(),
+      model: device.model.trim(),
+      date: device.date,
+      declaredValue: Number(device.declaredValue),
+      imeiNumber: device.imei.trim(),
+    })),
+  });
 
   const onCheckDevice = async () => {
     if (isButtonDisabled) return;
 
-    const payload = {
-      imeiList: formData.IMEIs.map((imei, index) => ({
-        id: index,
-        imeiNumber: imei,
-      })),
-      brand: formData.brand,
-      model: formData.model,
-      date: validity ? formData.date : formData.date.split("/").join("-"),
-    };
+    const payload = buildPayload();
 
     try {
       setLoading(true);
@@ -125,28 +156,30 @@ const DeclareDevicesInd = () => {
             setValidity(false);
           } else {
             setValidity(true);
+            setErrorText("");
           }
         } else {
           setErrorText("DeviceInfo_Invalid");
           setValidity(false);
         }
-      } else if (validity) {
+      } else {
         const response = await handleIMEI(payload, true);
         setLoading(false);
-
-        if (response && response?.status === 200) {
+        if (response?.masterStatus === "OK") {
           setSubmittedDeclarationId(response.declarationId || null);
           setPopupOpen(true);
+          setValidity(null);
+          setErrorText("");
         } else {
-          setErrorText(response?.message || "DeviceInfo_Invalid");
+          setErrorText(response?.masterMessage || "DeviceInfo_Invalid");
           setValidity(false);
         }
       }
     } catch (error) {
-      console.error("Error checking device validity:", error);
+      console.error("Error in individual declaration flow:", error);
       setLoading(false);
       setValidity(false);
-      setErrorText("");
+      setErrorText("DeviceInfo_Invalid");
     }
   };
 
@@ -172,73 +205,76 @@ const DeclareDevicesInd = () => {
     <DeclareDevicesIndContainer>
       <Title>{t("DeclareDevicesInd_Title")}</Title>
       <Subtext>{t("DeclareDevicesInd_SubText")}</Subtext>
-      <Subheader>{t("DeclareDevicesInd_SubHeader")}</Subheader>
-      <InputRow>
-        <AutocompleteField
-          fieldName="Input_Brand"
-          value={formData.brand}
-          fetchSuggestions={searchBrands}
-          changeValue={handleBrandChange}
-          onSelect={handleBrandSelect}
-          minChars={1}
-        />
-        <AutocompleteField
-          fieldName="Input_Model"
-          value={formData.model}
-          fetchSuggestions={fetchModels}
-          changeValue={handleModelChange}
-          minChars={3}
-          noResultsText={
-            formData.brandId ? "Autocomplete_NoResults" : "Model_SelectBrandFirst"
-          }
-        />
-      </InputRow>
-      <InputRow>
-        <DateField
-          fieldName="Input_Date"
-          value={formData.date}
-          changeValue={handleDateChange}
-        />
-        <Spacer />
-      </InputRow>
 
-      <IMEISectionLabel>{t("DeclareDevicesInd_IMEIsLabel")}</IMEISectionLabel>
-      {Array.from({ length: Math.ceil(formData.IMEIs.length / 2) }).map(
-        (_, rowIndex) => (
-          <InputRow key={rowIndex}>
-            {[0, 1].map((col) => {
-              const imeiIndex = rowIndex * 2 + col;
-              if (imeiIndex >= formData.IMEIs.length) {
-                return <Spacer key={col} />;
+      {formData.devices.map((device, index) => (
+        <DeviceSection key={`device-${index}`}>
+          <DeviceSectionHeader>
+            <DeviceSectionTitle>
+              {t("DeclareDevicesInd_SubHeader")} {index + 1}
+            </DeviceSectionTitle>
+            {formData.devices.length > 1 && (
+              <RemoveButton
+                type="button"
+                onClick={() => removeDevice(index)}
+                title={t("DeclareDevicesInd_RemoveIMEI")}
+              >
+                <RemoveIcon src={xcircle} alt="remove" />
+              </RemoveButton>
+            )}
+          </DeviceSectionHeader>
+
+          <InputRow>
+            <AutocompleteField
+              fieldName="Input_Brand"
+              value={device.brand}
+              fetchSuggestions={searchBrands}
+              changeValue={handleBrandChange(index)}
+              onSelect={handleBrandSelect(index)}
+              minChars={1}
+            />
+            <AutocompleteField
+              fieldName="Input_Model"
+              value={device.model}
+              fetchSuggestions={(query) => searchModels(query, device.brandId)}
+              changeValue={handleModelChange(index)}
+              minChars={3}
+              noResultsText={
+                device.brandId
+                  ? "Autocomplete_NoResults"
+                  : "Model_SelectBrandFirst"
               }
-              return (
-                <IMEIItem key={imeiIndex}>
-                  <IMEIInput
-                    value={formData.IMEIs[imeiIndex]}
-                    label={`IMEI ${imeiIndex + 1}`}
-                    changeValue={handleIMEIChange(imeiIndex)}
-                  />
-                  {formData.IMEIs.length > 1 && (
-                    <RemoveButton
-                      type="button"
-                      onClick={() => removeIMEI(imeiIndex)}
-                      title={t("DeclareDevicesInd_RemoveIMEI")}
-                    >
-                      <RemoveIcon src={xcircle} alt="remove" />
-                    </RemoveButton>
-                  )}
-                </IMEIItem>
-              );
-            })}
+            />
           </InputRow>
-        )
-      )}
 
-      {formData.IMEIs.length < MAX_IMEIS && (
-        <AddIMEIButton type="button" onClick={addIMEI}>
+          <InputRow>
+            <DateField
+              fieldName="Input_Date"
+              value={device.date}
+              changeValue={handleDateChange(index)}
+            />
+            <DeclaredValueField
+              label={t("Declared Value (USD)")}
+              value={device.declaredValue}
+              onChange={handleDeclaredValueChange(index)}
+              invalidMessage={`${t("Invalid")} ${t("Declared Value")}`}
+            />
+          </InputRow>
+
+          <SingleFieldRow>
+            <IMEIInput
+              value={device.imei}
+              label={`IMEI ${index + 1}`}
+              changeValue={handleIMEIChange(index)}
+            />
+          </SingleFieldRow>
+        </DeviceSection>
+      ))}
+
+      {formData.devices.length < MAX_DEVICES && (
+        <AddDeviceButton type="button" onClick={addDevice}>
           <PlusSign>+</PlusSign>
           {t("DeclareDevicesInd_AddIMEI")}
-        </AddIMEIButton>
+        </AddDeviceButton>
       )}
 
       <Validity validity={validity === null ? null : validity ? "true" : "false"}>
@@ -247,10 +283,7 @@ const DeclareDevicesInd = () => {
         {!validity && t(errorText)}
       </Validity>
 
-      <CheckButton
-        disabled={isButtonDisabled || loading}
-        onClick={onCheckDevice}
-      >
+      <CheckButton disabled={isButtonDisabled || loading} onClick={onCheckDevice}>
         {loading
           ? t("Loading")
           : validity
@@ -273,6 +306,30 @@ const DeclareDevicesInd = () => {
 
 export default DeclareDevicesInd;
 
+const DeclaredValueField = ({ label, value, onChange, invalidMessage }) => {
+  const isValid =
+    value.length === 0 ? null : DECLARED_VALUE_REGEX.test(value.trim());
+
+  return (
+    <DeclaredValueContainer>
+      <FieldName>{label}</FieldName>
+      <DeclaredValueWrapper $isValid={isValid}>
+        <DeclaredValueInput
+          type="text"
+          inputMode="numeric"
+          autoComplete="off"
+          placeholder={label}
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+        />
+      </DeclaredValueWrapper>
+      <DeclaredValueMessage $isValid={isValid}>
+        {isValid === false ? invalidMessage : ""}
+      </DeclaredValueMessage>
+    </DeclaredValueContainer>
+  );
+};
+
 const DeclareDevicesIndContainer = styled.div`
   display: flex;
   width: 90%;
@@ -280,9 +337,9 @@ const DeclareDevicesIndContainer = styled.div`
   flex-direction: column;
   padding: 50px 0 0 0;
   align-items: start;
-
   overflow-y: auto;
   scrollbar-width: none;
+
   &::-webkit-scrollbar {
     display: none;
   }
@@ -300,45 +357,43 @@ const Subtext = styled.p`
   margin-bottom: 30px;
 `;
 
-const Subheader = styled.div`
+const DeviceSection = styled.div`
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 24px;
+`;
+
+const DeviceSectionHeader = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+`;
+
+const DeviceSectionTitle = styled.div`
   font-size: 16px;
   font-weight: 700;
-  margin-bottom: 10px;
+  color: #20294c;
 `;
 
 const InputRow = styled.div`
   display: flex;
-  margin-bottom: 20px;
+  margin-bottom: 12px;
   gap: 50px;
   width: 100%;
 
   @media (max-width: 768px) {
     flex-direction: column;
     gap: 20px;
-    margin-bottom: 20px;
+    margin-bottom: 16px;
   }
 `;
 
-const Spacer = styled.div`
+const SingleFieldRow = styled.div`
   width: 100%;
-
-  @media (max-width: 768px) {
-    display: none;
-  }
-`;
-
-const IMEISectionLabel = styled.div`
-  font-size: 14px;
-  font-weight: 700;
-  color: #20294c;
-  margin-bottom: 14px;
-`;
-
-const IMEIItem = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  width: 100%;
+  margin-bottom: 8px;
 `;
 
 const RemoveButton = styled.button`
@@ -363,7 +418,7 @@ const RemoveIcon = styled.img`
   height: 20px;
 `;
 
-const AddIMEIButton = styled.button`
+const AddDeviceButton = styled.button`
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -397,6 +452,58 @@ const PlusSign = styled.span`
   line-height: 1;
 `;
 
+const DeclaredValueContainer = styled.div`
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  gap: 4px;
+`;
+
+const FieldName = styled.label`
+  font-size: 12px;
+  font-weight: 500;
+  color: #797f94;
+`;
+
+const DeclaredValueWrapper = styled.div`
+  display: flex;
+  align-items: center;
+  border-bottom: 1.5px solid
+    ${({ $isValid }) => {
+      if ($isValid === null) return "#20294c";
+      return $isValid ? "#00953F" : "#EC011A";
+    }};
+
+  &:focus-within {
+    border-bottom-color: #436c4d;
+  }
+`;
+
+const DeclaredValueInput = styled.input`
+  flex: 1;
+  border: none;
+  outline: none;
+  font-size: 16px;
+  font-weight: 500;
+  padding: 4px 0px;
+  background: none;
+  color: #20294c;
+  caret-color: #436c4d;
+  font-family: "Lato", sans-serif;
+
+  &::placeholder {
+    color: #c6cace;
+    font-weight: 500;
+    font-family: "Lato", sans-serif;
+  }
+`;
+
+const DeclaredValueMessage = styled.div`
+  font-size: 12px;
+  color: ${({ $isValid }) => ($isValid ? "#00953F" : "#EC011A")};
+  height: 16px;
+`;
+
 const Validity = styled.div`
   display: ${({ validity }) => (validity === null ? "none" : "flex")};
   align-items: center;
@@ -424,7 +531,6 @@ const CheckButton = styled.button`
   font-weight: 600;
   border: none;
   cursor: ${({ disabled }) => (disabled ? "not-allowed" : "pointer")};
-  transition: opacity 0.3s ease;
   opacity: ${({ disabled }) => (disabled ? "0.5" : "1")};
   transition: all 0.3s ease;
 

@@ -102,6 +102,7 @@ const IndividualDeclarationDetail = () => {
   }
 
   const currentStatus = declaration.status || "SUBMITTED";
+  const declarationDevices = declaration.devices || [];
   const trackerSteps = getTrackerSteps(currentStatus);
   const currentStepIndex = getTrackerStepIndex(currentStatus);
   const showPaymentLaunch =
@@ -206,29 +207,71 @@ const IndividualDeclarationDetail = () => {
 
       <InfoCard>
         <InfoCardTitle>{t("DeviceInfo_Details")}</InfoCardTitle>
-        <DeviceGrid>
-          <DeviceItem>
-            <DetailLabel>{t("Brand")}</DetailLabel>
-            <DetailValue>{declaration.brand || "-"}</DetailValue>
-          </DeviceItem>
-          <DeviceItem>
-            <DetailLabel>{t("Model")}</DetailLabel>
-            <DetailValue>{declaration.model || "-"}</DetailValue>
-          </DeviceItem>
-          <DeviceItem>
-            <DetailLabel>{t("Device Type")}</DetailLabel>
-            <DetailValue>{declaration.technology || "-"}</DetailValue>
-          </DeviceItem>
-        </DeviceGrid>
-
-        <ImeiSection>
-          <DetailLabel>{t("IMEIs")}</DetailLabel>
-          <ImeiList>
-            {(declaration.imeis || []).map((imei) => (
-              <ImeiPill key={imei}>{imei}</ImeiPill>
+        {declarationDevices.length > 0 ? (
+          <DeviceCards>
+            {declarationDevices.map((device, index) => (
+              <DeviceCard key={`${device.imei}-${index}`}>
+                <DeviceCardTitle>
+                  {t("DeviceInfo_Details")} {index + 1}
+                </DeviceCardTitle>
+                <DeviceGrid>
+                  <DeviceItem>
+                    <DetailLabel>{t("Brand")}</DetailLabel>
+                    <DetailValue>{device.brand || "-"}</DetailValue>
+                  </DeviceItem>
+                  <DeviceItem>
+                    <DetailLabel>{t("Model")}</DetailLabel>
+                    <DetailValue>{device.model || "-"}</DetailValue>
+                  </DeviceItem>
+                  <DeviceItem>
+                    <DetailLabel>{t("Device Type")}</DetailLabel>
+                    <DetailValue>{device.technology || "-"}</DetailValue>
+                  </DeviceItem>
+                  <DeviceItem>
+                    <DetailLabel>{t("Import Date")}</DetailLabel>
+                    <DetailValue>{formatDate(device.importDate)}</DetailValue>
+                  </DeviceItem>
+                  <DeviceItem>
+                    <DetailLabel>{t("Declared Value (USD)")}</DetailLabel>
+                    <DetailValue>{formatMoney(device.declaredValueUsd)}</DetailValue>
+                  </DeviceItem>
+                  <DeviceItem>
+                    <DetailLabel>{t("IMEIs")}</DetailLabel>
+                    <ImeiList>
+                      <ImeiPill>{device.imei}</ImeiPill>
+                    </ImeiList>
+                  </DeviceItem>
+                </DeviceGrid>
+              </DeviceCard>
             ))}
-          </ImeiList>
-        </ImeiSection>
+          </DeviceCards>
+        ) : (
+          <>
+            <DeviceGrid>
+              <DeviceItem>
+                <DetailLabel>{t("Brand")}</DetailLabel>
+                <DetailValue>{declaration.brand || "-"}</DetailValue>
+              </DeviceItem>
+              <DeviceItem>
+                <DetailLabel>{t("Model")}</DetailLabel>
+                <DetailValue>{declaration.model || "-"}</DetailValue>
+              </DeviceItem>
+              <DeviceItem>
+                <DetailLabel>{t("Device Type")}</DetailLabel>
+                <DetailValue>{declaration.technology || "-"}</DetailValue>
+              </DeviceItem>
+            </DeviceGrid>
+
+            <ImeiSection>
+              <DetailLabel>{t("IMEIs")}</DetailLabel>
+              <ImeiList>
+                {(declaration.imeis || []).map((imei) => (
+                  <ImeiPill key={imei}>{imei}</ImeiPill>
+                ))}
+              </ImeiList>
+            </ImeiSection>
+          </>
+        )}
       </InfoCard>
 
       {(currentStatus === "SUBMITTED" ||
@@ -354,6 +397,14 @@ const formatDate = (value) => {
     day: "2-digit",
     month: "short",
     year: "numeric",
+  });
+};
+
+const formatMoney = (value) => {
+  const amount = Number(value || 0);
+  return amount.toLocaleString("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
   });
 };
 
@@ -519,6 +570,28 @@ const InfoCardTitle = styled.h3`
   font-size: 20px;
   color: #1d2025;
   margin: 0;
+`;
+
+const DeviceCards = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+`;
+
+const DeviceCard = styled.div`
+  border: 1px solid #eef0f5;
+  border-radius: 14px;
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+`;
+
+const DeviceCardTitle = styled.h4`
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: #20294c;
 `;
 
 const DeviceGrid = styled.div`
