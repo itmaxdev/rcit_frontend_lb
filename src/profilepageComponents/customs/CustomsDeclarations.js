@@ -25,6 +25,7 @@ import { StatusBadge, StatusIcon } from "../statusBadge";
 import { formatCount } from "../../functions/format";
 
 const DECLARATION_TYPES = {
+  ALL: "ALL",
   IMPORTER: "IMPORTER",
   INDIVIDUAL: "INDIVIDUAL",
 };
@@ -41,6 +42,22 @@ const EMPTY_FILTERS = {
 
 const MENU_GAP = 6;
 const MENU_VIEWPORT_MARGIN = 8;
+
+const sortCustomsDeclarations = (list = []) =>
+  [...list].sort((left, right) => {
+    const leftDate = left?.declarationDate
+      ? new Date(`${left.declarationDate}T00:00:00`).getTime()
+      : 0;
+    const rightDate = right?.declarationDate
+      ? new Date(`${right.declarationDate}T00:00:00`).getTime()
+      : 0;
+
+    if (rightDate !== leftDate) {
+      return rightDate - leftDate;
+    }
+
+    return Number(right?.id || 0) - Number(left?.id || 0);
+  });
 
 // Client-side filtering over the loaded declarations.
 const filterCustomsDeclarations = (list, filters, isPriceAdjustmentEnabled) =>
@@ -80,7 +97,7 @@ const CustomsDeclarations = ({ archived = false }) => {
   const { t } = useTranslation();
   const location = useLocation();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState(DECLARATION_TYPES.IMPORTER);
+  const [activeTab, setActiveTab] = useState(DECLARATION_TYPES.ALL);
   const [searchInput, setSearchInput] = useState("");
   const [appliedSearch, setAppliedSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(0);
@@ -91,6 +108,8 @@ const CustomsDeclarations = ({ archived = false }) => {
   const [selectedDeclaration, setSelectedDeclaration] = useState(null);
   const [isDetailLoading, setIsDetailLoading] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState(null);
+  const [selectedInvoiceDeclarationType, setSelectedInvoiceDeclarationType] =
+    useState(null);
   const [isInvoiceLoading, setIsInvoiceLoading] = useState(false);
   const [invoiceDialogTitle, setInvoiceDialogTitle] = useState("");
   const [openMenuId, setOpenMenuId] = useState(null);
@@ -184,6 +203,34 @@ const CustomsDeclarations = ({ archived = false }) => {
   const loadDeclarations = useCallback(async () => {
     setIsLoading(true);
     // Load the full result set so filtering and pagination run client-side.
+    if (activeTab === DECLARATION_TYPES.ALL) {
+      const [importerResponse, individualResponse] = await Promise.all([
+        fetchCustomsDeclarations(
+          DECLARATION_TYPES.IMPORTER,
+          1,
+          1000,
+          appliedSearch,
+          archived
+        ),
+        fetchCustomsDeclarations(
+          DECLARATION_TYPES.INDIVIDUAL,
+          1,
+          1000,
+          appliedSearch,
+          archived
+        ),
+      ]);
+
+      setDeclarations(
+        sortCustomsDeclarations([
+          ...(importerResponse?.data || []),
+          ...(individualResponse?.data || []),
+        ])
+      );
+      setIsLoading(false);
+      return;
+    }
+
     const response = await fetchCustomsDeclarations(
       activeTab,
       1,
@@ -192,7 +239,7 @@ const CustomsDeclarations = ({ archived = false }) => {
       archived
     );
     if (response) {
-      setDeclarations(response.data || []);
+      setDeclarations(sortCustomsDeclarations(response.data || []));
     } else {
       setDeclarations([]);
     }
@@ -218,7 +265,7 @@ const CustomsDeclarations = ({ archived = false }) => {
       return;
     }
 
-    setActiveTab(selection.declarationType || DECLARATION_TYPES.IMPORTER);
+    setActiveTab(selection.declarationType || DECLARATION_TYPES.ALL);
     setCurrentPage(0);
     setPendingDashboardSelection(selection);
     navigate(location.pathname, { replace: true, state: null });
@@ -312,10 +359,14 @@ const CustomsDeclarations = ({ archived = false }) => {
 
   const rangeStart = totalElements === 0 ? 0 : currentPage * pageSize + 1;
   const rangeEnd = Math.min((currentPage + 1) * pageSize, totalElements);
+  const columnCount = activeTab === DECLARATION_TYPES.ALL ? 13 : 12;
 
   const emptyStateTitle = useMemo(() => {
     if (archived) {
       return t("Customs_NoArchivedDeclarations");
+    }
+    if (activeTab === DECLARATION_TYPES.ALL) {
+      return t("Customs_NoDeclarations");
     }
     return activeTab === DECLARATION_TYPES.IMPORTER
       ? t("Customs_NoImporterDeclarations")
@@ -421,13 +472,18 @@ const CustomsDeclarations = ({ archived = false }) => {
     if (!pendingDashboardSelection?.declarationId) {
       return;
     }
-    if (activeTab !== (pendingDashboardSelection.declarationType || DECLARATION_TYPES.IMPORTER)) {
+    const pendingType =
+      pendingDashboardSelection.declarationType || DECLARATION_TYPES.IMPORTER;
+    if (
+      activeTab !== DECLARATION_TYPES.ALL &&
+      activeTab !== pendingType
+    ) {
       return;
     }
 
     const fallbackRow = {
       id: pendingDashboardSelection.declarationId,
-      declarationType: pendingDashboardSelection.declarationType || DECLARATION_TYPES.IMPORTER,
+      declarationType: pendingType,
     };
     const selectedRow =
       declarations.find((row) => row.id === pendingDashboardSelection.declarationId) ||
@@ -442,6 +498,7 @@ const CustomsDeclarations = ({ archived = false }) => {
     setOpenMenuId(null);
     setIsInvoiceLoading(true);
     setSelectedInvoice(null);
+    setSelectedInvoiceDeclarationType(row.declarationType);
     setInvoiceDialogTitle(title);
     const invoice = await fetchCustomsDeclarationInvoice(
       row.declarationType,
@@ -450,6 +507,7 @@ const CustomsDeclarations = ({ archived = false }) => {
     setSelectedInvoice(invoice);
     setIsInvoiceLoading(false);
     if (!invoice) {
+      setSelectedInvoiceDeclarationType(null);
       setInvoiceDialogTitle("");
     }
     return invoice;
@@ -457,15 +515,16 @@ const CustomsDeclarations = ({ archived = false }) => {
 
   const closeInvoice = async () => {
     setSelectedInvoice(null);
+    setSelectedInvoiceDeclarationType(null);
     setIsInvoiceLoading(false);
     setInvoiceDialogTitle("");
   };
 
   const handleDownloadInvoice = async () => {
-    if (!selectedInvoice) return;
+    if (!selectedInvoice || !selectedInvoiceDeclarationType) return;
 
     const downloaded = await downloadCustomsDeclarationInvoicePdf(
-      activeTab,
+      selectedInvoiceDeclarationType,
       selectedInvoice.declarationId,
       `${selectedInvoice.invoiceNumber || "invoice"}.pdf`
     );
@@ -476,12 +535,14 @@ const CustomsDeclarations = ({ archived = false }) => {
     }
 
     setSelectedInvoice(null);
+    setSelectedInvoiceDeclarationType(null);
     setIsInvoiceLoading(false);
     setInvoiceDialogTitle("");
   };
 
   const handleActionClick = async (e, row) => {
-    if (openMenuId === row.id) {
+    const key = rowKey(row);
+    if (openMenuId === key) {
       setOpenMenuId(null);
       return;
     }
@@ -514,7 +575,7 @@ const CustomsDeclarations = ({ archived = false }) => {
       top: rect.bottom + MENU_GAP,
       left: Math.max(MENU_VIEWPORT_MARGIN, rect.right - 220),
     });
-    setOpenMenuId(row.id);
+    setOpenMenuId(key);
   };
 
   const openAdjustPanel = (row) => {
@@ -733,6 +794,13 @@ const CustomsDeclarations = ({ archived = false }) => {
           <Tabs>
             <TabButton
               type="button"
+              $active={activeTab === DECLARATION_TYPES.ALL}
+              onClick={() => handleTabChange(DECLARATION_TYPES.ALL)}
+            >
+              {t("All")}
+            </TabButton>
+            <TabButton
+              type="button"
               $active={activeTab === DECLARATION_TYPES.IMPORTER}
               onClick={() => handleTabChange(DECLARATION_TYPES.IMPORTER)}
             >
@@ -885,7 +953,16 @@ const CustomsDeclarations = ({ archived = false }) => {
                         onChange={handleSelectAll}
                       />
                     </Th>
-                    <Th>{t(activeTab === DECLARATION_TYPES.IMPORTER ? "Importer" : "Individual")}</Th>
+                    <Th>
+                      {t(
+                        activeTab === DECLARATION_TYPES.ALL
+                          ? "Submitter"
+                          : activeTab === DECLARATION_TYPES.IMPORTER
+                            ? "Importer"
+                            : "Individual"
+                      )}
+                    </Th>
+                    {activeTab === DECLARATION_TYPES.ALL && <Th>{t("Role")}</Th>}
                     <Th>{t("Declaration Nbr.")}</Th>
                     <Th>{t("Declaration Date")}</Th>
                     <Th>{t("Devices Count")}</Th>
@@ -900,11 +977,11 @@ const CustomsDeclarations = ({ archived = false }) => {
                 <tbody>
                   {isLoading ? (
                     <tr>
-                      <LoadingCell colSpan="12">{t("Loading")}</LoadingCell>
+                      <LoadingCell colSpan={columnCount}>{t("Loading")}</LoadingCell>
                     </tr>
                   ) : pagedDeclarations.length === 0 ? (
                     <tr>
-                      <LoadingCell colSpan="12">
+                      <LoadingCell colSpan={columnCount}>
                         {t("ImporterDeclarations_NoSearchResults")}
                       </LoadingCell>
                     </tr>
@@ -941,6 +1018,15 @@ const CustomsDeclarations = ({ archived = false }) => {
                           />
                         </Td>
                         <NameCell>{row.submitterName}</NameCell>
+                        {activeTab === DECLARATION_TYPES.ALL && (
+                          <Td>
+                            {t(
+                              row.declarationType === DECLARATION_TYPES.IMPORTER
+                                ? "Importer"
+                                : "Individual"
+                            )}
+                          </Td>
+                        )}
                         <Td>{row.declarationNumber}</Td>
                         <Td>{formatDate(row.declarationDate)}</Td>
                         <Td>{formatCount(row.devicesCount)}</Td>
@@ -975,7 +1061,7 @@ const CustomsDeclarations = ({ archived = false }) => {
                             >
                               &#8942;
                             </ActionButton>
-                            {openMenuId === row.id && (
+                            {openMenuId === rowKey(row) && (
                               <ActionMenu
                                 ref={menuRef}
                                 $top={menuPosition.top}
@@ -1165,7 +1251,7 @@ const CustomsDeclarations = ({ archived = false }) => {
                       </TableRow>
                       {isExpanded && (
                         <tr>
-                          <ExpandedTd colSpan="12">
+                          <ExpandedTd colSpan={columnCount}>
                             {expandedDetailLoading ? (
                               <ExpandedLoading>{t("Loading")}</ExpandedLoading>
                             ) : expandedDetail?.items?.length > 0 ? (

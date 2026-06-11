@@ -385,6 +385,7 @@
   "Declaration Items": "Declaration Items",
   "Customs_DeclarationTitle": "Declarations",
   "Customs_DeclarationSubtitle": "Manage declarations",
+  "Customs_NoDeclarations": "No declarations found.",
   "Customs_NoImporterDeclarations": "No importer declarations found.",
   "Customs_NoIndividualDeclarations": "No individual declarations found.",
   "Customs_NoArchivedDeclarations": "No archived declarations found.",
