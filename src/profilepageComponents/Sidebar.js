@@ -189,15 +189,15 @@ const Sidebar = ({ basePath }) => {
 
   return (
     <SidebarContainer>
-      <Header closed={closed}>
-        <LogoSection closed={closed}>
+      <Header $closed={closed}>
+        <LogoSection $closed={closed}>
           <LogoImage src={logoWhite} alt="Logo" />
         </LogoSection>
         <CloseSidebar
           src={closeSidebarSvg}
           alt="Close"
           onClick={() => setClosed(!closed)}
-          rotate={closed ? 180 : 0}
+          $rotate={closed ? 180 : 0}
         />
       </Header>
 
@@ -208,12 +208,12 @@ const Sidebar = ({ basePath }) => {
           tab.children ? (
             <React.Fragment key={index}>
               <Tab
-                disabled={tab.disabled}
+                $disabled={tab.disabled}
                 $active={Boolean(activeChild(tab.children))}
                 onClick={() => handleTabClick(tab)}
               >
                 <TabIcon src={tab.icon} alt={tab.label} />
-                <TabText closed={closed}>
+                <TabText $closed={closed}>
                   {t("Sidebar_" + (tab.translationKey || tab.label))}
                 </TabText>
               </Tab>
@@ -222,7 +222,7 @@ const Sidebar = ({ basePath }) => {
                   {tab.children.map((child, childIndex) => (
                     <SubTab
                       key={childIndex}
-                      disabled={child.disabled}
+                      $disabled={child.disabled}
                       $active={isChildActive(tab.children, child)}
                       onClick={() => handleTabClick(child)}
                     >
@@ -237,12 +237,12 @@ const Sidebar = ({ basePath }) => {
           ) : (
             <Tab
               key={index}
-              disabled={tab.disabled}
+              $disabled={tab.disabled}
               $active={isTabActive(tab)}
               onClick={() => handleTabClick(tab)}
             >
               <TabIcon src={tab.icon} alt={tab.label} />
-              <TabText closed={closed}>
+              <TabText $closed={closed}>
                 {t("Sidebar_" + (tab.translationKey || tab.label))}
               </TabText>
             </Tab>
@@ -256,12 +256,12 @@ const Sidebar = ({ basePath }) => {
         {footerTabs.map((tab, index) => (
           <Tab
             key={index}
-            disabled={tab.disabled}
+            $disabled={tab.disabled}
             $active={isTabActive(tab)}
             onClick={() => handleTabClick(tab)}
           >
             <TabIcon src={tab.icon} alt={tab.label} />
-            <TabText closed={closed}>{t("Sidebar_" + tab.label)}</TabText>
+            <TabText $closed={closed}>{t("Sidebar_" + tab.label)}</TabText>
           </Tab>
         ))}
       </Footer>
@@ -293,13 +293,13 @@ const SidebarContainer = styled.div`
 
 const Header = styled.div`
   display: flex;
-  justify-content: ${({ closed }) => (closed ? "center" : "space-between")};
+  justify-content: ${({ $closed }) => ($closed ? "center" : "space-between")};
   align-items: center;
   gap: 20px;
 `;
 
 const LogoSection = styled.div`
-  display: ${({ closed }) => (closed ? "none" : "flex")};
+  display: ${({ $closed }) => ($closed ? "none" : "flex")};
   align-items: center;
 `;
 
@@ -311,7 +311,7 @@ const CloseSidebar = styled.img`
   cursor: pointer;
   height: 20px;
 
-  transform: rotate(${(props) => props.rotate}deg);
+  transform: rotate(${(props) => props.$rotate}deg);
 `;
 
 const Divider = styled.hr`
@@ -333,18 +333,18 @@ const Tab = styled.div`
   align-items: center;
   gap: 5px;
   padding: 10px;
-  cursor: ${({ disabled }) => (disabled ? "not-allowed" : "pointer")};
+  cursor: ${({ $disabled }) => ($disabled ? "not-allowed" : "pointer")};
   border-radius: 10px;
   transition: background-color 0.2s, box-shadow 0.2s;
-  opacity: ${({ disabled }) => (disabled ? 0.3 : 1)};
+  opacity: ${({ $disabled }) => ($disabled ? 0.3 : 1)};
   background-color: ${({ $active }) =>
     $active ? "rgba(144, 152, 160, 0.28)" : "transparent"};
   box-shadow: ${({ $active }) =>
     $active ? "inset 0 0 0 1px rgba(255, 255, 255, 0.08)" : "none"};
 
   &:hover {
-    background-color: ${({ disabled, $active }) =>
-      disabled
+    background-color: ${({ $disabled, $active }) =>
+      $disabled
         ? "inherit"
         : $active
           ? "rgba(144, 152, 160, 0.34)"
@@ -368,9 +368,9 @@ const SubTab = styled.div`
   display: flex;
   align-items: center;
   padding: 8px 10px;
-  cursor: ${({ disabled }) => (disabled ? "not-allowed" : "pointer")};
+  cursor: ${({ $disabled }) => ($disabled ? "not-allowed" : "pointer")};
   border-radius: 10px;
-  opacity: ${({ disabled }) => (disabled ? 0.3 : 1)};
+  opacity: ${({ $disabled }) => ($disabled ? 0.3 : 1)};
 `;
 
 const SubTabText = styled.p`
@@ -387,5 +387,5 @@ const TabText = styled.p`
   color: white;
   font-size: 12px;
 
-  display: ${({ closed }) => (closed ? "none" : "flex")};
+  display: ${({ $closed }) => ($closed ? "none" : "flex")};
 `;

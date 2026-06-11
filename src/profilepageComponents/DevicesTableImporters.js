@@ -40,7 +40,7 @@ const DevicesTable = ({ data, isAdmin = false }) => {
                 onClick={
                   isAdmin ? () => handleRowClick(device.userId) : undefined
                 }
-                isAdmin={isAdmin}
+                $isAdmin={isAdmin}
               >
                 <TableCell>{formatCount(device.imeiCount || 1)}</TableCell>
                 <TableCell>
@@ -62,7 +62,9 @@ const DevicesTable = ({ data, isAdmin = false }) => {
             ))
           ) : (
             <TableRow>
-              <TableCell colSpan="7">{t("No data available")}</TableCell>
+              <TableCell colSpan={isAdmin ? "10" : "9"}>
+                {t("No data available")}
+              </TableCell>
             </TableRow>
           )}
         </tbody>
@@ -94,7 +96,7 @@ const TableRow = styled.tr`
   transition: all 0.2s ease;
   &:hover {
     background-color: #f5f6fa;
-    cursor: ${(props) => (props.isAdmin ? "pointer" : "default")};
+    cursor: ${(props) => (props.$isAdmin ? "pointer" : "default")};
   }
 `;
 
