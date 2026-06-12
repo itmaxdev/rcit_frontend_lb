@@ -83,6 +83,42 @@ export const fetchUsers = async (
   }
 };
 
+export const fetchTacInfo = async (
+  page = 0,
+  pageSize = 10,
+  setTotalElements,
+  search = ""
+) => {
+  try {
+    const token = getToken();
+    const params = new URLSearchParams({ page, size: pageSize });
+    if (search) {
+      params.append("search", search);
+    }
+
+    const url = `${ADMIN_API_BASE_URL}/tac-info?${params.toString()}`;
+    const headers = { Authorization: `Bearer ${token}` };
+
+    const response = await makeAuthenticatedRequest(url, {
+      method: "GET",
+      headers,
+    });
+
+    if (!response?.ok) {
+      setTotalElements(0);
+      return null;
+    }
+
+    const data = await response.json();
+    setTotalElements(data.totalElements || 0);
+    return data.content || [];
+  } catch (error) {
+    setTotalElements(0);
+    console.error("Error fetching TAC info:", error);
+    return null;
+  }
+};
+
 export const fetchUser = async (userId) => {
   try {
     const token = getToken();
