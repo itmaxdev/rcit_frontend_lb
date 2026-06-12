@@ -182,122 +182,162 @@ const CustomsDashboard = () => {
 
           <DashboardColumns>
             <LeftColumn>
-            <PriorityPanel $compact={priorityDeclarations.length === 0}>
-              <PanelHeader>
-                <div>
-                  <PanelTitle>{t("Customs_DashboardPriorityQueue")}</PanelTitle>
-                  <PanelDescription>{t("Customs_DashboardPriorityQueueDescription")}</PanelDescription>
-                </div>
-                <HeaderActionButton type="button" onClick={openDeclarationsPage}>
-                  {t("Customs_DashboardViewAllDeclarations")}
-                </HeaderActionButton>
-              </PanelHeader>
+              <PriorityPanel $compact={priorityDeclarations.length === 0}>
+                <PanelHeader>
+                  <div>
+                    <PanelTitle>{t("Customs_DashboardPriorityQueue")}</PanelTitle>
+                    <PanelDescription>{t("Customs_DashboardPriorityQueueDescription")}</PanelDescription>
+                  </div>
+                  <HeaderActionButton type="button" onClick={openDeclarationsPage}>
+                    {t("Customs_DashboardViewAllDeclarations")}
+                  </HeaderActionButton>
+                </PanelHeader>
 
-              <FilterRow>
-                {PRIORITY_FILTERS.map((filter) => (
-                  <FilterTab
-                    key={filter.key}
-                    type="button"
-                    $active={priorityFilter === filter.key}
-                    onClick={() => setPriorityFilter(filter.key)}
-                  >
-                    {t(filter.label)}
-                  </FilterTab>
-                ))}
-              </FilterRow>
-
-              {priorityDeclarations.length === 0 ? (
-                <EmptyBlock>
-                  <img src={noDeclarations} alt="No declarations" />
-                  <span>{t("Customs_DashboardNoPriority")}</span>
-                </EmptyBlock>
-              ) : (
-                <PriorityTableWrapper>
-                  <PriorityTable>
-                    <thead>
-                      <tr>
-                        <th>{t("Role")}</th>
-                        <th>{t("Submitter")}</th>
-                        <th>{t("Declaration Nbr.")}</th>
-                        <th>{t("Declaration Date")}</th>
-                        <th>{t("Devices Count")}</th>
-                        <th>{t("Variance")}</th>
-                        <th>{t("Status")}</th>
-                        <th>{t("Actions")}</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {priorityDeclarations.map((row) => {
-                        const workflowKey = getDashboardWorkflowKey(row);
-                        return (
-                          <tr key={`${row.declarationType}-${row.id}`}>
-                            <td>
-                              <RoleBadge $role={row.declarationType}>
-                                {t(row.declarationType === "INDIVIDUAL" ? "Individual" : "Importer")}
-                              </RoleBadge>
-                            </td>
-                            <td>{row.submitterName}</td>
-                            <td>{row.declarationNumber}</td>
-                            <td>{formatDate(row.declarationDate)}</td>
-                            <td>{formatInteger(row.devicesCount)}</td>
-                            <td>
-                              <VarianceValue value={Number(row.variancePercent || 0)} />
-                            </td>
-                            <td>
-                              <WorkflowBadge $status={workflowKey}>
-                                <StatusIcon
-                                  status={workflowKey === "PAID_AWAITING_CLOSURE" ? "PAID" : workflowKey}
-                                />
-                                {t(formatWorkflowLabel(workflowKey))}
-                              </WorkflowBadge>
-                            </td>
-                            <td>
-                              <InlineActionButton type="button" onClick={() => openDeclaration(row)}>
-                                <img src={eyeSVG} alt="View details" />
-                                {t("View Details")}
-                              </InlineActionButton>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </PriorityTable>
-                </PriorityTableWrapper>
-              )}
-            </PriorityPanel>
-
-            <Panel>
-              <PanelTitle>{t("Customs_DashboardStatusDistribution")}</PanelTitle>
-              <PanelDescription>{t("Customs_DashboardStatusDistributionDescription")}</PanelDescription>
-              <DonutSection>
-                <DonutChart
-                  total={totalDeclarations}
-                  slices={statusBreakdown.map((slice) => ({
-                    label: t(formatWorkflowLabel(slice.status)),
-                    value: Number(slice.count || 0),
-                    color:
-                      STATUS_CHART_COLORS[slice.status] ||
-                      STATUS_STYLES[slice.status]?.color ||
-                      "#7b61ff",
-                  }))}
-                />
-                <LegendList>
-                  {statusBreakdown.map((slice) => (
-                    <LegendItem key={slice.status}>
-                      <LegendDot
-                        style={{
-                          background:
-                            STATUS_CHART_COLORS[slice.status] ||
-                            STATUS_STYLES[slice.status]?.color ||
-                            "#7b61ff",
-                        }}
-                      />
-                      <span>{t(formatWorkflowLabel(slice.status))}</span>
-                    </LegendItem>
+                <FilterRow>
+                  {PRIORITY_FILTERS.map((filter) => (
+                    <FilterTab
+                      key={filter.key}
+                      type="button"
+                      $active={priorityFilter === filter.key}
+                      onClick={() => setPriorityFilter(filter.key)}
+                    >
+                      {t(filter.label)}
+                    </FilterTab>
                   ))}
-                </LegendList>
-              </DonutSection>
-            </Panel>
+                </FilterRow>
+
+                {priorityDeclarations.length === 0 ? (
+                  <EmptyBlock>
+                    <img src={noDeclarations} alt="No declarations" />
+                    <span>{t("Customs_DashboardNoPriority")}</span>
+                  </EmptyBlock>
+                ) : (
+                  <PriorityTableWrapper>
+                    <PriorityTable>
+                      <thead>
+                        <tr>
+                          <th>{t("Role")}</th>
+                          <th>{t("Submitter")}</th>
+                          <th>{t("Declaration Nbr.")}</th>
+                          <th>{t("Declaration Date")}</th>
+                          <th>{t("Devices Count")}</th>
+                          <th>{t("Variance")}</th>
+                          <th>{t("Status")}</th>
+                          <th>{t("Actions")}</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {priorityDeclarations.map((row) => {
+                          const workflowKey = getDashboardWorkflowKey(row);
+                          return (
+                            <tr key={`${row.declarationType}-${row.id}`}>
+                              <td>
+                                <RoleBadge $role={row.declarationType}>
+                                  {t(row.declarationType === "INDIVIDUAL" ? "Individual" : "Importer")}
+                                </RoleBadge>
+                              </td>
+                              <td>{row.submitterName}</td>
+                              <td>{row.declarationNumber}</td>
+                              <td>{formatDate(row.declarationDate)}</td>
+                              <td>{formatInteger(row.devicesCount)}</td>
+                              <td>
+                                <VarianceValue value={Number(row.variancePercent || 0)} />
+                              </td>
+                              <td>
+                                <WorkflowBadge $status={workflowKey}>
+                                  <StatusIcon
+                                    status={workflowKey === "PAID_AWAITING_CLOSURE" ? "PAID" : workflowKey}
+                                  />
+                                  {t(formatWorkflowLabel(workflowKey))}
+                                </WorkflowBadge>
+                              </td>
+                              <td>
+                                <InlineActionButton type="button" onClick={() => openDeclaration(row)}>
+                                  <img src={eyeSVG} alt="View details" />
+                                  {t("View Details")}
+                                </InlineActionButton>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </PriorityTable>
+                  </PriorityTableWrapper>
+                )}
+              </PriorityPanel>
+              <div style={{ display: "flex", gap: 15 }}>
+                <Panel style={{ flex: 1 }}>
+                  <PanelTitle>{t("Customs_DashboardStatusDistribution")}</PanelTitle>
+                  <PanelDescription>{t("Customs_DashboardStatusDistributionDescription")}</PanelDescription>
+                  <DonutSection>
+                    <DonutChart
+                      total={totalDeclarations}
+                      slices={statusBreakdown.map((slice) => ({
+                        label: t(formatWorkflowLabel(slice.status)),
+                        value: Number(slice.count || 0),
+                        color:
+                          STATUS_CHART_COLORS[slice.status] ||
+                          STATUS_STYLES[slice.status]?.color ||
+                          "#7b61ff",
+                      }))}
+                    />
+                    <LegendList>
+                      {statusBreakdown.map((slice) => (
+                        <LegendItem key={slice.status}>
+                          <LegendDot
+                            style={{
+                              background:
+                                STATUS_CHART_COLORS[slice.status] ||
+                                STATUS_STYLES[slice.status]?.color ||
+                                "#7b61ff",
+                            }}
+                          />
+                          <span>{t(formatWorkflowLabel(slice.status))}</span>
+                        </LegendItem>
+                      ))}
+                    </LegendList>
+                  </DonutSection>
+                </Panel>
+                <Panel style={{ flex: 1 }}>
+                  <PanelHeader>
+                    <div>
+                      <PanelTitle>{t("Customs_DashboardWorkflowTrend")}</PanelTitle>
+                      <PanelDescription>{t("Customs_DashboardWorkflowTrendDescription")}</PanelDescription>
+                    </div>
+                    <DropdownStub>{t("Daily")}</DropdownStub>
+                  </PanelHeader>
+                  <LineChart
+                    points={dashboard.declarationTrend || []}
+                    series={[
+                      {
+                        key: "submittedCount",
+                        label: t("Submitted"),
+                        color: SERIES_COLORS.submittedCount,
+                      },
+                      {
+                        key: "underReviewCount",
+                        label: t("Under Review"),
+                        color: SERIES_COLORS.underReviewCount,
+                      },
+                      {
+                        key: "awaitingPaymentCount",
+                        label: t("Awaiting Payment"),
+                        color: SERIES_COLORS.awaitingPaymentCount,
+                      },
+                      {
+                        key: "paidCount",
+                        label: t("Paid"),
+                        color: SERIES_COLORS.paidCount,
+                      },
+                      {
+                        key: "declinedCount",
+                        label: t("Rejected"),
+                        color: SERIES_COLORS.declinedCount,
+                      },
+                    ]}
+                  />
+                </Panel>
+              </div>
             </LeftColumn>
 
             <RightColumn>
@@ -408,45 +448,7 @@ const CustomsDashboard = () => {
                 )}
               </InsightPanel>
 
-            <Panel>
-              <PanelHeader>
-                <div>
-                  <PanelTitle>{t("Customs_DashboardWorkflowTrend")}</PanelTitle>
-                  <PanelDescription>{t("Customs_DashboardWorkflowTrendDescription")}</PanelDescription>
-                </div>
-                <DropdownStub>{t("Daily")}</DropdownStub>
-              </PanelHeader>
-              <LineChart
-                points={dashboard.declarationTrend || []}
-                series={[
-                  {
-                    key: "submittedCount",
-                    label: t("Submitted"),
-                    color: SERIES_COLORS.submittedCount,
-                  },
-                  {
-                    key: "underReviewCount",
-                    label: t("Under Review"),
-                    color: SERIES_COLORS.underReviewCount,
-                  },
-                  {
-                    key: "awaitingPaymentCount",
-                    label: t("Awaiting Payment"),
-                    color: SERIES_COLORS.awaitingPaymentCount,
-                  },
-                  {
-                    key: "paidCount",
-                    label: t("Paid"),
-                    color: SERIES_COLORS.paidCount,
-                  },
-                  {
-                    key: "declinedCount",
-                    label: t("Rejected"),
-                    color: SERIES_COLORS.declinedCount,
-                  },
-                ]}
-              />
-            </Panel>
+
             </RightColumn>
           </DashboardColumns>
         </>
@@ -908,6 +910,8 @@ const StatCard = styled.div`
   position: relative;
   min-height: 132px;
   border-radius: 20px;
+  border-top-right-radius: 0;
+  border-top-left-radius: 0;
   background: ${({ $surface }) => $surface || "#fff"};
   padding: 18px 18px 16px;
   box-shadow: 0 10px 30px rgba(17, 38, 146, 0.06);
@@ -917,8 +921,8 @@ const StatCard = styled.div`
 const StatAccentLine = styled.div`
   position: absolute;
   top: 0;
-  left: 18px;
-  right: 18px;
+  left: 0px;
+  right: 0px;
   height: 4px;
   border-radius: 999px;
   background: ${({ $accent }) => $accent};
@@ -1281,6 +1285,8 @@ const DonutSection = styled.div`
   grid-template-columns: 220px 1fr;
   align-items: center;
   gap: 16px;
+  height:calc(100% - 50px);
+  padding-left: 10px;
 
   @media (max-width: 700px) {
     grid-template-columns: 1fr;
