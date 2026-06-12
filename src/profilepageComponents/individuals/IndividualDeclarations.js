@@ -248,7 +248,6 @@ const formatStatusLabel = (t, status) => {
 const Container = styled.div`
   display: flex;
   width: 90%;
-  min-height: 100%;
   flex-direction: column;
   padding: 50px 0 30px;
 `;
