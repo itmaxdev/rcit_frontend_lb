@@ -5,11 +5,12 @@ import { useNavigate } from "react-router-dom";
 import eyeSVG from "../../assets/eye.svg";
 import noDeclarations from "../../assets/noDeclarations.png";
 import { fetchCustomsDashboard } from "../../functions/customs";
-import { STATUS_STYLES, StatusBadge, StatusIcon } from "../statusBadge";
+import { STATUS_STYLES, StatusIcon } from "../statusBadge";
 
 const SERIES_COLORS = {
   submittedCount: "#7b61ff",
-  approvedCount: "#ffb648",
+  underReviewCount: "#ff9d76",
+  awaitingPaymentCount: "#4b6ee8",
   paidCount: "#57c785",
   declinedCount: "#ff8d8d",
 };
@@ -24,13 +25,69 @@ const STATUS_CHART_COLORS = {
   CLOSED: "#3bb8d8",
 };
 
-const RECENT_FILTERS = [
-  { key: "PENDING_REVIEWS", label: "Pending Reviews" },
+const WORKFLOW_STYLES = {
+  ...STATUS_STYLES,
+  PAID_AWAITING_CLOSURE: {
+    background: "#ebf9ef",
+    color: "#0da44b",
+  },
+};
+
+const PRIORITY_FILTERS = [
+  { key: "ALL", label: "Customs_DashboardQueueAll" },
+  { key: "SUBMITTED", label: "Customs_DashboardNewSubmissions" },
   { key: "UNDER_REVIEW", label: "Under Review" },
+  { key: "PENDING_APPROVAL", label: "Pending Approval" },
   { key: "AWAITING_PAYMENT", label: "Awaiting Payment" },
-  { key: "APPROVED", label: "Approved" },
-  { key: "PAID", label: "Paid" },
-  { key: "DECLINED", label: "Rejected" },
+  { key: "PAID_AWAITING_CLOSURE", label: "Customs_DashboardAwaitingClosure" },
+];
+
+const KPI_CARD_CONFIG = [
+  {
+    key: "submittedCount",
+    label: "Customs_DashboardNewSubmissions",
+    hint: "Customs_DashboardHintSubmitted",
+    icon: "document",
+    accent: "#2480f2",
+    surface: "linear-gradient(180deg, #ffffff 0%, #f6f9ff 100%)",
+    tile: "#edf5ff",
+  },
+  {
+    key: "underReviewCount",
+    label: "Under Review",
+    hint: "Customs_DashboardHintUnderReview",
+    icon: "briefcase",
+    accent: "#f28b2c",
+    surface: "linear-gradient(180deg, #ffffff 0%, #fff9f0 100%)",
+    tile: "#fff3df",
+  },
+  {
+    key: "pendingApprovalCount",
+    label: "Pending Approval",
+    hint: "Customs_DashboardHintPendingApproval",
+    icon: "adjustment",
+    accent: "#845ef7",
+    surface: "linear-gradient(180deg, #ffffff 0%, #f8f4ff 100%)",
+    tile: "#f1eaff",
+  },
+  {
+    key: "awaitingPaymentCount",
+    label: "Awaiting Payment",
+    hint: "Customs_DashboardHintAwaitingPayment",
+    icon: "wallet",
+    accent: "#4b6ee8",
+    surface: "linear-gradient(180deg, #ffffff 0%, #f5f8ff 100%)",
+    tile: "#e9efff",
+  },
+  {
+    key: "paidAwaitingClosureCount",
+    label: "Customs_DashboardAwaitingClosure",
+    hint: "Customs_DashboardHintAwaitingClosure",
+    icon: "checkCircle",
+    accent: "#19a463",
+    surface: "linear-gradient(180deg, #ffffff 0%, #f2fbf6 100%)",
+    tile: "#e7f8ee",
+  },
 ];
 
 const CustomsDashboard = () => {
@@ -39,7 +96,7 @@ const CustomsDashboard = () => {
   const [dashboard, setDashboard] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
-  const [recentFilter, setRecentFilter] = useState("PENDING_REVIEWS");
+  const [priorityFilter, setPriorityFilter] = useState("ALL");
 
   useEffect(() => {
     let active = true;
@@ -49,12 +106,14 @@ const CustomsDashboard = () => {
       setLoadError("");
       const response = await fetchCustomsDashboard();
       if (!active) return;
+
       if (response) {
         setDashboard(response);
       } else {
         setDashboard(null);
         setLoadError(t("Customs_DashboardLoadError"));
       }
+
       setIsLoading(false);
     };
 
@@ -65,17 +124,19 @@ const CustomsDashboard = () => {
     };
   }, [t]);
 
-  const filteredRecentDeclarations = useMemo(() => {
-    const recentDeclarations = dashboard?.recentDeclarations || [];
-    return recentDeclarations.filter((row) =>
-      matchesRecentFilter(getDisplayStatus(row), recentFilter)
-    );
-  }, [dashboard, recentFilter]);
+  const priorityDeclarations = useMemo(() => {
+    const rows = dashboard?.priorityDeclarations || [];
+    return rows.filter((row) => matchesPriorityFilter(getDashboardWorkflowKey(row), priorityFilter));
+  }, [dashboard, priorityFilter]);
 
   const statusBreakdown = dashboard?.declarationStatusBreakdown || [];
   const totalDeclarations =
     dashboard?.totalDeclarations ||
     statusBreakdown.reduce((sum, item) => sum + Number(item.count || 0), 0);
+
+  const importerDeclarationsCount = Number(dashboard?.importerDeclarationsCount || 0);
+  const individualDeclarationsCount = Number(dashboard?.individualDeclarationsCount || 0);
+  const mixTotal = importerDeclarationsCount + individualDeclarationsCount;
 
   const openDeclarationsPage = () => {
     navigate("/profile/role_customs/Declaration");
@@ -85,7 +146,7 @@ const CustomsDashboard = () => {
     navigate("/profile/role_customs/Declaration", {
       state: {
         declarationType: row.declarationType || "IMPORTER",
-        declarationId: row.id,
+        declarationId: row.id || row.declarationId,
       },
     });
   };
@@ -101,51 +162,118 @@ const CustomsDashboard = () => {
       ) : (
         <>
           <StatsGrid>
-            <StatCard>
-              <StatLabel>{t("Under Review")}</StatLabel>
-              <StatValue>{dashboard.underReviewCount || 0}</StatValue>
-              <StatIconTile>
-                <BriefcaseIcon />
-              </StatIconTile>
-            </StatCard>
-            <StatCard>
-              <StatLabel>{t("Approved")}</StatLabel>
-              <StatValue>{dashboard.approvedCount || 0}</StatValue>
-              <StatIconTile>
-                <DocumentIcon />
-              </StatIconTile>
-            </StatCard>
-            <StatCard>
-              <StatLabel>{t("Rejected")}</StatLabel>
-              <StatValue>{dashboard.declinedCount || 0}</StatValue>
-              <StatIconTile>
-                <UsersIcon />
-              </StatIconTile>
-            </StatCard>
-            <StatCard>
-              <StatLabel>{t("Paid")}</StatLabel>
-              <StatValue>{dashboard.paidCount || 0}</StatValue>
-              <StatIconTile>
-                <BriefcaseIcon />
-              </StatIconTile>
-            </StatCard>
-            <StatCard>
-              <StatLabel>{t("Closed")}</StatLabel>
-              <StatValue>{dashboard.closedCount || 0}</StatValue>
-              <StatIconTile>
-                <BriefcaseIcon />
-              </StatIconTile>
-            </StatCard>
+            {KPI_CARD_CONFIG.map((card) => {
+              const Icon = getKpiIcon(card.icon);
+              return (
+                <StatCard key={card.key} $surface={card.surface}>
+                  <StatAccentLine $accent={card.accent} />
+                  <StatLabel>{t(card.label)}</StatLabel>
+                  <StatValue $accent={card.accent}>
+                    {formatInteger(dashboard[card.key] || 0)}
+                  </StatValue>
+                  <StatHint>{t(card.hint)}</StatHint>
+                  <StatIconTile $background={card.tile} $accent={card.accent}>
+                    <Icon />
+                  </StatIconTile>
+                </StatCard>
+              );
+            })}
           </StatsGrid>
 
-          <MiddleGrid>
+          <DashboardColumns>
+            <LeftColumn>
+            <PriorityPanel $compact={priorityDeclarations.length === 0}>
+              <PanelHeader>
+                <div>
+                  <PanelTitle>{t("Customs_DashboardPriorityQueue")}</PanelTitle>
+                  <PanelDescription>{t("Customs_DashboardPriorityQueueDescription")}</PanelDescription>
+                </div>
+                <HeaderActionButton type="button" onClick={openDeclarationsPage}>
+                  {t("Customs_DashboardViewAllDeclarations")}
+                </HeaderActionButton>
+              </PanelHeader>
+
+              <FilterRow>
+                {PRIORITY_FILTERS.map((filter) => (
+                  <FilterTab
+                    key={filter.key}
+                    type="button"
+                    $active={priorityFilter === filter.key}
+                    onClick={() => setPriorityFilter(filter.key)}
+                  >
+                    {t(filter.label)}
+                  </FilterTab>
+                ))}
+              </FilterRow>
+
+              {priorityDeclarations.length === 0 ? (
+                <EmptyBlock>
+                  <img src={noDeclarations} alt="No declarations" />
+                  <span>{t("Customs_DashboardNoPriority")}</span>
+                </EmptyBlock>
+              ) : (
+                <PriorityTableWrapper>
+                  <PriorityTable>
+                    <thead>
+                      <tr>
+                        <th>{t("Role")}</th>
+                        <th>{t("Submitter")}</th>
+                        <th>{t("Declaration Nbr.")}</th>
+                        <th>{t("Declaration Date")}</th>
+                        <th>{t("Devices Count")}</th>
+                        <th>{t("Variance")}</th>
+                        <th>{t("Status")}</th>
+                        <th>{t("Actions")}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {priorityDeclarations.map((row) => {
+                        const workflowKey = getDashboardWorkflowKey(row);
+                        return (
+                          <tr key={`${row.declarationType}-${row.id}`}>
+                            <td>
+                              <RoleBadge $role={row.declarationType}>
+                                {t(row.declarationType === "INDIVIDUAL" ? "Individual" : "Importer")}
+                              </RoleBadge>
+                            </td>
+                            <td>{row.submitterName}</td>
+                            <td>{row.declarationNumber}</td>
+                            <td>{formatDate(row.declarationDate)}</td>
+                            <td>{formatInteger(row.devicesCount)}</td>
+                            <td>
+                              <VarianceValue value={Number(row.variancePercent || 0)} />
+                            </td>
+                            <td>
+                              <WorkflowBadge $status={workflowKey}>
+                                <StatusIcon
+                                  status={workflowKey === "PAID_AWAITING_CLOSURE" ? "PAID" : workflowKey}
+                                />
+                                {t(formatWorkflowLabel(workflowKey))}
+                              </WorkflowBadge>
+                            </td>
+                            <td>
+                              <InlineActionButton type="button" onClick={() => openDeclaration(row)}>
+                                <img src={eyeSVG} alt="View details" />
+                                {t("View Details")}
+                              </InlineActionButton>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </PriorityTable>
+                </PriorityTableWrapper>
+              )}
+            </PriorityPanel>
+
             <Panel>
-              <PanelTitle>{t("Customs_DashboardStatusBreakdown")}</PanelTitle>
+              <PanelTitle>{t("Customs_DashboardStatusDistribution")}</PanelTitle>
+              <PanelDescription>{t("Customs_DashboardStatusDistributionDescription")}</PanelDescription>
               <DonutSection>
                 <DonutChart
                   total={totalDeclarations}
                   slices={statusBreakdown.map((slice) => ({
-                    label: t(formatStatusLabel(slice.status)),
+                    label: t(formatWorkflowLabel(slice.status)),
                     value: Number(slice.count || 0),
                     color:
                       STATUS_CHART_COLORS[slice.status] ||
@@ -164,16 +292,128 @@ const CustomsDashboard = () => {
                             "#7b61ff",
                         }}
                       />
-                      <span>{t(formatStatusLabel(slice.status))}</span>
+                      <span>{t(formatWorkflowLabel(slice.status))}</span>
                     </LegendItem>
                   ))}
                 </LegendList>
               </DonutSection>
             </Panel>
+            </LeftColumn>
+
+            <RightColumn>
+              <InsightPanel>
+                <PanelTitle>{t("Customs_DashboardDeclarationMix")}</PanelTitle>
+                <InsightDescription>{t("Customs_DashboardDeclarationMixDescription")}</InsightDescription>
+                <MixCardGroup>
+                  <MixCard>
+                    <MixHeader>
+                      <span>{t("Importer")}</span>
+                      <strong>{formatInteger(importerDeclarationsCount)}</strong>
+                    </MixHeader>
+                    <MixBarTrack>
+                      <MixBarFill
+                        $color="#4b6ee8"
+                        $width={mixTotal ? (importerDeclarationsCount / mixTotal) * 100 : 0}
+                      />
+                    </MixBarTrack>
+                  </MixCard>
+                  <MixCard>
+                    <MixHeader>
+                      <span>{t("Individual")}</span>
+                      <strong>{formatInteger(individualDeclarationsCount)}</strong>
+                    </MixHeader>
+                    <MixBarTrack>
+                      <MixBarFill
+                        $color="#57c785"
+                        $width={mixTotal ? (individualDeclarationsCount / mixTotal) * 100 : 0}
+                      />
+                    </MixBarTrack>
+                  </MixCard>
+                </MixCardGroup>
+              </InsightPanel>
+
+              <InsightPanel>
+                <PanelTitle>{t("Customs_DashboardOverdueActions")}</PanelTitle>
+                <InsightDescription>{t("Customs_DashboardOverdueDescription")}</InsightDescription>
+                {(dashboard.overdueDeclarations || []).length === 0 ? (
+                  <SmallEmptyState>{t("Customs_DashboardNoOverdue")}</SmallEmptyState>
+                ) : (
+                  <InsightList>
+                    {dashboard.overdueDeclarations.map((row) => {
+                      const workflowKey = getDashboardWorkflowKey(row);
+                      return (
+                        <InsightListItem
+                          key={`overdue-${row.declarationType}-${row.id}`}
+                          type="button"
+                          onClick={() => openDeclaration(row)}
+                        >
+                          <InsightTopRow>
+                            <strong>{row.declarationNumber}</strong>
+                            <VarianceText $positive={false}>
+                              {formatAge(getDeclarationAgeDays(row.declarationDate), t)}
+                            </VarianceText>
+                          </InsightTopRow>
+                          <InsightBodyText>{row.submitterName}</InsightBodyText>
+                          <InsightMetaRow>
+                            <RoleChip $role={row.declarationType}>
+                              {t(row.declarationType === "INDIVIDUAL" ? "Individual" : "Importer")}
+                            </RoleChip>
+                            <WorkflowChip $status={workflowKey}>
+                              {t(formatWorkflowLabel(workflowKey))}
+                            </WorkflowChip>
+                          </InsightMetaRow>
+                        </InsightListItem>
+                      );
+                    })}
+                  </InsightList>
+                )}
+              </InsightPanel>
+
+              <InsightPanel>
+                <PanelTitle>{t("Customs_DashboardHighVarianceWatchlist")}</PanelTitle>
+                <InsightDescription>{t("Customs_DashboardHighVarianceDescription")}</InsightDescription>
+                {(dashboard.highVarianceDeclarations || []).length === 0 ? (
+                  <SmallEmptyState>{t("Customs_DashboardNoVariance")}</SmallEmptyState>
+                ) : (
+                  <InsightList>
+                    {dashboard.highVarianceDeclarations.map((item) => (
+                      <InsightListItem
+                        key={`variance-${item.declarationType}-${item.declarationId}`}
+                        type="button"
+                        onClick={() =>
+                          openDeclaration({
+                            id: item.declarationId,
+                            declarationType: item.declarationType,
+                          })
+                        }
+                      >
+                        <InsightTopRow>
+                          <strong>{item.declarationNumber}</strong>
+                          <VarianceText $positive={Number(item.variancePercent || 0) >= 0}>
+                            {formatVariance(item.variancePercent)}
+                          </VarianceText>
+                        </InsightTopRow>
+                        <InsightBodyText>{item.submitterName}</InsightBodyText>
+                        <InsightMetaRow>
+                          <RoleChip $role={item.declarationType}>
+                            {t(item.declarationType === "INDIVIDUAL" ? "Individual" : "Importer")}
+                          </RoleChip>
+                          <WorkflowChip $status={item.status}>
+                            {t(formatWorkflowLabel(item.status))}
+                          </WorkflowChip>
+                        </InsightMetaRow>
+                      </InsightListItem>
+                    ))}
+                  </InsightList>
+                )}
+              </InsightPanel>
 
             <Panel>
               <PanelHeader>
-                <PanelTitle>{t("Customs_DashboardOverTime")}</PanelTitle>
+                <div>
+                  <PanelTitle>{t("Customs_DashboardWorkflowTrend")}</PanelTitle>
+                  <PanelDescription>{t("Customs_DashboardWorkflowTrendDescription")}</PanelDescription>
+                </div>
                 <DropdownStub>{t("Daily")}</DropdownStub>
               </PanelHeader>
               <LineChart
@@ -185,9 +425,14 @@ const CustomsDashboard = () => {
                     color: SERIES_COLORS.submittedCount,
                   },
                   {
-                    key: "approvedCount",
-                    label: t("Approved"),
-                    color: SERIES_COLORS.approvedCount,
+                    key: "underReviewCount",
+                    label: t("Under Review"),
+                    color: SERIES_COLORS.underReviewCount,
+                  },
+                  {
+                    key: "awaitingPaymentCount",
+                    label: t("Awaiting Payment"),
+                    color: SERIES_COLORS.awaitingPaymentCount,
                   },
                   {
                     key: "paidCount",
@@ -202,174 +447,22 @@ const CustomsDashboard = () => {
                 ]}
               />
             </Panel>
-
-            <SidePanel>
-              <PanelTitle>{t("Customs_DashboardTopImporters")}</PanelTitle>
-              <TopList>
-                {(dashboard.topImporters || []).map((item) => (
-                  <TopListRow key={item.importerName}>
-                    <span>{item.importerName}</span>
-                    <strong>{formatInteger(item.declarationsCount)}</strong>
-                  </TopListRow>
-                ))}
-              </TopList>
-              <OutlineButton type="button" onClick={openDeclarationsPage}>
-                {t("View All Importers")}
-              </OutlineButton>
-            </SidePanel>
-          </MiddleGrid>
-
-          <BottomGrid>
-            <RecentDeclarationsPanel>
-              <PanelTitle>{t("Customs_DashboardRecentDeclarations")}</PanelTitle>
-              <TabRow>
-                {RECENT_FILTERS.map((filter) => (
-                  <FilterTab
-                    key={filter.key}
-                    type="button"
-                    $active={recentFilter === filter.key}
-                    onClick={() => setRecentFilter(filter.key)}
-                  >
-                    {t(filter.label)}
-                  </FilterTab>
-                ))}
-              </TabRow>
-
-              {filteredRecentDeclarations.length === 0 ? (
-                <EmptyBlock>
-                  <img src={noDeclarations} alt="No declarations" />
-                  <span>{t("Customs_NoDeclarationsSubtitle")}</span>
-                </EmptyBlock>
-              ) : (
-                <RecentTableWrapper>
-                  <RecentTable>
-                    <thead>
-                      <tr>
-                        <th>{t("Importer")}</th>
-                        <th>{t("Declaration Nbr.")}</th>
-                        <th>{t("Declaration Date")}</th>
-                        <th>{t("Devices Count")}</th>
-                        <th>{t("Declared Total (USD)")}</th>
-                        <th>{t("Estimated Value (USD)")}</th>
-                        <th>{t("Variance")}</th>
-                        <th>{t("Price Source")}</th>
-                        <th>{t("Status")}</th>
-                        <th>{t("Actions")}</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {filteredRecentDeclarations.map((row) => {
-                        const displayStatus = getDisplayStatus(row);
-                        return (
-                          <tr key={`${row.declarationType}-${row.id}`}>
-                            <td>{row.submitterName}</td>
-                            <td>{row.declarationNumber}</td>
-                            <td>{formatDate(row.declarationDate)}</td>
-                            <td>{formatInteger(row.devicesCount)}</td>
-                            <td>{formatMoney(row.declaredTotalUsd)}</td>
-                            <td>
-                              <AdjustedEstimatedValue row={row} />
-                            </td>
-                            <td>
-                              <VarianceValue value={Number(row.variancePercent || 0)} />
-                            </td>
-                            <td>{row.priceSource || "-"}</td>
-                            <td>
-                              <StatusBadge $status={displayStatus}>
-                                <StatusIcon status={displayStatus} />
-                                {t(formatStatusLabel(displayStatus))}
-                              </StatusBadge>
-                            </td>
-                            <td>
-                              <InlineActionButton
-                                type="button"
-                                onClick={() => openDeclaration(row)}
-                              >
-                                <img src={eyeSVG} alt="View details" />
-                                {t("View Details")}
-                              </InlineActionButton>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </RecentTable>
-                </RecentTableWrapper>
-              )}
-            </RecentDeclarationsPanel>
-
-            <RightColumn>
-              <SidePanel>
-                <PanelTitle>{t("Payment Status Overview")}</PanelTitle>
-                <PaymentStatusLayout>
-                  <DonutChart
-                    total={
-                      Number(dashboard.paidInvoicesCount || 0) +
-                      Number(dashboard.unpaidInvoicesCount || 0)
-                    }
-                    size={180}
-                    innerSize={102}
-                    slices={[
-                      {
-                        label: t("Paid"),
-                        value: Number(dashboard.paidInvoicesCount || 0),
-                        color: "#7b61ff",
-                      },
-                      {
-                        label: t("Unpaid"),
-                        value: Number(dashboard.unpaidInvoicesCount || 0),
-                        color: "#6ed39b",
-                      },
-                    ]}
-                  />
-                  <LegendList>
-                    <LegendItem>
-                      <LegendDot style={{ background: "#7b61ff" }} />
-                      <span>{t("Paid")}</span>
-                    </LegendItem>
-                    <LegendItem>
-                      <LegendDot style={{ background: "#6ed39b" }} />
-                      <span>{t("Unpaid")}</span>
-                    </LegendItem>
-                  </LegendList>
-                </PaymentStatusLayout>
-              </SidePanel>
-
-              <SidePanel>
-                <PanelTitle>{t("Customs_DashboardHighVariance")}</PanelTitle>
-                <TopList>
-                  {(dashboard.highVarianceDeclarations || []).map((item) => (
-                    <TopListRow key={`${item.declarationNumber}-${item.variancePercent}`}>
-                      <span>{item.declarationNumber}</span>
-                      <VarianceText $positive={Number(item.variancePercent || 0) >= 0}>
-                        {formatVariance(item.variancePercent)}
-                      </VarianceText>
-                    </TopListRow>
-                  ))}
-                </TopList>
-                <OutlineButton type="button" onClick={openDeclarationsPage}>
-                  {t("View All Importers")}
-                </OutlineButton>
-              </SidePanel>
             </RightColumn>
-          </BottomGrid>
+          </DashboardColumns>
         </>
       )}
     </DashboardPage>
   );
 };
 
-const matchesRecentFilter = (status, filter) => {
-  if (filter === "PENDING_REVIEWS") {
-    return status === "SUBMITTED" || status === "UNDER_REVIEW" || status === "PENDING_APPROVAL";
-  }
-  if (filter === "DECLINED") {
-    return status === "DECLINED";
+const matchesPriorityFilter = (status, filter) => {
+  if (filter === "ALL") {
+    return true;
   }
   return status === filter;
 };
 
-const getDisplayStatus = (row) => {
+const getDashboardWorkflowKey = (row) => {
   if (
     row?.declarationType === "IMPORTER" &&
     row?.status === "UNDER_REVIEW" &&
@@ -378,42 +471,23 @@ const getDisplayStatus = (row) => {
   ) {
     return "PENDING_APPROVAL";
   }
+
+  if (row?.status === "PAID") {
+    return "PAID_AWAITING_CLOSURE";
+  }
+
   return row?.status;
 };
 
-const hasAdjustedApprovedValue = (row) =>
-  row?.declarationType === "IMPORTER" &&
-  row?.approvedPriceUsd != null &&
-  Boolean(row?.adjustmentReason?.trim());
-
-const AdjustedEstimatedValue = ({ row }) => {
-  if (!hasAdjustedApprovedValue(row)) {
-    return formatMoney(row?.estimatedValueUsd);
-  }
-
-  return (
-    <AdjustedValueStack>
-      <OriginalValueText>{formatMoney(row?.estimatedValueUsd)}</OriginalValueText>
-      <AdjustedValueText>{formatMoney(row?.approvedPriceUsd)}</AdjustedValueText>
-    </AdjustedValueStack>
-  );
-};
-
-const formatStatusLabel = (status) => {
+const formatWorkflowLabel = (status) => {
   if (status === "PENDING_APPROVAL") return "Pending Approval";
+  if (status === "PAID_AWAITING_CLOSURE") return "Customs_DashboardAwaitingClosure";
   if (status === "DECLINED") return "Rejected";
   if (status === "CLOSED") return "Closed";
   return status
     ?.replaceAll("_", " ")
     .toLowerCase()
     .replace(/\b\w/g, (letter) => letter.toUpperCase());
-};
-
-const formatMoney = (value) => {
-  return Number(value || 0).toLocaleString(undefined, {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
 };
 
 const formatInteger = (value) =>
@@ -439,6 +513,51 @@ const formatVariance = (value) => {
   const sign = numeric > 0 ? "+" : "";
   return `${sign}${numeric.toFixed(2)}%`;
 };
+
+const getDeclarationAgeDays = (value) => {
+  if (!value) return 0;
+  const declarationDate = new Date(value);
+  if (Number.isNaN(declarationDate.getTime())) {
+    return 0;
+  }
+
+  const now = new Date();
+  const declarationDay = new Date(
+    declarationDate.getFullYear(),
+    declarationDate.getMonth(),
+    declarationDate.getDate()
+  );
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const milliseconds = today.getTime() - declarationDay.getTime();
+  return Math.max(0, Math.round(milliseconds / (1000 * 60 * 60 * 24)));
+};
+
+const formatAge = (days, t) => {
+  if (days <= 0) {
+    return t("Customs_DashboardToday");
+  }
+  if (days === 1) {
+    return `1 ${t("Customs_DashboardDayOld")}`;
+  }
+  return `${days} ${t("Customs_DashboardDaysOld")}`;
+};
+
+function getKpiIcon(iconKey) {
+  switch (iconKey) {
+    case "document":
+      return DocumentIcon;
+    case "briefcase":
+      return BriefcaseIcon;
+    case "adjustment":
+      return AdjustmentIcon;
+    case "wallet":
+      return WalletIcon;
+    case "checkCircle":
+      return CheckCircleIcon;
+    default:
+      return BriefcaseIcon;
+  }
+}
 
 const VarianceValue = ({ value }) => {
   const positive = value >= 0;
@@ -489,7 +608,6 @@ const DonutChart = ({ slices, total, size = 220, innerSize = 122 }) => {
     const portion = sliceTotal ? Number(slice.value || 0) / sliceTotal : 0;
     const startAngle = angleCursor;
     let endAngle = angleCursor + portion * 360;
-    // A full-circle arc would collapse to a point; nudge it just under 360.
     if (endAngle - startAngle >= 360) {
       endAngle = startAngle + 359.999;
     }
@@ -584,8 +702,7 @@ const LineChart = ({ points, series }) => {
   const yTicks = 5;
 
   const hoveredPoint = hoverIndex != null ? points[hoverIndex] : null;
-  const hoverX =
-    hoverIndex != null ? padding.left + xStep * hoverIndex : 0;
+  const hoverX = hoverIndex != null ? padding.left + xStep * hoverIndex : 0;
 
   return (
     <ChartWrapper>
@@ -730,10 +847,7 @@ const LineChart = ({ points, series }) => {
       </svg>
 
       {hoveredPoint && (
-        <ChartTooltip
-          $left={(hoverX / chartWidth) * 100}
-          $top={6}
-        >
+        <ChartTooltip $left={(hoverX / chartWidth) * 100} $top={6}>
           <TooltipDate>{formatChartDate(hoveredPoint.date)}</TooltipDate>
           {series.map((item) => (
             <TooltipRow key={`tip-${item.key}`}>
@@ -792,12 +906,22 @@ const StatsGrid = styled.div`
 
 const StatCard = styled.div`
   position: relative;
-  min-height: 112px;
+  min-height: 132px;
   border-radius: 20px;
-  background: #fff;
+  background: ${({ $surface }) => $surface || "#fff"};
   padding: 18px 18px 16px;
   box-shadow: 0 10px 30px rgba(17, 38, 146, 0.06);
   border: 1px solid #eef1f7;
+`;
+
+const StatAccentLine = styled.div`
+  position: absolute;
+  top: 0;
+  left: 18px;
+  right: 18px;
+  height: 4px;
+  border-radius: 999px;
+  background: ${({ $accent }) => $accent};
 `;
 
 const StatLabel = styled.div`
@@ -807,11 +931,18 @@ const StatLabel = styled.div`
 `;
 
 const StatValue = styled.div`
-  margin-top: 26px;
-  color: #252a3d;
+  margin-top: 20px;
+  color: ${({ $accent }) => $accent || "#252a3d"};
   font-size: 32px;
   font-weight: 700;
   line-height: 1;
+`;
+
+const StatHint = styled.div`
+  margin-top: 10px;
+  color: #7f8aa8;
+  font-size: 12px;
+  max-width: 190px;
 `;
 
 const StatIconTile = styled.div`
@@ -821,7 +952,7 @@ const StatIconTile = styled.div`
   width: 42px;
   height: 42px;
   border-radius: 12px;
-  background: #edf5ff;
+  background: ${({ $background }) => $background || "#edf5ff"};
   display: flex;
   align-items: center;
   justify-content: center;
@@ -829,30 +960,25 @@ const StatIconTile = styled.div`
   svg {
     width: 22px;
     height: 22px;
-    color: #2480f2;
+    color: ${({ $accent }) => $accent || "#2480f2"};
   }
 `;
 
-const MiddleGrid = styled.div`
+const DashboardColumns = styled.div`
   display: grid;
-  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1.35fr) minmax(0, 0.8fr);
+  grid-template-columns: minmax(0, 1.65fr) minmax(320px, 0.95fr);
   gap: 12px;
-  margin-bottom: 12px;
+  align-items: start;
 
   @media (max-width: 1280px) {
     grid-template-columns: 1fr;
   }
 `;
 
-const BottomGrid = styled.div`
-  display: grid;
-  grid-template-columns: minmax(0, 1.8fr) minmax(320px, 0.75fr);
+const LeftColumn = styled.div`
+  display: flex;
+  flex-direction: column;
   gap: 12px;
-  align-items: stretch;
-
-  @media (max-width: 1280px) {
-    grid-template-columns: 1fr;
-  }
 `;
 
 const RightColumn = styled.div`
@@ -869,38 +995,285 @@ const Panel = styled.section`
   border: 1px solid #eef1f7;
 `;
 
-const SidePanel = styled(Panel)`
+const PriorityPanel = styled(Panel)`
   display: flex;
   flex-direction: column;
+  min-height: ${({ $compact }) => ($compact ? "460px" : "560px")};
 `;
 
-const RecentDeclarationsPanel = styled(Panel)`
+const InsightPanel = styled(Panel)`
   display: flex;
   flex-direction: column;
-  min-height: 520px;
+  background: linear-gradient(180deg, #ffffff 0%, #fafcff 100%);
 `;
 
 const PanelHeader = styled.div`
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
-  gap: 12px;
+  gap: 16px;
+  margin-bottom: 14px;
 `;
 
 const PanelTitle = styled.h2`
-  margin: 0 0 14px;
+  margin: 0;
   color: #24315e;
   font-size: 17px;
   font-weight: 700;
 `;
 
-const DropdownStub = styled.div`
-  border: 1px solid #d9e0ef;
-  border-radius: 10px;
-  padding: 6px 10px;
-  color: #3a4567;
-  font-size: 12px;
+const PanelDescription = styled.p`
+  margin: 6px 0 0;
+  color: #75809e;
+  font-size: 13px;
+  line-height: 1.5;
+`;
+
+const InsightDescription = styled.p`
+  margin: 6px 0 14px;
+  color: #75809e;
+  font-size: 13px;
+  line-height: 1.5;
+`;
+
+const HeaderActionButton = styled.button`
+  border: 1.5px solid #263765;
+  border-radius: 999px;
   background: #fff;
+  color: #263765;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 10px 14px;
+  cursor: pointer;
+  white-space: nowrap;
+`;
+
+const FilterRow = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 14px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #eef1f7;
+`;
+
+const FilterTab = styled.button`
+  border: 1px solid ${({ $active }) => ($active ? "#2480f2" : "#dde3f1")};
+  background: ${({ $active }) => ($active ? "#eef5ff" : "#fff")};
+  color: ${({ $active }) => ($active ? "#2480f2" : "#5f6985")};
+  border-radius: 999px;
+  padding: 9px 14px;
+  font-size: 13px;
+  font-weight: ${({ $active }) => ($active ? 700 : 500)};
+  cursor: pointer;
+`;
+
+const PriorityTableWrapper = styled.div`
+  flex: 1;
+  min-height: 380px;
+  overflow-x: auto;
+  display: flex;
+  align-items: flex-start;
+`;
+
+const PriorityTable = styled.table`
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  min-width: 920px;
+
+  thead th {
+    background: #f5f7fc;
+    color: #7d86a2;
+    font-size: 13px;
+    font-weight: 500;
+    text-align: left;
+    padding: 14px;
+  }
+
+  thead th:first-child {
+    border-top-left-radius: 14px;
+  }
+
+  thead th:last-child {
+    border-top-right-radius: 14px;
+  }
+
+  tbody td {
+    padding: 14px;
+    border-bottom: 1px solid #eef1f7;
+    color: #2d3557;
+    font-size: 14px;
+    vertical-align: middle;
+  }
+
+  tbody tr:last-child td {
+    border-bottom: none;
+  }
+`;
+
+const RoleBadge = styled.span`
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: 12px;
+  font-weight: 700;
+  color: ${({ $role }) => ($role === "INDIVIDUAL" ? "#197d49" : "#2356c8")};
+  background: ${({ $role }) => ($role === "INDIVIDUAL" ? "#ebf9ef" : "#eef5ff")};
+`;
+
+const WorkflowBadge = styled.span`
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 999px;
+  padding: 7px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  background: ${({ $status }) => WORKFLOW_STYLES[$status]?.background || "#eef5ff"};
+  color: ${({ $status }) => WORKFLOW_STYLES[$status]?.color || "#2480f2"};
+`;
+
+const InlineActionButton = styled.button`
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: none;
+  background: transparent;
+  color: #2a79e5;
+  font-weight: 600;
+  cursor: pointer;
+
+  img {
+    width: 16px;
+    height: 16px;
+  }
+`;
+
+const MixCardGroup = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+`;
+
+const MixCard = styled.div`
+  padding: 14px 14px 16px;
+  border-radius: 16px;
+  background: linear-gradient(180deg, #fbfcff 0%, #f4f7fd 100%);
+  border: 1px solid #eef1f7;
+`;
+
+const MixHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+  color: #2d3557;
+  font-size: 14px;
+
+  strong {
+    font-size: 16px;
+  }
+`;
+
+const MixBarTrack = styled.div`
+  height: 12px;
+  border-radius: 999px;
+  background: #e9edf6;
+  overflow: hidden;
+`;
+
+const MixBarFill = styled.div`
+  height: 100%;
+  width: ${({ $width }) => $width}%;
+  background: ${({ $color }) =>
+    `linear-gradient(90deg, ${$color} 0%, ${$color}cc 100%)`};
+  border-radius: 999px;
+`;
+
+const InsightList = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+`;
+
+const InsightListItem = styled.button`
+  border: 1px solid #eef1f7;
+  background: #fff;
+  border-radius: 16px;
+  padding: 12px 14px;
+  text-align: left;
+  cursor: pointer;
+  transition: box-shadow 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+
+  &:hover {
+    border-color: #dbe3f3;
+    box-shadow: 0 8px 24px rgba(17, 38, 146, 0.07);
+    transform: translateY(-1px);
+  }
+`;
+
+const InsightTopRow = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 6px;
+
+  strong {
+    color: #24315e;
+    font-size: 14px;
+  }
+`;
+
+const InsightBodyText = styled.div`
+  color: #4d597a;
+  font-size: 13px;
+  margin-bottom: 10px;
+`;
+
+const InsightMetaRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+`;
+
+const RoleChip = styled.span`
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 5px 9px;
+  font-size: 11px;
+  font-weight: 700;
+  color: ${({ $role }) => ($role === "INDIVIDUAL" ? "#197d49" : "#2356c8")};
+  background: ${({ $role }) => ($role === "INDIVIDUAL" ? "#ebf9ef" : "#eef5ff")};
+`;
+
+const WorkflowChip = styled.span`
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 5px 9px;
+  font-size: 11px;
+  font-weight: 700;
+  background: ${({ $status }) => WORKFLOW_STYLES[$status]?.background || "#eef5ff"};
+  color: ${({ $status }) => WORKFLOW_STYLES[$status]?.color || "#2480f2"};
+`;
+
+const SmallEmptyState = styled.div`
+  min-height: 112px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  color: #8a93ac;
+  font-size: 13px;
+  border-radius: 16px;
+  background: linear-gradient(180deg, #fbfcff 0%, #f5f8fd 100%);
+  border: 1px dashed #dce3f1;
 `;
 
 const DonutSection = styled.div`
@@ -910,18 +1283,6 @@ const DonutSection = styled.div`
   gap: 16px;
 
   @media (max-width: 700px) {
-    grid-template-columns: 1fr;
-    justify-items: center;
-  }
-`;
-
-const PaymentStatusLayout = styled.div`
-  display: grid;
-  grid-template-columns: 180px 1fr;
-  align-items: center;
-  gap: 12px;
-
-  @media (max-width: 600px) {
     grid-template-columns: 1fr;
     justify-items: center;
   }
@@ -1074,143 +1435,13 @@ const DonutTooltip = styled.div`
   gap: 8px;
 `;
 
-const TopList = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  margin-bottom: 18px;
-`;
-
-const TopListRow = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  color: #2d3557;
-  font-size: 14px;
-
-  span:first-child {
-    min-width: 0;
-    flex: 1;
-  }
-
-  strong {
-    font-size: 16px;
-  }
-`;
-
-const OutlineButton = styled.button`
-  width: 100%;
-  min-height: 48px;
-  border-radius: 999px;
-  border: 1.5px solid #263765;
-  background: #fff;
-  color: #263765;
-  font-size: 16px;
-  font-weight: 600;
-  cursor: pointer;
-  margin-top: auto;
-`;
-
-const TabRow = styled.div`
-  display: flex;
-  flex-wrap: wrap;
-  gap: 14px;
-  margin-bottom: 14px;
-  border-bottom: 1px solid #eef1f7;
-  padding-bottom: 8px;
-`;
-
-const FilterTab = styled.button`
-  background: transparent;
-  border: none;
-  padding: 0 0 8px;
-  color: ${({ $active }) => ($active ? "#2480f2" : "#6f7793")};
-  font-size: 14px;
-  font-weight: ${({ $active }) => ($active ? 700 : 500)};
-  cursor: pointer;
-  border-bottom: 2px solid ${({ $active }) => ($active ? "#2480f2" : "transparent")};
-`;
-
-const RecentTableWrapper = styled.div`
-  flex: 1;
-  min-height: 360px;
-  overflow-x: auto;
-  display: flex;
-  align-items: flex-start;
-`;
-
-const RecentTable = styled.table`
-  width: 100%;
-  border-collapse: separate;
-  border-spacing: 0;
-  min-width: 980px;
-  height:fit-content;
-
-  thead th {
-    background: #f5f7fc;
-    color: #7d86a2;
-    font-size: 13px;
-    font-weight: 500;
-    text-align: left;
-    padding: 14px 14px;
-  }
-
-  thead th:first-child {
-    border-top-left-radius: 14px;
-  }
-
-  thead th:last-child {
-    border-top-right-radius: 14px;
-  }
-
-  tbody td {
-    padding: 14px;
-    border-bottom: 1px solid #eef1f7;
-    color: #2d3557;
-    font-size: 14px;
-    vertical-align: middle;
-  }
-
-  tbody tr:last-child td {
-    border-bottom: none;
-  }
-`;
-
-const AdjustedValueStack = styled.div`
-  display: inline-flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 3px;
-  line-height: 1.15;
-`;
-
-const OriginalValueText = styled.span`
-  color: #98a0b7;
+const DropdownStub = styled.div`
+  border: 1px solid #d9e0ef;
+  border-radius: 10px;
+  padding: 6px 10px;
+  color: #3a4567;
   font-size: 12px;
-  text-decoration: line-through;
-`;
-
-const AdjustedValueText = styled.span`
-  color: #1c9d4b;
-  font-size: 14px;
-  font-weight: 700;
-`;
-
-const InlineActionButton = styled.button`
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  border: none;
-  background: transparent;
-  color: #2a79e5;
-  font-weight: 600;
-  cursor: pointer;
-
-  img {
-    width: 16px;
-    height: 16px;
-  }
+  background: #fff;
 `;
 
 const VarianceCell = styled.div`
@@ -1235,6 +1466,7 @@ const VarianceTriangle = styled.span`
 const VarianceText = styled.span`
   color: ${({ $positive }) => ($positive ? "#14a44d" : "#ef3d35")};
   font-weight: 700;
+  font-size: 13px;
 `;
 
 const EmptyBlock = styled.div`
@@ -1243,7 +1475,7 @@ const EmptyBlock = styled.div`
   align-items: center;
   justify-content: center;
   gap: 12px;
-  min-height: 360px;
+  min-height: 240px;
   padding: 36px 18px 18px;
   color: #7d86a2;
 
@@ -1302,21 +1534,56 @@ const DocumentIcon = () => (
   </svg>
 );
 
-const UsersIcon = () => (
+const AdjustmentIcon = () => (
   <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-    <circle cx="9" cy="9" r="2.5" stroke="currentColor" strokeWidth="1.7" />
-    <circle cx="16" cy="10" r="2" stroke="currentColor" strokeWidth="1.7" />
     <path
-      d="M5.5 17.5C5.9 15.7 7.3 14.5 9 14.5C10.7 14.5 12.1 15.7 12.5 17.5"
+      d="M6 7.5H18"
       stroke="currentColor"
       strokeWidth="1.7"
       strokeLinecap="round"
     />
     <path
-      d="M13.5 17.5C13.9 16.1 15 15.2 16.3 15.2C17.5 15.2 18.6 16 19 17.2"
+      d="M6 12H14"
       stroke="currentColor"
       strokeWidth="1.7"
       strokeLinecap="round"
+    />
+    <path
+      d="M6 16.5H11"
+      stroke="currentColor"
+      strokeWidth="1.7"
+      strokeLinecap="round"
+    />
+    <circle cx="17.5" cy="15.5" r="3" stroke="currentColor" strokeWidth="1.7" />
+  </svg>
+);
+
+const WalletIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <path
+      d="M5.5 7.5C5.5 6.4 6.4 5.5 7.5 5.5H17.5C18.6 5.5 19.5 6.4 19.5 7.5V16.5C19.5 17.6 18.6 18.5 17.5 18.5H7.5C6.4 18.5 5.5 17.6 5.5 16.5V7.5Z"
+      stroke="currentColor"
+      strokeWidth="1.7"
+    />
+    <path
+      d="M5.5 9.5H16.5C17.6 9.5 18.5 10.4 18.5 11.5V12.5C18.5 13.6 17.6 14.5 16.5 14.5H5.5"
+      stroke="currentColor"
+      strokeWidth="1.7"
+      strokeLinejoin="round"
+    />
+    <circle cx="15.7" cy="12" r="0.9" fill="currentColor" />
+  </svg>
+);
+
+const CheckCircleIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <circle cx="12" cy="12" r="8" stroke="currentColor" strokeWidth="1.7" />
+    <path
+      d="M8.5 12.3L11 14.8L15.7 10.1"
+      stroke="currentColor"
+      strokeWidth="1.7"
+      strokeLinecap="round"
+      strokeLinejoin="round"
     />
   </svg>
 );
