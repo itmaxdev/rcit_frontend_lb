@@ -70,6 +70,7 @@ const Header = () => {
       if (isHeaderMountedRef.current) {
         setNotifications([]);
         setUnreadCount(0);
+        setIsNotificationsOpen(false);
       }
       return;
     }

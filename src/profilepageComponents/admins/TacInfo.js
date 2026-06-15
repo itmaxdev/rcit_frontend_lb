@@ -95,6 +95,7 @@ const TacInfo = () => {
   const { accountType } = useContext(Context);
   const isAdmin = accountType === ROLE_ADMIN;
   const isCustoms = accountType === ROLE_CUSTOMS;
+  const canAccessTacInfo = isAdmin || isCustoms;
 
   const [records, setRecords] = useState([]);
   const [requests, setRequests] = useState([]);
@@ -116,6 +117,12 @@ const TacInfo = () => {
   const tacInfoRequestIdRef = useRef(0);
 
   const loadTacInfo = useCallback(async () => {
+    if (!canAccessTacInfo) {
+      setRecords([]);
+      setTotalElements(0);
+      return;
+    }
+
     const requestId = tacInfoRequestIdRef.current + 1;
     tacInfoRequestIdRef.current = requestId;
 
@@ -142,14 +149,27 @@ const TacInfo = () => {
     }
 
     setRecords(data || []);
-  }, [appliedSearch, currentPage, isAdmin, pageSize, sortBy, sortDirection]);
+  }, [
+    appliedSearch,
+    canAccessTacInfo,
+    currentPage,
+    isAdmin,
+    pageSize,
+    sortBy,
+    sortDirection,
+  ]);
 
   const loadRequests = useCallback(async () => {
+    if (!canAccessTacInfo) {
+      setRequests([]);
+      return;
+    }
+
     const data = isAdmin
       ? await fetchTacPriceChangeRequests()
       : await fetchCustomsTacPriceRequests();
     setRequests(Array.isArray(data) ? data : []);
-  }, [isAdmin]);
+  }, [canAccessTacInfo, isAdmin]);
 
   useEffect(() => {
     loadTacInfo();
@@ -346,6 +366,10 @@ const TacInfo = () => {
   const requestDifference = requestRecord
     ? getPriceDifference(requestRecord.cfi, draftValue)
     : null;
+
+  if (!canAccessTacInfo) {
+    return null;
+  }
 
   return (
     <TacInfoContainer>
