@@ -10,17 +10,21 @@ import { STATUS_STYLES, StatusIcon } from "../statusBadge";
 const SERIES_COLORS = {
   submittedCount: "#7b61ff",
   underReviewCount: "#ff9d76",
+  pendingApprovalCount: "#845ef7",
   awaitingPaymentCount: "#4b6ee8",
   paidCount: "#57c785",
+  closedCount: "#3bb8d8",
   declinedCount: "#ff8d8d",
 };
 
 const STATUS_CHART_COLORS = {
   SUBMITTED: "#7b61ff",
   UNDER_REVIEW: "#ff9d76",
+  PENDING_APPROVAL: "#845ef7",
   APPROVED: "#ffb648",
   AWAITING_PAYMENT: "#4b6ee8",
   PAID: "#57c785",
+  PAID_AWAITING_CLOSURE: "#57c785",
   DECLINED: "#ff8d8d",
   CLOSED: "#3bb8d8",
 };
@@ -31,13 +35,17 @@ const WORKFLOW_STYLES = {
     background: "#ebf9ef",
     color: "#0da44b",
   },
+  PENDING_APPROVAL: {
+    background: "#f1eaff",
+    color: "#845ef7",
+  },
 };
 
 const PRIORITY_FILTERS = [
   { key: "ALL", label: "Customs_DashboardQueueAll" },
   { key: "SUBMITTED", label: "Customs_DashboardNewSubmissions" },
   { key: "UNDER_REVIEW", label: "Under Review" },
-  { key: "PENDING_APPROVAL", label: "Pending Approval" },
+  { key: "PENDING_APPROVAL", label: "Customs_DashboardPriceAdjustments" },
   { key: "AWAITING_PAYMENT", label: "Awaiting Payment" },
   { key: "PAID_AWAITING_CLOSURE", label: "Customs_DashboardAwaitingClosure" },
 ];
@@ -63,7 +71,7 @@ const KPI_CARD_CONFIG = [
   },
   {
     key: "pendingApprovalCount",
-    label: "Pending Approval",
+    label: "Customs_DashboardPriceAdjustments",
     hint: "Customs_DashboardHintPendingApproval",
     icon: "adjustment",
     accent: "#845ef7",
@@ -137,6 +145,38 @@ const CustomsDashboard = () => {
   const importerDeclarationsCount = Number(dashboard?.importerDeclarationsCount || 0);
   const individualDeclarationsCount = Number(dashboard?.individualDeclarationsCount || 0);
   const mixTotal = importerDeclarationsCount + individualDeclarationsCount;
+  const commandMetrics = [
+    {
+      label: t("Customs_DashboardActionRequired"),
+      value: formatInteger(dashboard?.actionRequiredCount || 0),
+      hint: t("Customs_DashboardActionRequiredHint"),
+      tone: "blue",
+    },
+    {
+      label: t("Customs_DashboardOverdue"),
+      value: formatInteger(dashboard?.overdueCount || 0),
+      hint: t("Customs_DashboardOverdueHint"),
+      tone: "red",
+    },
+    {
+      label: t("Customs_DashboardOldestPending"),
+      value: formatDays(dashboard?.oldestPendingAgeDays || 0, t),
+      hint: t("Customs_DashboardOldestPendingHint"),
+      tone: "amber",
+    },
+    {
+      label: t("Customs_DashboardPaymentExposure"),
+      value: formatMoney(dashboard?.awaitingPaymentTotalPayableUsd || 0),
+      hint: t("Customs_DashboardPaymentExposureHint"),
+      tone: "green",
+    },
+    {
+      label: t("Customs_DashboardClosureExposure"),
+      value: formatMoney(dashboard?.paidAwaitingClosureTotalPayableUsd || 0),
+      hint: t("Customs_DashboardClosureExposureHint"),
+      tone: "teal",
+    },
+  ];
 
   const openDeclarationsPage = () => {
     navigate("/profile/role_customs/Declaration");
@@ -161,6 +201,23 @@ const CustomsDashboard = () => {
         <CenteredState>{t("Customs_DashboardEmpty")}</CenteredState>
       ) : (
         <>
+          <CommandPanel>
+            <CommandCopy>
+              <Eyebrow>{t("Customs_DashboardCommandCenter")}</Eyebrow>
+              <CommandTitle>{t("Customs_DashboardTodayWorkload")}</CommandTitle>
+              <CommandDescription>{t("Customs_DashboardTodayWorkloadDescription")}</CommandDescription>
+            </CommandCopy>
+            <CommandMetrics>
+              {commandMetrics.map((metric) => (
+                <CommandMetric key={metric.label} $tone={metric.tone}>
+                  <MetricLabel>{metric.label}</MetricLabel>
+                  <MetricValue>{metric.value}</MetricValue>
+                  <MetricHint>{metric.hint}</MetricHint>
+                </CommandMetric>
+              ))}
+            </CommandMetrics>
+          </CommandPanel>
+
           <StatsGrid>
             {KPI_CARD_CONFIG.map((card) => {
               const Icon = getKpiIcon(card.icon);
@@ -220,10 +277,13 @@ const CustomsDashboard = () => {
                           <th>{t("Submitter")}</th>
                           <th>{t("Declaration Nbr.")}</th>
                           <th>{t("Declaration Date")}</th>
+                          <th>{t("Customs_DashboardAge")}</th>
                           <th>{t("Devices Count")}</th>
+                          <th>{t("Declared Total (USD)")}</th>
+                          <th>{t("Estimated Value (USD)")}</th>
                           <th>{t("Variance")}</th>
                           <th>{t("Status")}</th>
-                          <th>{t("Actions")}</th>
+                          <th>{t("Customs_DashboardNextAction")}</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -239,7 +299,10 @@ const CustomsDashboard = () => {
                               <td>{row.submitterName}</td>
                               <td>{row.declarationNumber}</td>
                               <td>{formatDate(row.declarationDate)}</td>
+                              <td>{formatAge(getDeclarationAgeDays(row.declarationDate), t)}</td>
                               <td>{formatInteger(row.devicesCount)}</td>
+                              <td>{formatMoney(row.declaredTotalUsd)}</td>
+                              <td>{formatMoney(row.estimatedValueUsd)}</td>
                               <td>
                                 <VarianceValue value={Number(row.variancePercent || 0)} />
                               </td>
@@ -254,7 +317,7 @@ const CustomsDashboard = () => {
                               <td>
                                 <InlineActionButton type="button" onClick={() => openDeclaration(row)}>
                                   <img src={eyeSVG} alt="View details" />
-                                  {t("View Details")}
+                                  {t(getNextActionLabel(workflowKey))}
                                 </InlineActionButton>
                               </td>
                             </tr>
@@ -265,8 +328,8 @@ const CustomsDashboard = () => {
                   </PriorityTableWrapper>
                 )}
               </PriorityPanel>
-              <div style={{ display: "flex", gap: 15 }}>
-                <Panel style={{ flex: 1 }}>
+              <AnalyticsGrid>
+                <Panel>
                   <PanelTitle>{t("Customs_DashboardStatusDistribution")}</PanelTitle>
                   <PanelDescription>{t("Customs_DashboardStatusDistributionDescription")}</PanelDescription>
                   <DonutSection>
@@ -298,7 +361,7 @@ const CustomsDashboard = () => {
                     </LegendList>
                   </DonutSection>
                 </Panel>
-                <Panel style={{ flex: 1 }}>
+                <Panel>
                   <PanelHeader>
                     <div>
                       <PanelTitle>{t("Customs_DashboardWorkflowTrend")}</PanelTitle>
@@ -320,14 +383,24 @@ const CustomsDashboard = () => {
                         color: SERIES_COLORS.underReviewCount,
                       },
                       {
+                        key: "pendingApprovalCount",
+                        label: t("Customs_DashboardPriceAdjustments"),
+                        color: SERIES_COLORS.pendingApprovalCount,
+                      },
+                      {
                         key: "awaitingPaymentCount",
                         label: t("Awaiting Payment"),
                         color: SERIES_COLORS.awaitingPaymentCount,
                       },
                       {
                         key: "paidCount",
-                        label: t("Paid"),
+                        label: t("Customs_DashboardAwaitingClosure"),
                         color: SERIES_COLORS.paidCount,
+                      },
+                      {
+                        key: "closedCount",
+                        label: t("Closed"),
+                        color: SERIES_COLORS.closedCount,
                       },
                       {
                         key: "declinedCount",
@@ -337,10 +410,25 @@ const CustomsDashboard = () => {
                     ]}
                   />
                 </Panel>
-              </div>
+              </AnalyticsGrid>
             </LeftColumn>
 
             <RightColumn>
+              <InsightPanel>
+                <PanelTitle>{t("Customs_DashboardFinancialExposure")}</PanelTitle>
+                <InsightDescription>{t("Customs_DashboardFinancialExposureDescription")}</InsightDescription>
+                <FinancialGrid>
+                  <FinancialCard $tone="green">
+                    <span>{t("Customs_DashboardAwaitingPaymentTotal")}</span>
+                    <strong>{formatMoney(dashboard.awaitingPaymentTotalPayableUsd)}</strong>
+                  </FinancialCard>
+                  <FinancialCard $tone="teal">
+                    <span>{t("Customs_DashboardPaidReadyToClose")}</span>
+                    <strong>{formatMoney(dashboard.paidAwaitingClosureTotalPayableUsd)}</strong>
+                  </FinancialCard>
+                </FinancialGrid>
+              </InsightPanel>
+
               <InsightPanel>
                 <PanelTitle>{t("Customs_DashboardDeclarationMix")}</PanelTitle>
                 <InsightDescription>{t("Customs_DashboardDeclarationMixDescription")}</InsightDescription>
@@ -466,7 +554,6 @@ const matchesPriorityFilter = (status, filter) => {
 
 const getDashboardWorkflowKey = (row) => {
   if (
-    row?.declarationType === "IMPORTER" &&
     row?.status === "UNDER_REVIEW" &&
     row?.approvedPriceUsd != null &&
     row?.adjustmentReason?.trim()
@@ -481,8 +568,17 @@ const getDashboardWorkflowKey = (row) => {
   return row?.status;
 };
 
+const getNextActionLabel = (status) => {
+  if (status === "PAID_AWAITING_CLOSURE") return "Customs_DashboardActionClose";
+  if (status === "PENDING_APPROVAL") return "Customs_DashboardActionReviewAdjustment";
+  if (status === "UNDER_REVIEW") return "Customs_DashboardActionDecide";
+  if (status === "SUBMITTED") return "Customs_DashboardActionStartReview";
+  if (status === "AWAITING_PAYMENT") return "Customs_DashboardActionMonitorPayment";
+  return "View Details";
+};
+
 const formatWorkflowLabel = (status) => {
-  if (status === "PENDING_APPROVAL") return "Pending Approval";
+  if (status === "PENDING_APPROVAL") return "Customs_DashboardPriceAdjustments";
   if (status === "PAID_AWAITING_CLOSURE") return "Customs_DashboardAwaitingClosure";
   if (status === "DECLINED") return "Rejected";
   if (status === "CLOSED") return "Closed";
@@ -496,6 +592,20 @@ const formatInteger = (value) =>
   Number(value || 0).toLocaleString(undefined, {
     maximumFractionDigits: 0,
   });
+
+const formatMoney = (value) =>
+  `$${Number(value || 0).toLocaleString(undefined, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`;
+
+const formatDays = (days, t) => {
+  const numericDays = Number(days || 0);
+  if (numericDays <= 0) {
+    return t("Customs_DashboardToday");
+  }
+  return `${formatInteger(numericDays)}d`;
+};
 
 const formatDate = (value) => {
   if (!value) return "-";
@@ -891,6 +1001,110 @@ const DashboardPage = styled.div`
   box-sizing: border-box;
 `;
 
+const CommandPanel = styled.section`
+  display: grid;
+  grid-template-columns: minmax(260px, 0.9fr) minmax(0, 1.6fr);
+  gap: 16px;
+  align-items: stretch;
+  margin-bottom: 12px;
+  border: 1px solid #e6ebf5;
+  border-radius: 24px;
+  background:
+    radial-gradient(circle at top left, rgba(25, 164, 99, 0.14), transparent 34%),
+    linear-gradient(135deg, #16213f 0%, #24315e 48%, #314269 100%);
+  box-shadow: 0 18px 45px rgba(20, 35, 78, 0.12);
+  padding: 20px;
+  color: #fff;
+
+  @media (max-width: 1180px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+const CommandCopy = styled.div`
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 148px;
+`;
+
+const Eyebrow = styled.div`
+  color: #9edeb9;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+`;
+
+const CommandTitle = styled.h1`
+  margin: 10px 0 8px;
+  color: #fff;
+  font-size: 30px;
+  line-height: 1.1;
+`;
+
+const CommandDescription = styled.p`
+  margin: 0;
+  color: #d7deee;
+  font-size: 14px;
+  line-height: 1.55;
+  max-width: 520px;
+`;
+
+const CommandMetrics = styled.div`
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+
+  @media (max-width: 1280px) {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  @media (max-width: 760px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+const metricTone = {
+  blue: { border: "rgba(96, 165, 250, 0.55)", glow: "rgba(96, 165, 250, 0.22)" },
+  red: { border: "rgba(248, 113, 113, 0.55)", glow: "rgba(248, 113, 113, 0.2)" },
+  amber: { border: "rgba(251, 191, 36, 0.6)", glow: "rgba(251, 191, 36, 0.2)" },
+  green: { border: "rgba(87, 199, 133, 0.6)", glow: "rgba(87, 199, 133, 0.18)" },
+  teal: { border: "rgba(45, 212, 191, 0.55)", glow: "rgba(45, 212, 191, 0.18)" },
+};
+
+const CommandMetric = styled.div`
+  min-height: 126px;
+  border: 1px solid ${({ $tone }) => metricTone[$tone]?.border || "rgba(255,255,255,0.18)"};
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at top right, ${({ $tone }) => metricTone[$tone]?.glow || "rgba(255,255,255,0.14)"}, transparent 42%),
+    rgba(255, 255, 255, 0.08);
+  padding: 14px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14);
+`;
+
+const MetricLabel = styled.div`
+  color: #d6def1;
+  font-size: 12px;
+  font-weight: 700;
+`;
+
+const MetricValue = styled.div`
+  margin-top: 16px;
+  color: #fff;
+  font-size: 27px;
+  font-weight: 800;
+  line-height: 1;
+`;
+
+const MetricHint = styled.div`
+  margin-top: 10px;
+  color: #b8c2dc;
+  font-size: 11px;
+  line-height: 1.4;
+`;
+
 const StatsGrid = styled.div`
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
@@ -983,6 +1197,16 @@ const LeftColumn = styled.div`
   display: flex;
   flex-direction: column;
   gap: 12px;
+`;
+
+const AnalyticsGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+
+  @media (max-width: 980px) {
+    grid-template-columns: 1fr;
+  }
 `;
 
 const RightColumn = styled.div`
@@ -1084,7 +1308,7 @@ const PriorityTable = styled.table`
   width: 100%;
   border-collapse: separate;
   border-spacing: 0;
-  min-width: 920px;
+  min-width: 1260px;
 
   thead th {
     background: #f5f7fc;
@@ -1160,6 +1384,42 @@ const MixCardGroup = styled.div`
   display: flex;
   flex-direction: column;
   gap: 12px;
+`;
+
+const FinancialGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+
+  @media (max-width: 520px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+const FinancialCard = styled.div`
+  border-radius: 16px;
+  border: 1px solid ${({ $tone }) => ($tone === "teal" ? "#ccefeb" : "#cfeeda")};
+  background: ${({ $tone }) =>
+    $tone === "teal"
+      ? "linear-gradient(180deg, #f4fffd 0%, #edfdfa 100%)"
+      : "linear-gradient(180deg, #f7fff9 0%, #eefbf2 100%)"};
+  padding: 14px;
+
+  span {
+    display: block;
+    color: #60708c;
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1.35;
+  }
+
+  strong {
+    display: block;
+    margin-top: 12px;
+    color: ${({ $tone }) => ($tone === "teal" ? "#0f766e" : "#157347")};
+    font-size: 22px;
+    line-height: 1.1;
+  }
 `;
 
 const MixCard = styled.div`
