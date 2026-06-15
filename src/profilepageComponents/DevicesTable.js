@@ -27,7 +27,6 @@ const DevicesTable = ({ data, isAdmin = false }) => {
             <TableHeader>{t("Country of Origin")}</TableHeader>
             <TableHeader>{t("Declaration Date")}</TableHeader>
             {isAdmin && <TableHeader>{t("Input_FullName")}</TableHeader>}
-            {isAdmin && <TableHeader>{t("User Email")}</TableHeader>}
             <TableHeader>{t("Device Status")}</TableHeader>
           </TableRow>
         </thead>
@@ -55,7 +54,6 @@ const DevicesTable = ({ data, isAdmin = false }) => {
                     </NameButton>
                   </TableCell>
                 )}
-                {isAdmin && <TableCell>{device.userEmail || "-"}</TableCell>}
                 <TableCell>
                   <StatusBadge status={device.status || "Registered"}>
                     {t(device.status || "Registered")}
@@ -65,7 +63,7 @@ const DevicesTable = ({ data, isAdmin = false }) => {
             ))
           ) : (
             <TableRow>
-              <TableCell colSpan={isAdmin ? "9" : "7"}>
+              <TableCell colSpan={isAdmin ? "8" : "7"}>
                 {t("No data available")}
               </TableCell>
             </TableRow>
