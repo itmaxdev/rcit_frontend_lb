@@ -38,6 +38,10 @@ const Header = () => {
   const segments = location.pathname.split("/").filter(Boolean);
   const title = getHeaderTitle(t, segments, accountType);
   const accountBadge = getAccountBadge(t, accountType, userSummary);
+  const headerTheme = getHeaderTheme(accountType);
+  const workspaceLabel = accountBadge?.roleLabel
+    ? t("Header_Workspace", { role: accountBadge.roleLabel })
+    : "";
   const supportPath = getSupportPath(accountType);
   const accountChipPath = getAccountChipPath(accountType);
 
@@ -175,9 +179,12 @@ const Header = () => {
   };
 
   return (
-    <HeaderContainer>
+    <HeaderContainer $theme={headerTheme}>
       <TitleGroup>
         <Title>{title}</Title>
+        {workspaceLabel ? (
+          <WorkspacePill $theme={headerTheme}>{workspaceLabel}</WorkspacePill>
+        ) : null}
       </TitleGroup>
       <ButtonsContainer>
         {supportPath ? (
@@ -255,7 +262,7 @@ const Header = () => {
         {accountBadge &&
           (accountChipPath ? (
             <AccountChipLink to={accountChipPath}>
-              <AccountChip>
+              <AccountChip $theme={headerTheme}>
                 <AccountIconCircle aria-hidden="true">
                   <AccountIcon viewBox="0 0 24 24">
                     <path d="M6.57757 15.4816C5.1628 16.324 1.45336 18.0441 3.71266 20.1966C4.81631 21.248 6.04549 22 7.59087 22H16.4091C17.9545 22 19.1837 21.248 20.2873 20.1966C22.5466 18.0441 18.8372 16.324 17.4224 15.4816C14.1048 13.5061 9.89519 13.5061 6.57757 15.4816Z" />
@@ -264,12 +271,11 @@ const Header = () => {
                 </AccountIconCircle>
                 <AccountText>
                   <AccountName>{accountBadge.name}</AccountName>
-                  <AccountRole>{accountBadge.roleLabel}</AccountRole>
                 </AccountText>
               </AccountChip>
             </AccountChipLink>
           ) : (
-            <AccountChip>
+            <AccountChip $theme={headerTheme}>
               <AccountIconCircle aria-hidden="true">
                 <AccountIcon viewBox="0 0 24 24">
                   <path d="M6.57757 15.4816C5.1628 16.324 1.45336 18.0441 3.71266 20.1966C4.81631 21.248 6.04549 22 7.59087 22H16.4091C17.9545 22 19.1837 21.248 20.2873 20.1966C22.5466 18.0441 18.8372 16.324 17.4224 15.4816C14.1048 13.5061 9.89519 13.5061 6.57757 15.4816Z" />
@@ -278,7 +284,6 @@ const Header = () => {
               </AccountIconCircle>
               <AccountText>
                 <AccountName>{accountBadge.name}</AccountName>
-                <AccountRole>{accountBadge.roleLabel}</AccountRole>
               </AccountText>
             </AccountChip>
           ))}
@@ -374,6 +379,58 @@ const getAccountBadge = (t, accountType, userSummary) => {
   };
 };
 
+const DEFAULT_HEADER_THEME = {
+  accent: "#436c4d",
+  background: "linear-gradient(135deg, #f5f8f5 0%, #f5f6fa 72%)",
+  border: "#e4ebdf",
+  pillBackground: "rgba(67, 108, 77, 0.12)",
+  pillColor: "#436c4d",
+  chipBackground: "#20232c",
+};
+
+const getHeaderTheme = (accountType) => {
+  switch (accountType) {
+    case ROLE_ADMIN:
+      return {
+        accent: "#8a5a12",
+        background: "linear-gradient(135deg, #fff7e9 0%, #f5f6fa 72%)",
+        border: "#f0dfbd",
+        pillBackground: "rgba(138, 90, 18, 0.14)",
+        pillColor: "#8a5a12",
+        chipBackground: "#2c2519",
+      };
+    case ROLE_CUSTOMS:
+      return {
+        accent: "#436c4d",
+        background: "linear-gradient(135deg, #f0f8f2 0%, #f5f6fa 72%)",
+        border: "#dce9df",
+        pillBackground: "rgba(67, 108, 77, 0.14)",
+        pillColor: "#365f40",
+        chipBackground: "#1f2a23",
+      };
+    case ROLE_IMPORTER:
+      return {
+        accent: "#225fb8",
+        background: "linear-gradient(135deg, #edf5ff 0%, #f5f6fa 72%)",
+        border: "#d7e5f8",
+        pillBackground: "rgba(34, 95, 184, 0.12)",
+        pillColor: "#225fb8",
+        chipBackground: "#1d2638",
+      };
+    case ROLE_USER:
+      return {
+        accent: "#7a4d9c",
+        background: "linear-gradient(135deg, #f8f1ff 0%, #f5f6fa 72%)",
+        border: "#eadcf5",
+        pillBackground: "rgba(122, 77, 156, 0.13)",
+        pillColor: "#6d438f",
+        chipBackground: "#282133",
+      };
+    default:
+      return DEFAULT_HEADER_THEME;
+  }
+};
+
 const getSupportPath = (accountType) => {
   switch (accountType) {
     case ROLE_ADMIN:
@@ -407,7 +464,8 @@ const HeaderContainer = styled.div`
   align-items: center;
   gap: 12px 20px;
   flex-wrap: wrap;
-  background: #f5f6fa;
+  background: ${({ $theme }) => $theme.background};
+  border-bottom: 1px solid ${({ $theme }) => $theme.border};
   padding: 15px 30px;
 `;
 
@@ -425,6 +483,18 @@ const Title = styled.h1`
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+`;
+
+const WorkspacePill = styled.span`
+  flex: 0 0 auto;
+  padding: 6px 11px;
+  border-radius: 999px;
+  background: ${({ $theme }) => $theme.pillBackground};
+  color: ${({ $theme }) => $theme.pillColor};
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
 `;
 
 const ButtonsContainer = styled.div`
@@ -611,11 +681,11 @@ const AccountChipLink = styled(Link)`
 const AccountChip = styled.div`
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   min-width: 0;
-  padding: 8px 14px 8px 10px;
+  padding: 9px 16px 9px 10px;
   border-radius: 999px;
-  background: #20232c;
+  background: ${({ $theme }) => $theme.chipBackground};
   box-shadow: 0 10px 24px rgba(15, 23, 42, 0.14);
   color: #fff;
 `;
@@ -647,7 +717,7 @@ const AccountText = styled.div`
   min-width: 0;
   flex-direction: column;
   align-items: flex-start;
-  line-height: 1.1;
+  line-height: 1.15;
 `;
 
 const AccountName = styled.span`
@@ -655,18 +725,7 @@ const AccountName = styled.span`
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 700;
   color: #fff;
-`;
-
-const AccountRole = styled.span`
-  max-width: 180px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  margin-top: 3px;
-  font-size: 10px;
-  font-weight: 500;
-  color: rgba(255, 255, 255, 0.92);
 `;

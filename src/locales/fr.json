@@ -176,6 +176,7 @@
   "Sidebar_Archived": "Archivées",
   "Header_MyDeclarations": "Mes déclarations",
   "Header_MyDevices": "Mes appareils",
+  "Header_Workspace": "Espace {{role}}",
   "RoleBadge_CustomsOfficer": "Agent des douanes",
   "RoleBadge_Importer": "Importateur",
   "RoleBadge_Individual": "Individuel",
