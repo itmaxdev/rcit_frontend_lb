@@ -248,7 +248,7 @@ const DeclareDevicesInd = () => {
 
           <InputRow>
             <DateField
-              fieldName="Input_Date"
+              fieldName="DeclareDevicesInd_DeclarationDate"
               value={device.date}
               changeValue={handleDateChange(index)}
             />

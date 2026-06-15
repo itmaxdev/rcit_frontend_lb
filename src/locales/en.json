@@ -193,6 +193,7 @@
   "DeclareDevicesInd_Title": "Declare new devices ",
   "DeclareDevicesInd_SubText": "Fill in the information about each device",
   "DeclareDevicesInd_SubHeader": "Device details",
+  "DeclareDevicesInd_DeclarationDate": "Declaration Date (dd/mm/yyyy)",
   "DeclareDevicesInd_CheckDevice": "Check Device",
   "DeclareDevicesInd_IMEIsLabel": "Device IMEIs",
   "DeclareDevicesInd_AddIMEI": "Add another device",

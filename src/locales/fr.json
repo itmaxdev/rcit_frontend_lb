@@ -193,6 +193,7 @@
   "DeclareDevicesInd_Title": "Déclarer de nouveaux appareils ",
   "DeclareDevicesInd_SubText": "Remplissez les informations sur chaque appareil",
   "DeclareDevicesInd_SubHeader": "Détails de l'appareil",
+  "DeclareDevicesInd_DeclarationDate": "Date de déclaration (jj/mm/aaaa)",
   "DeclareDevicesInd_CheckDevice": "Vérifier l'appareil",
   "DeclareDevicesInd_IMEIsLabel": "IMEI de l'appareil",
   "DeclareDevicesInd_AddIMEI": "Ajouter un autre appareil",
