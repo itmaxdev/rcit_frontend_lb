@@ -567,5 +567,7 @@
   "Configuration_SaveSuccess": "Configuration enregistrée avec succès.",
   "Notifications_Title": "Notifications",
   "Notifications_Empty": "Aucune notification pour le moment.",
-  "Notifications_MarkAllRead": "Tout marquer comme lu"
+  "Notifications_MarkAllRead": "Tout marquer comme lu",
+  "Notifications_Read": "Lu",
+  "Notifications_Unread": "Non lu"
 }

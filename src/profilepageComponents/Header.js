@@ -32,6 +32,8 @@ const Header = () => {
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const notificationMenuRef = useRef(null);
   const isHeaderMountedRef = useRef(false);
+  const notificationsRef = useRef([]);
+  const processingNotificationIdsRef = useRef(new Set());
 
   const segments = location.pathname.split("/").filter(Boolean);
   const title = getHeaderTitle(t, segments, accountType);
@@ -68,6 +70,7 @@ const Header = () => {
   const loadNotifications = useCallback(async () => {
     if (!accountType || accountType === "Unknown") {
       if (isHeaderMountedRef.current) {
+        notificationsRef.current = [];
         setNotifications([]);
         setUnreadCount(0);
         setIsNotificationsOpen(false);
@@ -80,7 +83,11 @@ const Header = () => {
       return;
     }
 
-    setNotifications(Array.isArray(data?.notifications) ? data.notifications : []);
+    const nextNotifications = Array.isArray(data?.notifications)
+      ? data.notifications
+      : [];
+    notificationsRef.current = nextNotifications;
+    setNotifications(nextNotifications);
     setUnreadCount(data?.unreadCount || 0);
   }, [accountType]);
 
@@ -107,7 +114,40 @@ const Header = () => {
 
   const handleNotificationClick = async (notification) => {
     if (!notification.read) {
-      await markNotificationRead(notification.id);
+      if (processingNotificationIdsRef.current.has(notification.id)) {
+        return;
+      }
+
+      processingNotificationIdsRef.current.add(notification.id);
+      try {
+        const updatedNotification = await markNotificationRead(notification.id);
+        if (!updatedNotification) {
+          await loadNotifications();
+          return;
+        }
+
+        const wasUnread = notificationsRef.current.some(
+          (currentNotification) =>
+            currentNotification.id === notification.id && !currentNotification.read
+        );
+
+        const nextNotifications = notificationsRef.current.map(
+          (currentNotification) =>
+            currentNotification.id === notification.id
+              ? { ...currentNotification, ...updatedNotification, read: true }
+              : currentNotification
+        );
+        notificationsRef.current = nextNotifications;
+        setNotifications(nextNotifications);
+
+        if (wasUnread) {
+          setUnreadCount((currentUnreadCount) =>
+            Math.max(currentUnreadCount - 1, 0)
+          );
+        }
+      } finally {
+        processingNotificationIdsRef.current.delete(notification.id);
+      }
     }
 
     await loadNotifications();
@@ -121,6 +161,15 @@ const Header = () => {
   const handleMarkAllRead = async () => {
     const success = await markAllNotificationsRead();
     if (success) {
+      const nextNotifications = notificationsRef.current.map(
+        (currentNotification) => ({
+          ...currentNotification,
+          read: true,
+        })
+      );
+      notificationsRef.current = nextNotifications;
+      setNotifications(nextNotifications);
+      setUnreadCount(0);
       await loadNotifications();
     }
   };
@@ -174,7 +223,14 @@ const Header = () => {
                       onClick={() => handleNotificationClick(notification)}
                       $unread={!notification.read}
                     >
-                      <NotificationItemTitle>{notification.title}</NotificationItemTitle>
+                      <NotificationItemTop>
+                        <NotificationItemTitle>{notification.title}</NotificationItemTitle>
+                        <NotificationStatus $read={notification.read}>
+                          {notification.read
+                            ? t("Notifications_Read")
+                            : t("Notifications_Unread")}
+                        </NotificationStatus>
+                      </NotificationItemTop>
                       <NotificationMessage>{notification.message}</NotificationMessage>
                       <NotificationTime>
                         {formatNotificationTime(notification.createdAt)}
@@ -493,9 +549,26 @@ const NotificationItem = styled.button`
   }
 `;
 
+const NotificationItemTop = styled.div`
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+`;
+
 const NotificationItemTitle = styled.div`
   color: #20294c;
   font-size: 13px;
+  font-weight: 800;
+`;
+
+const NotificationStatus = styled.span`
+  flex: 0 0 auto;
+  border-radius: 999px;
+  padding: 3px 8px;
+  color: ${({ $read }) => ($read ? "#6f7895" : "#1e8d4d")};
+  background: ${({ $read }) => ($read ? "#f1f3f7" : "rgba(30, 141, 77, 0.1)")};
+  font-size: 10px;
   font-weight: 800;
 `;
 

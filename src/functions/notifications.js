@@ -36,10 +36,14 @@ export const markNotificationRead = async (notificationId) => {
       }
     );
 
-    return response?.ok;
+    if (!response?.ok) {
+      return null;
+    }
+
+    return await response.json();
   } catch (error) {
     console.error("Error marking notification as read:", error);
-    return false;
+    return null;
   }
 };
 
