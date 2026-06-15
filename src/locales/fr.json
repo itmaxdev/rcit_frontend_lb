@@ -210,6 +210,8 @@
   "TacInfo_RequestSuccess": "La demande de mise à jour du prix estimé a été soumise pour approbation administrateur.",
   "TacInfo_RequestError": "Échec de l'envoi de la demande de mise à jour du prix estimé.",
   "TacInfo_ReviewError": "Échec du traitement de la demande de changement de prix TAC.",
+  "TacInfo_Loading": "Chargement des enregistrements TAC...",
+  "TacInfo_LoadError": "Échec du chargement des enregistrements TAC. Veuillez réessayer.",
   "TacInfo_ApproveSuccess": "La demande de prix estimé a été approuvée et appliquée.",
   "TacInfo_RejectSuccess": "La demande de prix estimé a été rejetée.",
   "TacInfo_InvalidEstimatedValue": "Saisissez une valeur estimée positive valide avec jusqu'à 12 chiffres et 2 décimales.",

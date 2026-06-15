@@ -30,6 +30,7 @@ const DEFAULT_SORT = {
   sortBy: "tacNumber",
   sortDirection: "asc",
 };
+const TAC_PAGE_SIZE_OPTIONS = [100, 500, 1000];
 const CUSTOMS_COLUMNS = [
   { key: "tacNumber", labelKey: "TacInfo_TAC" },
   { key: "brand", labelKey: "Brand" },
@@ -102,12 +103,14 @@ const TacInfo = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [appliedSearch, setAppliedSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(0);
-  const [pageSize, setPageSize] = useState(10);
+  const [pageSize, setPageSize] = useState(TAC_PAGE_SIZE_OPTIONS[0]);
   const [totalElements, setTotalElements] = useState(0);
   const [sortBy, setSortBy] = useState(DEFAULT_SORT.sortBy);
   const [sortDirection, setSortDirection] = useState(
     DEFAULT_SORT.sortDirection
   );
+  const [isTacLoading, setIsTacLoading] = useState(false);
+  const [tacLoadError, setTacLoadError] = useState(false);
   const [requestRecord, setRequestRecord] = useState(null);
   const [draftValue, setDraftValue] = useState("");
   const [requestReason, setRequestReason] = useState("");
@@ -120,11 +123,15 @@ const TacInfo = () => {
     if (!canAccessTacInfo) {
       setRecords([]);
       setTotalElements(0);
+      setIsTacLoading(false);
+      setTacLoadError(false);
       return;
     }
 
     const requestId = tacInfoRequestIdRef.current + 1;
     tacInfoRequestIdRef.current = requestId;
+    setIsTacLoading(true);
+    setTacLoadError(false);
 
     const data = isAdmin
       ? await fetchTacInfo(
@@ -148,7 +155,14 @@ const TacInfo = () => {
       return;
     }
 
-    setRecords(data || []);
+    if (data === null) {
+      setRecords([]);
+      setTacLoadError(true);
+    } else {
+      setRecords(data || []);
+      setTacLoadError(false);
+    }
+    setIsTacLoading(false);
   }, [
     appliedSearch,
     canAccessTacInfo,
@@ -485,12 +499,18 @@ const TacInfo = () => {
 
           <Pagination>
             <PageNumber>
-              <span>
-                {formatCount(pageStart)}
-                {" - "}
-                {formatCount(pageEnd)}
-              </span>{" "}
-              {t("Out of")} <span>{formatCount(totalElements)}</span>
+              {isTacLoading && totalElements === 0 ? (
+                <span>{t("TacInfo_Loading")}</span>
+              ) : (
+                <>
+                  <span>
+                    {formatCount(pageStart)}
+                    {" - "}
+                    {formatCount(pageEnd)}
+                  </span>{" "}
+                  {t("Out of")} <span>{formatCount(totalElements)}</span>
+                </>
+              )}
             </PageNumber>
             <PaginationControls>
               <img
@@ -526,9 +546,9 @@ const TacInfo = () => {
               />
             </PaginationControls>
             <PageSize value={pageSize} onChange={handlePageSizeChange}>
-              {[10, 20, 50, 100].map((size) => (
+              {TAC_PAGE_SIZE_OPTIONS.map((size) => (
                 <option key={size} value={size}>
-                  {size} / page
+                  {formatCount(size)} / page
                 </option>
               ))}
             </PageSize>
@@ -548,7 +568,19 @@ const TacInfo = () => {
               </TableRow>
             </thead>
             <tbody>
-              {records.length > 0 ? (
+              {isTacLoading ? (
+                <TableRow>
+                  <EmptyCell colSpan={tableColSpan}>
+                    {t("TacInfo_Loading")}
+                  </EmptyCell>
+                </TableRow>
+              ) : tacLoadError ? (
+                <TableRow>
+                  <EmptyCell colSpan={tableColSpan}>
+                    {t("TacInfo_LoadError")}
+                  </EmptyCell>
+                </TableRow>
+              ) : records.length > 0 ? (
                 records.map((record) => {
                   const latestRequest = latestRequestsByTac[record.tacNumber];
                   const hasPendingRequest =

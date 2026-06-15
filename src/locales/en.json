@@ -210,6 +210,8 @@
   "TacInfo_RequestSuccess": "Estimated price update request submitted for admin approval.",
   "TacInfo_RequestError": "Failed to submit estimated price update request.",
   "TacInfo_ReviewError": "Failed to review the TAC price change request.",
+  "TacInfo_Loading": "Loading TAC records...",
+  "TacInfo_LoadError": "Failed to load TAC records. Please try again.",
   "TacInfo_ApproveSuccess": "Estimated price request approved and applied.",
   "TacInfo_RejectSuccess": "Estimated price request rejected.",
   "TacInfo_InvalidEstimatedValue": "Enter a valid positive estimated price up to 12 digits and 2 decimals.",
