@@ -136,6 +136,7 @@ const ProfilePage = () => {
                 path="Declaration/Archived"
                 element={<CustomsDeclarations archived />}
               />
+              <Route path="TACInfo" element={<TacInfo />} />
               <Route path="Help" element={<SupportCard />} />
               <Route path="Profile" element={<Profile />} />
             </Route>

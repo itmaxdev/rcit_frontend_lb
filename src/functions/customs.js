@@ -54,6 +54,108 @@ export const fetchCustomsInvoiceConfiguration = async () => {
   }
 };
 
+export const fetchCustomsTacInfo = async (
+  page = 0,
+  pageSize = 10,
+  setTotalElements,
+  search = "",
+  sortBy = "tacNumber",
+  sortDirection = "asc"
+) => {
+  try {
+    const token = getToken();
+    const params = new URLSearchParams({ page, size: pageSize });
+    if (search) {
+      params.append("search", search);
+    }
+    params.append("sortBy", sortBy);
+    params.append("sortDirection", sortDirection);
+
+    const response = await makeAuthenticatedRequest(
+      `${CUSTOMS_API_BASE_URL}/tac-info?${params.toString()}`,
+      {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    if (!response?.ok) {
+      setTotalElements?.(0);
+      return null;
+    }
+
+    const data = await response.json();
+    setTotalElements?.(data.totalElements || 0);
+    return data.content || [];
+  } catch (error) {
+    setTotalElements?.(0);
+    console.error("Error fetching customs TAC info:", error);
+    return null;
+  }
+};
+
+export const fetchCustomsTacPriceRequests = async () => {
+  try {
+    const token = getToken();
+    const response = await makeAuthenticatedRequest(
+      `${CUSTOMS_API_BASE_URL}/tac-info/price-requests`,
+      {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    if (!response?.ok) {
+      return [];
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error("Error fetching customs TAC price requests:", error);
+    return [];
+  }
+};
+
+export const submitCustomsTacPriceRequest = async (tacNumber, requestedCfi) => {
+  try {
+    const token = getToken();
+    const response = await makeAuthenticatedRequest(
+      `${CUSTOMS_API_BASE_URL}/tac-info/price-requests`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          tacNumber,
+          requestedCfi: Number(requestedCfi),
+        }),
+      }
+    );
+
+    if (!response?.ok) {
+      const errorData = response ? await response.json() : null;
+      return {
+        success: false,
+        error: errorData?.message || "Failed to submit TAC price change request",
+      };
+    }
+
+    return { success: true, data: await response.json() };
+  } catch (error) {
+    console.error("Error submitting customs TAC price request:", error);
+    return {
+      success: false,
+      error: "Failed to submit TAC price change request",
+    };
+  }
+};
+
 export const fetchCustomsDeclarations = async (
   declarationType = "IMPORTER",
   page = 1,

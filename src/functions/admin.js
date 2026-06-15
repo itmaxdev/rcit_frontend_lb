@@ -87,7 +87,9 @@ export const fetchTacInfo = async (
   page = 0,
   pageSize = 10,
   setTotalElements,
-  search = ""
+  search = "",
+  sortBy = "tacNumber",
+  sortDirection = "asc"
 ) => {
   try {
     const token = getToken();
@@ -95,6 +97,8 @@ export const fetchTacInfo = async (
     if (search) {
       params.append("search", search);
     }
+    params.append("sortBy", sortBy);
+    params.append("sortDirection", sortDirection);
 
     const url = `${ADMIN_API_BASE_URL}/tac-info?${params.toString()}`;
     const headers = { Authorization: `Bearer ${token}` };
@@ -118,6 +122,64 @@ export const fetchTacInfo = async (
     return null;
   }
 };
+
+export const fetchTacPriceChangeRequests = async () => {
+  try {
+    const token = getToken();
+    const url = `${ADMIN_API_BASE_URL}/tac-info/price-requests`;
+    const headers = { Authorization: `Bearer ${token}` };
+
+    const response = await makeAuthenticatedRequest(url, {
+      method: "GET",
+      headers,
+    });
+
+    if (!response?.ok) {
+      return [];
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error("Error fetching TAC price change requests:", error);
+    return [];
+  }
+};
+
+const handleTacPriceChangeAction = async (requestId, action) => {
+  try {
+    const token = getToken();
+    const url = `${ADMIN_API_BASE_URL}/tac-info/price-requests/${requestId}/${action}`;
+    const headers = { Authorization: `Bearer ${token}` };
+
+    const response = await makeAuthenticatedRequest(url, {
+      method: "POST",
+      headers,
+    });
+
+    if (!response?.ok) {
+      const errorData = response ? await response.json() : null;
+      return {
+        success: false,
+        error:
+          errorData?.message || `Failed to ${action} TAC price change request`,
+      };
+    }
+
+    return { success: true, data: await response.json() };
+  } catch (error) {
+    console.error(`Error trying to ${action} TAC price change request:`, error);
+    return {
+      success: false,
+      error: `Failed to ${action} TAC price change request`,
+    };
+  }
+};
+
+export const approveTacPriceChangeRequest = async (requestId) =>
+  handleTacPriceChangeAction(requestId, "approve");
+
+export const rejectTacPriceChangeRequest = async (requestId) =>
+  handleTacPriceChangeAction(requestId, "reject");
 
 export const fetchUser = async (userId) => {
   try {

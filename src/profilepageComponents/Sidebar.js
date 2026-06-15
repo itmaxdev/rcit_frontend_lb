@@ -68,6 +68,7 @@ const Sidebar = ({ basePath }) => {
               },
             ],
           },
+          { icon: permissionSvg, label: "TACInfo", disabled: false },
         ]
       : accountType === ROLE_IMPORTER
       ? [
