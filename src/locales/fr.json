@@ -197,6 +197,11 @@
   "TacInfo_CurrentValue": "Valeur actuelle",
   "TacInfo_RequestedValue": "Valeur demandée",
   "TacInfo_RequestedValueShort": "Demandée",
+  "TacInfo_RequestedBy": "Demandée par",
+  "TacInfo_Reason": "Motif",
+  "TacInfo_ReasonPlaceholder": "Expliquez pourquoi cette valeur estimée doit être mise à jour.",
+  "TacInfo_ReasonRequired": "Ajoutez un motif avant de soumettre la demande.",
+  "TacInfo_RequestModalTitle": "Demander une modification du prix estimé",
   "TacInfo_RequestStatus": "Statut de la demande",
   "TacInfo_RequestChange": "Demander une modification",
   "TacInfo_SubmitRequest": "Soumettre la demande",
@@ -207,7 +212,7 @@
   "TacInfo_ReviewError": "Échec du traitement de la demande de changement de prix TAC.",
   "TacInfo_ApproveSuccess": "La demande de prix estimé a été approuvée et appliquée.",
   "TacInfo_RejectSuccess": "La demande de prix estimé a été rejetée.",
-  "TacInfo_InvalidEstimatedValue": "Saisissez une valeur estimée positive valide avec jusqu'à 2 décimales.",
+  "TacInfo_InvalidEstimatedValue": "Saisissez une valeur estimée positive valide avec jusqu'à 12 chiffres et 2 décimales.",
   "TacInfo_NoPendingRequests": "Aucune mise à jour de prix TAC n'attend de validation pour le moment.",
   "TacInfo_NoOpenRequests": "Vous n'avez encore aucune demande de prix TAC.",
   "TacInfo_NoRequest": "Aucune demande soumise",
@@ -559,5 +564,8 @@
   "Configuration_Saving": "Enregistrement...",
   "Configuration_LoadError": "Impossible de charger la configuration. Veuillez réessayer.",
   "Configuration_SaveError": "Impossible d'enregistrer la configuration. Veuillez réessayer.",
-  "Configuration_SaveSuccess": "Configuration enregistrée avec succès."
+  "Configuration_SaveSuccess": "Configuration enregistrée avec succès.",
+  "Notifications_Title": "Notifications",
+  "Notifications_Empty": "Aucune notification pour le moment.",
+  "Notifications_MarkAllRead": "Tout marquer comme lu"
 }

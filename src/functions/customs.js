@@ -120,7 +120,11 @@ export const fetchCustomsTacPriceRequests = async () => {
   }
 };
 
-export const submitCustomsTacPriceRequest = async (tacNumber, requestedCfi) => {
+export const submitCustomsTacPriceRequest = async (
+  tacNumber,
+  requestedCfi,
+  reason
+) => {
   try {
     const token = getToken();
     const response = await makeAuthenticatedRequest(
@@ -133,7 +137,8 @@ export const submitCustomsTacPriceRequest = async (tacNumber, requestedCfi) => {
         },
         body: JSON.stringify({
           tacNumber,
-          requestedCfi: Number(requestedCfi),
+          requestedCfi,
+          reason,
         }),
       }
     );

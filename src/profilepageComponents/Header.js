@@ -1,10 +1,15 @@
 // src/profilepageComponents/Header.js
-import React, { useContext, useEffect, useState } from "react";
+import React, { useCallback, useContext, useEffect, useRef, useState } from "react";
 import styled from "styled-components";
 import { useTranslation } from "react-i18next";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Context } from "../Context";
 import { fetchUserSummary } from "../functions/profile";
+import {
+  fetchNotifications,
+  markAllNotificationsRead,
+  markNotificationRead,
+} from "../functions/notifications";
 import {
   ROLE_ADMIN,
   ROLE_CUSTOMS,
@@ -19,14 +24,27 @@ import supportSvg from "../assets/support.svg";
 const Header = () => {
   const { t, i18n } = useTranslation();
   const location = useLocation();
+  const navigate = useNavigate();
   const { accountType } = useContext(Context);
   const [userSummary, setUserSummary] = useState(null);
+  const [notifications, setNotifications] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+  const notificationMenuRef = useRef(null);
+  const isHeaderMountedRef = useRef(false);
 
   const segments = location.pathname.split("/").filter(Boolean);
   const title = getHeaderTitle(t, segments, accountType);
   const accountBadge = getAccountBadge(t, accountType, userSummary);
   const supportPath = getSupportPath(accountType);
   const accountChipPath = getAccountChipPath(accountType);
+
+  useEffect(() => {
+    isHeaderMountedRef.current = true;
+    return () => {
+      isHeaderMountedRef.current = false;
+    };
+  }, []);
 
   useEffect(() => {
     let isMounted = true;
@@ -47,6 +65,65 @@ const Header = () => {
     };
   }, [accountType]);
 
+  const loadNotifications = useCallback(async () => {
+    if (!accountType || accountType === "Unknown") {
+      if (isHeaderMountedRef.current) {
+        setNotifications([]);
+        setUnreadCount(0);
+      }
+      return;
+    }
+
+    const data = await fetchNotifications();
+    if (!data || !isHeaderMountedRef.current) {
+      return;
+    }
+
+    setNotifications(Array.isArray(data?.notifications) ? data.notifications : []);
+    setUnreadCount(data?.unreadCount || 0);
+  }, [accountType]);
+
+  useEffect(() => {
+    loadNotifications();
+    const intervalId = window.setInterval(loadNotifications, 30000);
+
+    return () => window.clearInterval(intervalId);
+  }, [loadNotifications]);
+
+  useEffect(() => {
+    const handleOutsideClick = (event) => {
+      if (
+        notificationMenuRef.current &&
+        !notificationMenuRef.current.contains(event.target)
+      ) {
+        setIsNotificationsOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleOutsideClick);
+    return () => document.removeEventListener("mousedown", handleOutsideClick);
+  }, []);
+
+  const handleNotificationClick = async (notification) => {
+    if (!notification.read) {
+      await markNotificationRead(notification.id);
+    }
+
+    await loadNotifications();
+    setIsNotificationsOpen(false);
+
+    if (notification.targetPath) {
+      navigate(notification.targetPath);
+    }
+  };
+
+  const handleMarkAllRead = async () => {
+    const success = await markAllNotificationsRead();
+    if (success) {
+      await loadNotifications();
+    }
+  };
+
   return (
     <HeaderContainer>
       <TitleGroup>
@@ -66,7 +143,50 @@ const Header = () => {
             {t("Sidebar_ContactSupport")}
           </Support>
         )}
-        <Button src={bellSvg} alt="Notifications" style={{ width: "35px" }} />
+        <NotificationMenu ref={notificationMenuRef}>
+          <NotificationButton
+            type="button"
+            onClick={() => setIsNotificationsOpen((isOpen) => !isOpen)}
+            aria-label={t("Notifications_Title")}
+          >
+            <NotificationIcon src={bellSvg} alt="" aria-hidden="true" />
+            {unreadCount > 0 ? (
+              <NotificationBadge>{unreadCount > 9 ? "9+" : unreadCount}</NotificationBadge>
+            ) : null}
+          </NotificationButton>
+          {isNotificationsOpen ? (
+            <NotificationDropdown>
+              <NotificationHeader>
+                <NotificationTitle>{t("Notifications_Title")}</NotificationTitle>
+                {unreadCount > 0 ? (
+                  <MarkAllButton type="button" onClick={handleMarkAllRead}>
+                    {t("Notifications_MarkAllRead")}
+                  </MarkAllButton>
+                ) : null}
+              </NotificationHeader>
+              {notifications.length > 0 ? (
+                <NotificationList>
+                  {notifications.map((notification) => (
+                    <NotificationItem
+                      key={notification.id}
+                      type="button"
+                      onClick={() => handleNotificationClick(notification)}
+                      $unread={!notification.read}
+                    >
+                      <NotificationItemTitle>{notification.title}</NotificationItemTitle>
+                      <NotificationMessage>{notification.message}</NotificationMessage>
+                      <NotificationTime>
+                        {formatNotificationTime(notification.createdAt)}
+                      </NotificationTime>
+                    </NotificationItem>
+                  ))}
+                </NotificationList>
+              ) : (
+                <NotificationEmpty>{t("Notifications_Empty")}</NotificationEmpty>
+              )}
+            </NotificationDropdown>
+          ) : null}
+        </NotificationMenu>
         <LanguageButton
           onClick={() =>
             i18n.changeLanguage(i18n.resolvedLanguage === "en" ? "fr" : "en")
@@ -111,6 +231,24 @@ const Header = () => {
 };
 
 export default Header;
+
+const formatNotificationTime = (value) => {
+  if (!value) {
+    return "";
+  }
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return "";
+  }
+
+  return date.toLocaleString(undefined, {
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+};
 
 const getHeaderTitle = (t, segments, accountType) => {
   const lastSegment = segments[segments.length - 1] || "";
@@ -253,17 +391,133 @@ const Support = styled.div`
   white-space: nowrap;
 `;
 
-const Button = styled.img`
+const NotificationMenu = styled.div`
+  position: relative;
+  display: inline-flex;
+`;
+
+const NotificationButton = styled.button`
+  position: relative;
+  display: inline-flex;
+  width: 38px;
+  height: 38px;
+  align-items: center;
+  justify-content: center;
+  border: none;
   border-radius: 50%;
-  cursor: pointer;
-  border-radius: 50px;
   background: #fff;
-  padding: 5px;
-  transition: transform 0.3s ease;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 
   &:hover {
-    transform: scale(1.1);
+    transform: translateY(-1px);
+    box-shadow: 0 8px 18px rgba(32, 41, 76, 0.12);
   }
+`;
+
+const NotificationIcon = styled.img`
+  width: 28px;
+  height: 28px;
+`;
+
+const NotificationBadge = styled.span`
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  min-width: 17px;
+  height: 17px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: #d53f3f;
+  color: #fff;
+  border: 2px solid #f5f6fa;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 13px;
+`;
+
+const NotificationDropdown = styled.div`
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  z-index: 50;
+  width: min(360px, calc(100vw - 32px));
+  overflow: hidden;
+  border-radius: 14px;
+  border: 1px solid #e5e8f0;
+  background: #fff;
+  box-shadow: 0 18px 48px rgba(15, 23, 42, 0.18);
+`;
+
+const NotificationHeader = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  border-bottom: 1px solid #eef1f6;
+`;
+
+const NotificationTitle = styled.h3`
+  font-size: 14px;
+  font-weight: 800;
+  color: #20294c;
+`;
+
+const MarkAllButton = styled.button`
+  border: none;
+  background: transparent;
+  color: #436c4d;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+`;
+
+const NotificationList = styled.div`
+  max-height: 340px;
+  overflow-y: auto;
+`;
+
+const NotificationItem = styled.button`
+  width: 100%;
+  border: none;
+  border-bottom: 1px solid #eef1f6;
+  background: ${({ $unread }) => ($unread ? "#f7fbf8" : "#fff")};
+  padding: 13px 16px;
+  text-align: left;
+  cursor: pointer;
+
+  &:hover {
+    background: #f5f6fa;
+  }
+`;
+
+const NotificationItemTitle = styled.div`
+  color: #20294c;
+  font-size: 13px;
+  font-weight: 800;
+`;
+
+const NotificationMessage = styled.p`
+  margin-top: 5px;
+  color: #5f6b88;
+  font-size: 12px;
+  line-height: 1.45;
+`;
+
+const NotificationTime = styled.span`
+  display: inline-block;
+  margin-top: 8px;
+  color: #8a95b5;
+  font-size: 11px;
+  font-weight: 600;
+`;
+
+const NotificationEmpty = styled.div`
+  padding: 28px 18px;
+  color: #7b849d;
+  text-align: center;
+  font-size: 13px;
 `;
 
 const LanguageButton = styled.div`

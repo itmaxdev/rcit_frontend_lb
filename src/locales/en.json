@@ -197,6 +197,11 @@
   "TacInfo_CurrentValue": "Current Value",
   "TacInfo_RequestedValue": "Requested Value",
   "TacInfo_RequestedValueShort": "Requested",
+  "TacInfo_RequestedBy": "Requested by",
+  "TacInfo_Reason": "Reason",
+  "TacInfo_ReasonPlaceholder": "Explain why this estimated value should be updated.",
+  "TacInfo_ReasonRequired": "Add a reason before submitting the request.",
+  "TacInfo_RequestModalTitle": "Request Estimated Price Change",
   "TacInfo_RequestStatus": "Request Status",
   "TacInfo_RequestChange": "Request Change",
   "TacInfo_SubmitRequest": "Submit Request",
@@ -207,7 +212,7 @@
   "TacInfo_ReviewError": "Failed to review the TAC price change request.",
   "TacInfo_ApproveSuccess": "Estimated price request approved and applied.",
   "TacInfo_RejectSuccess": "Estimated price request rejected.",
-  "TacInfo_InvalidEstimatedValue": "Enter a valid positive estimated price with up to 2 decimals.",
+  "TacInfo_InvalidEstimatedValue": "Enter a valid positive estimated price up to 12 digits and 2 decimals.",
   "TacInfo_NoPendingRequests": "There are no TAC price updates waiting for review right now.",
   "TacInfo_NoOpenRequests": "You do not have any TAC price requests yet.",
   "TacInfo_NoRequest": "No request submitted",
@@ -559,5 +564,8 @@
   "Configuration_Saving": "Saving...",
   "Configuration_LoadError": "Failed to load configuration. Please try again.",
   "Configuration_SaveError": "Failed to save configuration. Please try again.",
-  "Configuration_SaveSuccess": "Configuration saved successfully."
+  "Configuration_SaveSuccess": "Configuration saved successfully.",
+  "Notifications_Title": "Notifications",
+  "Notifications_Empty": "No notifications yet.",
+  "Notifications_MarkAllRead": "Mark all read"
 }
