@@ -30,6 +30,12 @@ const DECLARATION_TYPES = {
   INDIVIDUAL: "INDIVIDUAL",
 };
 
+const EMPTY_TAB_COUNTS = {
+  [DECLARATION_TYPES.ALL]: 0,
+  [DECLARATION_TYPES.IMPORTER]: 0,
+  [DECLARATION_TYPES.INDIVIDUAL]: 0,
+};
+
 const rowKey = (row) => `${row.declarationType}-${row.id}`;
 
 const EMPTY_FILTERS = {
@@ -58,6 +64,24 @@ const sortCustomsDeclarations = (list = []) =>
 
     return Number(right?.id || 0) - Number(left?.id || 0);
   });
+
+const responseTotal = (response) => {
+  const totalElements = Number(response?.totalElements);
+  return Number.isFinite(totalElements)
+    ? totalElements
+    : (response?.data || []).length;
+};
+
+const buildTabCounts = (importerResponse, individualResponse) => {
+  const importerCount = responseTotal(importerResponse);
+  const individualCount = responseTotal(individualResponse);
+
+  return {
+    [DECLARATION_TYPES.ALL]: importerCount + individualCount,
+    [DECLARATION_TYPES.IMPORTER]: importerCount,
+    [DECLARATION_TYPES.INDIVIDUAL]: individualCount,
+  };
+};
 
 // Client-side filtering over the loaded declarations.
 const filterCustomsDeclarations = (list, filters, isPriceAdjustmentEnabled) =>
@@ -103,6 +127,7 @@ const CustomsDeclarations = ({ archived = false }) => {
   const [currentPage, setCurrentPage] = useState(0);
   const [pageSize, setPageSize] = useState(10);
   const [declarations, setDeclarations] = useState([]);
+  const [tabCounts, setTabCounts] = useState(EMPTY_TAB_COUNTS);
   const [isLoading, setIsLoading] = useState(false);
   const [isPriceAdjustmentEnabled, setIsPriceAdjustmentEnabled] = useState(false);
   const [selectedDeclaration, setSelectedDeclaration] = useState(null);
@@ -227,19 +252,28 @@ const CustomsDeclarations = ({ archived = false }) => {
           ...(individualResponse?.data || []),
         ])
       );
+      setTabCounts(buildTabCounts(importerResponse, individualResponse));
       setIsLoading(false);
       return;
     }
 
-    const response = await fetchCustomsDeclarations(
-      activeTab,
-      1,
-      1000,
-      appliedSearch,
-      archived
-    );
-    if (response) {
-      setDeclarations(sortCustomsDeclarations(response.data || []));
+    const otherTab =
+      activeTab === DECLARATION_TYPES.IMPORTER
+        ? DECLARATION_TYPES.INDIVIDUAL
+        : DECLARATION_TYPES.IMPORTER;
+    const [activeResponse, otherResponse] = await Promise.all([
+      fetchCustomsDeclarations(activeTab, 1, 1000, appliedSearch, archived),
+      fetchCustomsDeclarations(otherTab, 1, 1, appliedSearch, archived),
+    ]);
+
+    const importerResponse =
+      activeTab === DECLARATION_TYPES.IMPORTER ? activeResponse : otherResponse;
+    const individualResponse =
+      activeTab === DECLARATION_TYPES.INDIVIDUAL ? activeResponse : otherResponse;
+
+    setTabCounts(buildTabCounts(importerResponse, individualResponse));
+    if (activeResponse) {
+      setDeclarations(sortCustomsDeclarations(activeResponse.data || []));
     } else {
       setDeclarations([]);
     }
@@ -315,6 +349,9 @@ const CustomsDeclarations = ({ archived = false }) => {
   }, [appliedFilters, t]);
 
   const activeFilterCount = activeFilters.length;
+
+  const tabLabel = (labelKey, countKey) =>
+    `${t(labelKey)} (${formatCount(tabCounts[countKey] || 0)})`;
 
   const openFilters = () => {
     setDraftFilters(appliedFilters);
@@ -797,21 +834,21 @@ const CustomsDeclarations = ({ archived = false }) => {
               $active={activeTab === DECLARATION_TYPES.ALL}
               onClick={() => handleTabChange(DECLARATION_TYPES.ALL)}
             >
-              {t("All")}
+              {tabLabel("All", DECLARATION_TYPES.ALL)}
             </TabButton>
             <TabButton
               type="button"
               $active={activeTab === DECLARATION_TYPES.IMPORTER}
               onClick={() => handleTabChange(DECLARATION_TYPES.IMPORTER)}
             >
-              {t("Importers")}
+              {tabLabel("Importers", DECLARATION_TYPES.IMPORTER)}
             </TabButton>
             <TabButton
               type="button"
               $active={activeTab === DECLARATION_TYPES.INDIVIDUAL}
               onClick={() => handleTabChange(DECLARATION_TYPES.INDIVIDUAL)}
             >
-              {t("Individuals")}
+              {tabLabel("Individuals", DECLARATION_TYPES.INDIVIDUAL)}
             </TabButton>
           </Tabs>
 
