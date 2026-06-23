@@ -159,6 +159,8 @@
   "OTP_Invalid": "Code invalide",
   "OTP_TimerExpired": "Essayez de renvoyer ?",
   "Sidebar_Dashboard": "Tableau de bord",
+  "Sidebar_Dashboard1": "Tableau de bord 1",
+  "Sidebar_DeclarationsNew": "Déclarations (nouveau)",
   "Sidebar_VerifyIMEI": "Vérifier IMEI",
   "Sidebar_DeclareDevices": "Déclarer les appareils",
   "Sidebar_RegisterDevices": "Enregistrer les appareils",

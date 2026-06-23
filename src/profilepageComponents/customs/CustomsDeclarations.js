@@ -21,7 +21,7 @@ import {
   rejectDeclaration,
   startCustomsDeclarationReview,
 } from "../../functions/customs";
-import { StatusBadge, StatusIcon } from "../statusBadge";
+import { StatusBadge } from "../statusBadge";
 import { formatCount } from "../../functions/format";
 
 const DECLARATION_TYPES = {
@@ -1079,16 +1079,9 @@ const CustomsDeclarations = ({ archived = false }) => {
                         </Td>
                         <Td>{row.priceSource}</Td>
                         <Td>
-                          <StatusBadge
-                            $status={getDisplayStatus(row, isPriceAdjustmentEnabled)}
-                          >
-                            <StatusIcon
-                              status={getDisplayStatus(row, isPriceAdjustmentEnabled)}
-                            />
-                            {formatStatusLabel(
-                              getDisplayStatus(row, isPriceAdjustmentEnabled)
-                            )}
-                          </StatusBadge>
+                          <StatusTag
+                            status={getDisplayStatus(row, isPriceAdjustmentEnabled)}
+                          />
                         </Td>
                         <Td onClick={(event) => event.stopPropagation()}>
                           <ActionCell>
@@ -1508,22 +1501,9 @@ const CustomsDeclarations = ({ archived = false }) => {
 
                 <AdjustDetailLabel>{t("Status")}</AdjustDetailLabel>
                   <AdjustDetailValue>
-                    <StatusBadge
-                      $status={getDisplayStatus(
-                        adjustRow,
-                        isPriceAdjustmentEnabled
-                      )}
-                    >
-                      <StatusIcon
-                        status={getDisplayStatus(
-                          adjustRow,
-                          isPriceAdjustmentEnabled
-                        )}
-                      />
-                      {formatStatusLabel(
-                        getDisplayStatus(adjustRow, isPriceAdjustmentEnabled)
-                      )}
-                    </StatusBadge>
+                    <StatusTag
+                      status={getDisplayStatus(adjustRow, isPriceAdjustmentEnabled)}
+                    />
                   </AdjustDetailValue>
               </AdjustDetailGrid>
             </AdjustSection>
@@ -1679,25 +1659,12 @@ const CustomsDeclarations = ({ archived = false }) => {
 
                     <AdjustDetailLabel>{t("Status")}</AdjustDetailLabel>
                     <AdjustDetailValue>
-                      <StatusBadge
-                        $status={getDisplayStatus(
+                      <StatusTag
+                        status={getDisplayStatus(
                           detailsDrawerRow,
                           isPriceAdjustmentEnabled
                         )}
-                      >
-                        <StatusIcon
-                          status={getDisplayStatus(
-                            detailsDrawerRow,
-                            isPriceAdjustmentEnabled
-                          )}
-                        />
-                        {formatStatusLabel(
-                          getDisplayStatus(
-                            detailsDrawerRow,
-                            isPriceAdjustmentEnabled
-                          )
-                        )}
-                      </StatusBadge>
+                      />
                     </AdjustDetailValue>
                   </AdjustDetailGrid>
                 </AdjustSection>
@@ -1899,6 +1866,42 @@ const formatStatusLabel = (status) => {
     .map((part) => part.charAt(0) + part.slice(1).toLowerCase())
     .join(" ");
 };
+
+const STATUS_DOT_COLORS = {
+  SUBMITTED: "#85B7EB",
+  UNDER_REVIEW: "#EF9F27",
+  PENDING_APPROVAL: "#AFA9EC",
+  AWAITING_PAYMENT: "#5DCAA5",
+  APPROVED: "#1D9E75",
+  PAID: "#97C459",
+  DECLINED: "#F09595",
+  CLOSED: "#B4B2A9",
+};
+
+const StatusTagDot = styled.span`
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+`;
+
+const StatusTagWrap = styled.span`
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 14px;
+  color: #1f2430;
+  white-space: nowrap;
+`;
+
+const StatusTag = ({ status }) => (
+  <StatusTagWrap>
+    <StatusTagDot
+      style={{ background: STATUS_DOT_COLORS[status] || "#B4B2A9" }}
+    />
+    {formatStatusLabel(status)}
+  </StatusTagWrap>
+);
 
 const formatInvoiceStatusLabel = (t, status) => {
   if (status === "PAID") {

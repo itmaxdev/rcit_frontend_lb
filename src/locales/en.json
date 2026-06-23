@@ -159,6 +159,8 @@
   "OTP_Invalid": "Code Invalid",
   "OTP_TimerExpired": "Try Resend?",
   "Sidebar_Dashboard": "Dashboard",
+  "Sidebar_Dashboard1": "Dashboard 1",
+  "Sidebar_DeclarationsNew": "Declarations (new)",
   "Sidebar_VerifyIMEI": "Verify IMEI",
   "Sidebar_DeclareDevices": "Declare Devices",
   "Sidebar_RegisterDevices": "Register Devices",
