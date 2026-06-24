@@ -566,7 +566,7 @@
   "NoDevices_Title1": "Aucun appareil enregistré pour le moment.",
   "NoDevices_Title2": "Commencez votre processus d'enregistrement des appareils !",
   "Start Registration": "Commencer l'enregistrement !",
-  "DeviceInfo_MaxDevices": "Vous avez déjà enregistré 3 appareils pour l'année 2024",
+  "DeviceInfo_MaxDevices": "Vous avez atteint le nombre maximum d'appareils autorisés pour cette année.",
   "Change Password": "Changer le mot de passe",
   "User Email": "E-mail de l'utilisateur",
   "Configuration_Title": "Configuration",

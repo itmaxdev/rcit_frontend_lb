@@ -565,7 +565,7 @@
   "NoDevices_Title1": "No registered devices yet.",
   "NoDevices_Title2": "Start your device registration process!",
   "Start Registration": "Start Registration!",
-  "DeviceInfo_MaxDevices": "You have already registered 3 devices for the year 2024",
+  "DeviceInfo_MaxDevices": "You have reached the maximum number of devices allowed for this year.",
   "Change Password": "Change Password",
   "User Email": "User Email",
   "Adjusted value must be a whole number.": "Adjusted value must be a whole number.",

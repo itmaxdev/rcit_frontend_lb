@@ -29,12 +29,14 @@ export const handleIMEI = async (data, declare = false) => {
 
     if (response.status === 200) {
       const json = await response.json();
-      return { status: response.status, ...json };
+      // Spread first so the numeric HTTP status is authoritative (the error
+      // body also carries a string "status" that would otherwise shadow it).
+      return { ...json, status: response.status };
     }
 
     if (response.status === 409 || response.status === 400) {
       const json = await response.json();
-      return { status: response.status, ...json };
+      return { ...json, status: response.status };
     }
 
     const errorData = await response.json();
