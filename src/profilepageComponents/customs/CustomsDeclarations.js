@@ -396,7 +396,7 @@ const CustomsDeclarations = ({ archived = false }) => {
 
   const rangeStart = totalElements === 0 ? 0 : currentPage * pageSize + 1;
   const rangeEnd = Math.min((currentPage + 1) * pageSize, totalElements);
-  const columnCount = activeTab === DECLARATION_TYPES.ALL ? 13 : 12;
+  const columnCount = activeTab === DECLARATION_TYPES.ALL ? 12 : 11;
 
   const emptyStateTitle = useMemo(() => {
     if (archived) {
@@ -980,17 +980,6 @@ const CustomsDeclarations = ({ archived = false }) => {
                   <tr>
                     <Th style={{ width: "32px", padding: "0" }} />
                     <Th>
-                      <StyledCheckbox
-                        type="checkbox"
-                        aria-label="select all"
-                        checked={allSelected}
-                        ref={(el) => {
-                          if (el) el.indeterminate = someSelected && !allSelected;
-                        }}
-                        onChange={handleSelectAll}
-                      />
-                    </Th>
-                    <Th>
                       {t(
                         activeTab === DECLARATION_TYPES.ALL
                           ? "Submitter"
@@ -1046,22 +1035,20 @@ const CustomsDeclarations = ({ archived = false }) => {
                             </svg>
                           </ExpandChevron>
                         </Td>
-                        <Td onClick={(event) => event.stopPropagation()}>
-                          <StyledCheckbox
-                            type="checkbox"
-                            aria-label={`select ${row.declarationNumber}`}
-                            checked={selectedRows.has(rowKey(row))}
-                            onChange={() => handleSelectRow(row)}
-                          />
-                        </Td>
                         <NameCell>{row.submitterName}</NameCell>
                         {activeTab === DECLARATION_TYPES.ALL && (
                           <Td>
-                            {t(
-                              row.declarationType === DECLARATION_TYPES.IMPORTER
-                                ? "Importer"
-                                : "Individual"
-                            )}
+                            <RoleBadge
+                              $individual={
+                                row.declarationType !== DECLARATION_TYPES.IMPORTER
+                              }
+                            >
+                              {t(
+                                row.declarationType === DECLARATION_TYPES.IMPORTER
+                                  ? "Importer"
+                                  : "Individual"
+                              )}
+                            </RoleBadge>
                           </Td>
                         )}
                         <Td>{row.declarationNumber}</Td>
@@ -1075,7 +1062,7 @@ const CustomsDeclarations = ({ archived = false }) => {
                           />
                         </Td>
                         <Td>
-                          <VarianceValue value={Number(row.variancePercent || 0)} />
+                          <VarianceValue value={row.variancePercent} />
                         </Td>
                         <Td>{row.priceSource}</Td>
                         <Td>
@@ -1874,7 +1861,7 @@ const STATUS_DOT_COLORS = {
   AWAITING_PAYMENT: "#5DCAA5",
   APPROVED: "#1D9E75",
   PAID: "#97C459",
-  DECLINED: "#F09595",
+  DECLINED: "#E24B4A",
   CLOSED: "#B4B2A9",
 };
 
@@ -1978,13 +1965,29 @@ const AdjustedEstimatedValue = ({ row, isPriceAdjustmentEnabled }) => {
   );
 };
 
+const VARIANCE_TONES = {
+  danger: { bg: "#fdecec", fg: "#b42318" },
+  warning: { bg: "#fef3e0", fg: "#92590b" },
+  ok: { bg: "#e9f7ef", fg: "#1a7f44" },
+  neutral: { bg: "#f1f2f5", fg: "#6b7280" },
+};
+
+const varianceTone = (value) => {
+  if (value >= 20) return "danger";
+  if (value >= 10) return "warning";
+  return "ok";
+};
+
 const VarianceValue = ({ value }) => {
-  const isPositive = value >= 0;
+  if (value == null || value === "") {
+    return <VariancePill $tone="neutral">—</VariancePill>;
+  }
+  const numeric = Number(value);
+  const sign = numeric > 0 ? "+" : "";
   return (
-    <VarianceContainer $positive={isPositive}>
-      {Math.abs(value).toFixed(2)}%
-      <Triangle $positive={isPositive} />
-    </VarianceContainer>
+    <VariancePill $tone={varianceTone(numeric)}>
+      {`${sign}${numeric.toFixed(0)}%`}
+    </VariancePill>
   );
 };
 
@@ -2011,24 +2014,27 @@ const TextBlock = styled.div`
 `;
 
 const Title = styled.h1`
-  font-size: 20px;
-  font-weight: 700;
+  font-size: 21px;
+  font-weight: 600;
   color: #1d2d64;
-  margin-bottom: 10px;
+  letter-spacing: -0.01em;
+  margin-bottom: 4px;
 `;
 
 const Subtitle = styled.p`
-  font-size: 16px;
+  font-size: 14px;
+  color: #6f7897;
+  margin: 0;
 `;
 
 const ContentCard = styled.div`
   width: 100%;
   flex: 1;
   min-height: 520px;
-  border-radius: 12px;
-  border: 1px solid #d4d6df;
+  border-radius: 14px;
+  border: 1px solid #e6e8ef;
   background: #fff;
-  padding: 20px;
+  padding: 22px;
   display: flex;
   flex-direction: column;
   gap: 18px;
@@ -2049,15 +2055,21 @@ const Tabs = styled.div`
 `;
 
 const TabButton = styled.button`
-  border-radius: 12px;
+  border-radius: 10px;
   border: 1px solid
-    ${({ $active }) => ($active ? "#2671d9" : "rgba(212, 214, 223, 1)")};
-  background: ${({ $active }) => ($active ? "#f5f9ff" : "#f8f8fb")};
-  color: ${({ $active }) => ($active ? "#2671d9" : "#1d2025")};
-  padding: 14px 38px;
-  font-size: 16px;
-  font-weight: 600;
+    ${({ $active }) => ($active ? "#2671d9" : "#e6e8ef")};
+  background: ${({ $active }) => ($active ? "#eef4ff" : "transparent")};
+  color: ${({ $active }) => ($active ? "#2671d9" : "#5f6b7a")};
+  padding: 9px 20px;
+  font-size: 14px;
+  font-weight: 500;
   cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+
+  &:hover {
+    border-color: ${({ $active }) => ($active ? "#2671d9" : "#cfd3dd")};
+    background: ${({ $active }) => ($active ? "#eef4ff" : "#f7f8fb")};
+  }
 `;
 
 const SearchContainer = styled.div`
@@ -2066,10 +2078,16 @@ const SearchContainer = styled.div`
   display: flex;
   align-items: center;
   gap: 10px;
-  border: 1px solid #d4d6df;
+  border: 1px solid #e6e8ef;
   border-radius: 999px;
   padding: 0 16px;
   background: #fff;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+
+  &:focus-within {
+    border-color: #2671d9;
+    box-shadow: 0 0 0 3px rgba(38, 113, 217, 0.1);
+  }
 `;
 
 const SearchButton = styled.button`
@@ -2170,7 +2188,7 @@ const Table = styled.table`
   border-collapse: collapse;
 
   thead tr {
-    background: #f7f8fc;
+    background: #fbfbfd;
   }
 `;
 
@@ -2186,9 +2204,10 @@ const ExpandChevron = styled.span`
 
 const ExpandedTd = styled.td`
   padding: 0;
-  background: #f8faff;
-  border-top: 2px solid #d6e4ff;
-  border-bottom: 2px solid #d6e4ff;
+  background: #f7f9fc;
+  border-top: 1px solid #e6e8ef;
+  border-bottom: 1px solid #e6e8ef;
+  border-left: 3px solid #2671d9;
 `;
 
 const ExpandedContent = styled.div`
@@ -2196,12 +2215,12 @@ const ExpandedContent = styled.div`
 `;
 
 const ExpandedSectionLabel = styled.h4`
-  font-size: 13px;
-  font-weight: 700;
+  font-size: 12px;
+  font-weight: 600;
   color: #1d2d64;
   text-transform: uppercase;
-  letter-spacing: 0.6px;
-  margin: 0 0 14px;
+  letter-spacing: 0.05em;
+  margin: 0 0 12px;
 `;
 
 const ExpandedItemsTable = styled.table`
@@ -2210,24 +2229,34 @@ const ExpandedItemsTable = styled.table`
   background: #fff;
   border-radius: 10px;
   overflow: hidden;
-  border: 1px solid #e8eaf0;
+  border: 1px solid #e6e8ef;
+
+  tbody tr:nth-child(even) {
+    background: #fcfcfe;
+  }
+
+  tbody tr:hover {
+    background: #f3f7ff;
+  }
 `;
 
 const ExpandedTh = styled.th`
   text-align: left;
-  color: #6f7897;
-  font-size: 12px;
+  color: #475569;
+  font-size: 11px;
   font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
   padding: 10px 14px;
-  background: #f4f6fb;
-  border-bottom: 1px solid #e8eaf0;
+  background: #eef2fb;
+  border-bottom: 1px solid #e6e8ef;
 `;
 
 const ExpandedBodyTd = styled.td`
-  padding: 11px 14px;
+  padding: 12px 14px;
   font-size: 13px;
   color: #1d2025;
-  border-bottom: 1px solid #edf0f7;
+  border-bottom: 1px solid #f0f1f4;
   vertical-align: middle;
   white-space: ${({ $preserveLines }) => ($preserveLines ? "pre-line" : "normal")};
 
@@ -2243,17 +2272,20 @@ const ExpandedLoading = styled.div`
 `;
 
 const Th = styled.th`
-  color: #6f7897;
-  font-size: 12px;
-  font-weight: 500;
+  color: #9098a9;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
   text-align: left;
-  padding: 12px 14px;
+  padding: 11px 14px;
   vertical-align: middle;
+  border-bottom: 1px solid #e6e8ef;
 `;
 
 const Td = styled.td`
-  padding: 14px;
-  border-top: 1px solid #edf0f7;
+  padding: 13px 14px;
+  border-bottom: 1px solid #f0f1f4;
   color: #1d2025;
   font-size: 13px;
   vertical-align: middle;
@@ -2318,22 +2350,26 @@ const AdjustedValueText = styled.span`
   font-weight: 700;
 `;
 
-const VarianceContainer = styled.div`
+const VariancePill = styled.span`
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  color: ${({ $positive }) => ($positive ? "#1c9d4b" : "#e03d3d")};
-  font-weight: 600;
+  font-size: 11px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  white-space: nowrap;
+  background: ${(p) => (VARIANCE_TONES[p.$tone] || VARIANCE_TONES.neutral).bg};
+  color: ${(p) => (VARIANCE_TONES[p.$tone] || VARIANCE_TONES.neutral).fg};
 `;
 
-const Triangle = styled.span`
-  width: 0;
-  height: 0;
-  border-left: 5px solid transparent;
-  border-right: 5px solid transparent;
-  border-top: ${({ $positive }) => ($positive ? "none" : "8px solid #e03d3d")};
-  border-bottom: ${({ $positive }) =>
-    $positive ? "8px solid #1c9d4b" : "none"};
+const RoleBadge = styled.span`
+  display: inline-flex;
+  align-items: center;
+  font-size: 11px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  white-space: nowrap;
+  background: ${(p) => (p.$individual ? "#f1f2f5" : "#e8f1fe")};
+  color: ${(p) => (p.$individual ? "#5f5e5a" : "#1d4ed8")};
 `;
 
 const ActionCell = styled.div`
@@ -2343,18 +2379,25 @@ const ActionCell = styled.div`
 `;
 
 const ActionButton = styled.button`
-  border-radius: 12px;
-  border: 1px solid #e6e8f0;
+  border-radius: 10px;
+  border: 1px solid #e6e8ef;
   background: #fff;
-  width: 40px;
-  height: 40px;
+  width: 38px;
+  height: 38px;
   cursor: pointer;
   font-size: 20px;
   display: flex;
   align-items: center;
   justify-content: center;
   line-height: 1;
-  color: #1d2025;
+  color: #5f6b7a;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+
+  &:hover {
+    background: #f7f8fb;
+    border-color: #cfd3dd;
+    color: #1d2025;
+  }
 `;
 
 const ActionMenu = styled.div`
@@ -2953,18 +2996,19 @@ const FilterButton = styled.button`
   font-size: 14px;
   cursor: pointer;
   border-radius: 38px;
-  border: 1px solid ${(props) => (props.$active ? "#2671d9" : "#d4d6df")};
-  background: #fff;
+  border: 1px solid ${(props) => (props.$active ? "#2671d9" : "#e6e8ef")};
+  background: ${(props) => (props.$active ? "#eef4ff" : "#fff")};
   color: ${(props) => (props.$active ? "#2671d9" : "#20294c")};
   white-space: nowrap;
-  transition: all 0.3s ease;
+  transition: background 0.15s ease, border-color 0.15s ease;
 
   img {
     height: 18px;
   }
 
   &:hover {
-    opacity: 0.7;
+    border-color: ${(props) => (props.$active ? "#2671d9" : "#cfd3dd")};
+    background: ${(props) => (props.$active ? "#eef4ff" : "#f7f8fb")};
   }
 `;
 
@@ -2979,7 +3023,7 @@ const FilterBadge = styled.span`
   background: #2671d9;
   color: #fff;
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 600;
   line-height: 1;
 `;
 

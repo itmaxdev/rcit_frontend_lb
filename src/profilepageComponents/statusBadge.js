@@ -147,3 +147,39 @@ export const StatusSvg = styled.svg`
   height: 14px;
   flex-shrink: 0;
 `;
+
+// Dot + label status presentation, matching the customs screens.
+export const STATUS_DOT_COLORS = {
+  SUBMITTED: "#85B7EB",
+  UNDER_REVIEW: "#EF9F27",
+  PENDING_APPROVAL: "#AFA9EC",
+  AWAITING_PAYMENT: "#5DCAA5",
+  APPROVED: "#1D9E75",
+  PAID: "#97C459",
+  DECLINED: "#E24B4A",
+  CLOSED: "#B4B2A9",
+};
+
+const StatusTagWrap = styled.span`
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 14px;
+  color: #1f2430;
+  white-space: nowrap;
+`;
+
+const StatusTagDot = styled.span`
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: ${({ $color }) => $color};
+`;
+
+export const StatusTag = ({ status, children }) => (
+  <StatusTagWrap>
+    <StatusTagDot $color={STATUS_DOT_COLORS[status] || "#B4B2A9"} />
+    {children}
+  </StatusTagWrap>
+);

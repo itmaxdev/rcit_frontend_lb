@@ -3,7 +3,7 @@ import styled from "styled-components";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useParams } from "react-router-dom";
 import PaymentSummary from "../paymentSummary";
-import { StatusBadge } from "../statusBadge";
+import { StatusTag } from "../statusBadge";
 import {
   fetchUserDeclarationById,
   initiateUserDeclarationPayment,
@@ -158,9 +158,9 @@ const IndividualDeclarationDetail = () => {
           <CardTitleGroup>
             <CardTitle>{t("Declaration")} {declaration.id}</CardTitle>
             {showCardStatus && (
-              <StatusBadge $status={currentStatus}>
+              <StatusTag status={currentStatus}>
                 {formatStatusLabel(t, currentStatus)}
-              </StatusBadge>
+              </StatusTag>
             )}
           </CardTitleGroup>
         </CardHeader>

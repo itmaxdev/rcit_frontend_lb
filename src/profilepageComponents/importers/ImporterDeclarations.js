@@ -16,7 +16,7 @@ import {
   clearImporterUploadData,
   fetchClearableImporterUpload,
 } from "../../functions/registered";
-import { StatusBadge, StatusIcon } from "../statusBadge";
+import { StatusTag } from "../statusBadge";
 import { formatCount } from "../../functions/format";
 
 const EMPTY_FILTERS = {
@@ -513,10 +513,9 @@ const ImporterDeclarations = ({ archived = false }) => {
                         <Td>{formatDate(declaration.createdAt)}</Td>
                         <Td>{formatCount(declaration.devicesCount ?? 0)}</Td>
                         <Td>
-                          <StatusBadge $status={currentStatus}>
-                            <StatusIcon status={currentStatus} />
-                            <span>{formatStatusLabel(t, currentStatus)}</span>
-                          </StatusBadge>
+                          <StatusTag status={currentStatus}>
+                            {formatStatusLabel(t, currentStatus)}
+                          </StatusTag>
                         </Td>
                         <Td>{formatMoney(declaration.totalCustomsDuty)}</Td>
                         <Td onClick={(event) => event.stopPropagation()}>

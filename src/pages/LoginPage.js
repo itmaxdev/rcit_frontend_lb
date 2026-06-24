@@ -22,7 +22,6 @@ const LoginPage = () => {
     accountState,
     setAccountState,
     setUserEmail,
-    setUserPhone,
   } = useContext(Context);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -77,13 +76,9 @@ const LoginPage = () => {
   // Update the function handling "Forgot Password" navigation
   function handleForgotPassword() {
     if (!username) {
-      global.alert2("Please input an email or phone number to use for password reset");
+      global.alert2("Please input an email to use for password reset");
     } else {
-      if (/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(username)) {
-        setUserEmail(username);
-      } else {
-        setUserPhone(username);
-      }
+      setUserEmail(username);
       navigate("/otp", { state: { isForgotPassword: true } });
     }
   }
@@ -124,10 +119,7 @@ const LoginPage = () => {
           <InputField
             fieldName="Input_EmailorPhoneNumber"
             validation={(value) =>
-              /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(value) ||
-              /^\+(\d{1,3})[\s-]?\(?(\d{1,4})\)?[\s-]?\d{1,4}[\s-]?\d{1,4}[\s-]?\d{1,4}$/.test(
-                value
-              )
+              /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(value)
             }
             changeValue={setUsername}
             errorMessage={t("Error_EmailPhone")}

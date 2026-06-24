@@ -6,7 +6,7 @@ import emptySVG from "../../assets/noRegistered.svg";
 import plusSVG from "../../assets/plus.svg";
 import searchSVG from "../../assets/search3.svg";
 import { fetchUserDeclarations } from "../../functions/indDeclare";
-import { StatusBadge } from "../statusBadge";
+import { StatusTag } from "../statusBadge";
 import { formatCount } from "../../functions/format";
 
 const IndividualDeclarations = () => {
@@ -178,9 +178,9 @@ const IndividualDeclarations = () => {
                     <TableCell>{declaration.model || "-"}</TableCell>
                     <TableCell>{formatMoney(declaration.totalPayableUsd)}</TableCell>
                     <TableCell>
-                      <StatusBadge $status={declaration.status}>
+                      <StatusTag status={declaration.status}>
                         {formatStatusLabel(t, declaration.status)}
-                      </StatusBadge>
+                      </StatusTag>
                     </TableCell>
                     <TableCell>
                       <ActionButton

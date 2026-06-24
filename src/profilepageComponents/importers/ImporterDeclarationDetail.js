@@ -10,7 +10,7 @@ import {
   initiateDeclarationPayment,
 } from "../../functions/impDeclare";
 import PaymentSummary from "../paymentSummary";
-import { StatusBadge } from "../statusBadge";
+import { StatusBadge, StatusTag } from "../statusBadge";
 import { formatCount } from "../../functions/format";
 import ministryLogo from "../../assets/ministry_logo.jpeg";
 
@@ -213,9 +213,9 @@ const ImporterDeclarationDetail = () => {
               {t("Declaration")} {declaration.id}
             </CardTitle>
             {showCardStatus && (
-              <StatusBadge $status={currentStatus}>
+              <StatusTag status={currentStatus}>
                 {formatStatusLabel(t, currentStatus)}
-              </StatusBadge>
+              </StatusTag>
             )}
           </CardTitleGroup>
           <CsvButton type="button" onClick={handleViewCsv}>

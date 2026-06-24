@@ -28,7 +28,7 @@ export const handleLogin = async (
   const type = identifyInputType(username);
 
   if (type === "invalid") {
-    global.alert2("Invalid username. Please use a valid email or phone number.");
+    global.alert2("Invalid email. Please enter a valid email address.");
     return;
   }
 
