@@ -103,6 +103,31 @@ const IndividualDeclarationDetail = () => {
 
   const currentStatus = declaration.status || "SUBMITTED";
   const declarationDevices = declaration.devices || [];
+  const deviceStatusLabel = formatDeviceStatus(currentStatus, t);
+  // Mirror the importer "Declaration Items" table: one row per device, with the
+  // device status inherited from the declaration (individuals declare per IMEI).
+  const itemRows =
+    declarationDevices.length > 0
+      ? declarationDevices.map((device) => ({
+          brand: device.brand,
+          model: device.model,
+          imeis: device.imei,
+          imeiCount: device.imei ? 1 : 0,
+          deviceStatus: deviceStatusLabel,
+          declaredValueUsd: device.declaredValueUsd,
+        }))
+      : (declaration.imeis || []).length > 0
+      ? [
+          {
+            brand: declaration.brand,
+            model: declaration.model,
+            imeis: (declaration.imeis || []).join("\n"),
+            imeiCount: (declaration.imeis || []).length,
+            deviceStatus: deviceStatusLabel,
+            declaredValueUsd: declaration.declaredValueUsd,
+          },
+        ]
+      : [];
   const trackerSteps = getTrackerSteps(currentStatus);
   const currentStepIndex = getTrackerStepIndex(currentStatus);
   const showPaymentLaunch =
@@ -180,13 +205,40 @@ const IndividualDeclarationDetail = () => {
             <DetailLabel>{t("Declaration Date")}</DetailLabel>
             <DetailValue>{formatDate(declaration.declarationDate)}</DetailValue>
           </DetailItem>
-          <DetailDivider />
-          <DetailItem>
-            <DetailLabel>{t("Import Date")}</DetailLabel>
-            <DetailValue>{formatDate(declaration.importDate)}</DetailValue>
-          </DetailItem>
         </DetailsGrid>
       </DeclarationCard>
+
+      <InfoCard>
+        <ItemsSectionLabel>{t("Declaration Items")}</ItemsSectionLabel>
+        {itemRows.length > 0 ? (
+          <ItemsTable>
+            <thead>
+              <tr>
+                <ItemsTh>{t("Brand")}</ItemsTh>
+                <ItemsTh>{t("Model")}</ItemsTh>
+                <ItemsTh>{t("IMEIs")}</ItemsTh>
+                <ItemsTh>{t("Nbr of IMEIs")}</ItemsTh>
+                <ItemsTh>{t("Device Status")}</ItemsTh>
+                <ItemsTh>{t("Declared Value (USD)")}</ItemsTh>
+              </tr>
+            </thead>
+            <tbody>
+              {itemRows.map((item, index) => (
+                <tr key={`${item.imeis}-${index}`}>
+                  <ItemsBodyTd>{item.brand || "-"}</ItemsBodyTd>
+                  <ItemsBodyTd>{item.model || "-"}</ItemsBodyTd>
+                  <ItemsBodyTd $preserveLines>{item.imeis || "-"}</ItemsBodyTd>
+                  <ItemsBodyTd>{formatCount(item.imeiCount ?? 0)}</ItemsBodyTd>
+                  <ItemsBodyTd>{item.deviceStatus || "-"}</ItemsBodyTd>
+                  <ItemsBodyTd>{formatMoney(item.declaredValueUsd)}</ItemsBodyTd>
+                </tr>
+              ))}
+            </tbody>
+          </ItemsTable>
+        ) : (
+          <EmptyItems>{t("No items available")}</EmptyItems>
+        )}
+      </InfoCard>
 
       {showPaymentLaunch && (
         <ActionSection>
@@ -204,75 +256,6 @@ const IndividualDeclarationDetail = () => {
           </ActionLaunchCard>
         </ActionSection>
       )}
-
-      <InfoCard>
-        <InfoCardTitle>{t("DeviceInfo_Details")}</InfoCardTitle>
-        {declarationDevices.length > 0 ? (
-          <DeviceCards>
-            {declarationDevices.map((device, index) => (
-              <DeviceCard key={`${device.imei}-${index}`}>
-                <DeviceCardTitle>
-                  {t("DeviceInfo_Details")} {index + 1}
-                </DeviceCardTitle>
-                <DeviceGrid>
-                  <DeviceItem>
-                    <DetailLabel>{t("Brand")}</DetailLabel>
-                    <DetailValue>{device.brand || "-"}</DetailValue>
-                  </DeviceItem>
-                  <DeviceItem>
-                    <DetailLabel>{t("Model")}</DetailLabel>
-                    <DetailValue>{device.model || "-"}</DetailValue>
-                  </DeviceItem>
-                  <DeviceItem>
-                    <DetailLabel>{t("Device Type")}</DetailLabel>
-                    <DetailValue>{device.technology || "-"}</DetailValue>
-                  </DeviceItem>
-                  <DeviceItem>
-                    <DetailLabel>{t("Import Date")}</DetailLabel>
-                    <DetailValue>{formatDate(device.importDate)}</DetailValue>
-                  </DeviceItem>
-                  <DeviceItem>
-                    <DetailLabel>{t("Declared Value (USD)")}</DetailLabel>
-                    <DetailValue>{formatMoney(device.declaredValueUsd)}</DetailValue>
-                  </DeviceItem>
-                  <DeviceItem>
-                    <DetailLabel>{t("IMEIs")}</DetailLabel>
-                    <ImeiList>
-                      <ImeiPill>{device.imei}</ImeiPill>
-                    </ImeiList>
-                  </DeviceItem>
-                </DeviceGrid>
-              </DeviceCard>
-            ))}
-          </DeviceCards>
-        ) : (
-          <>
-            <DeviceGrid>
-              <DeviceItem>
-                <DetailLabel>{t("Brand")}</DetailLabel>
-                <DetailValue>{declaration.brand || "-"}</DetailValue>
-              </DeviceItem>
-              <DeviceItem>
-                <DetailLabel>{t("Model")}</DetailLabel>
-                <DetailValue>{declaration.model || "-"}</DetailValue>
-              </DeviceItem>
-              <DeviceItem>
-                <DetailLabel>{t("Device Type")}</DetailLabel>
-                <DetailValue>{declaration.technology || "-"}</DetailValue>
-              </DeviceItem>
-            </DeviceGrid>
-
-            <ImeiSection>
-              <DetailLabel>{t("IMEIs")}</DetailLabel>
-              <ImeiList>
-                {(declaration.imeis || []).map((imei) => (
-                  <ImeiPill key={imei}>{imei}</ImeiPill>
-                ))}
-              </ImeiList>
-            </ImeiSection>
-          </>
-        )}
-      </InfoCard>
 
       {(currentStatus === "SUBMITTED" ||
         currentStatus === "UNDER_REVIEW" ||
@@ -406,6 +389,18 @@ const formatMoney = (value) => {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });
+};
+
+const formatDeviceStatus = (status, t) => {
+  if (!status) {
+    return "-";
+  }
+  const label = String(status)
+    .toLowerCase()
+    .split("_")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+  return t ? t(label) : label;
 };
 
 const PageContainer = styled.div`
@@ -570,6 +565,64 @@ const InfoCardTitle = styled.h3`
   font-size: 20px;
   color: #1d2025;
   margin: 0;
+`;
+
+const ItemsSectionLabel = styled.h3`
+  margin: 0;
+  color: #263765;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+`;
+
+const ItemsTable = styled.table`
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  background: #fff;
+  border: 1px solid #e3e8f4;
+  border-radius: 14px;
+  overflow: hidden;
+
+  thead th {
+    padding: 16px 14px;
+    background: #eef2fb;
+    color: #6c799c;
+    font-size: 14px;
+    font-weight: 500;
+    text-align: left;
+  }
+
+  thead th:first-child {
+    border-top-left-radius: 14px;
+  }
+
+  thead th:last-child {
+    border-top-right-radius: 14px;
+  }
+`;
+
+const ItemsTh = styled.th``;
+
+const ItemsBodyTd = styled.td`
+  padding: 16px 14px;
+  border-bottom: 1px solid #edf0f7;
+  color: #30384f;
+  font-size: 14px;
+  vertical-align: top;
+  white-space: ${({ $preserveLines }) => ($preserveLines ? "pre-line" : "normal")};
+  line-height: ${({ $preserveLines }) => ($preserveLines ? 1.45 : "normal")};
+
+  ${ItemsTable} tbody tr:last-child & {
+    border-bottom: none;
+  }
+`;
+
+const EmptyItems = styled.div`
+  padding: 24px 4px;
+  color: #797f94;
+  font-size: 14px;
 `;
 
 const DeviceCards = styled.div`
