@@ -8,9 +8,11 @@ import searchSVG from "../../assets/search3.svg";
 import eyeSVG from "../../assets/eye.svg";
 import {
   fetchUserDeclarations,
-  viewUserDeclarationInvoicePdf,
+  fetchUserDeclarationInvoice,
+  downloadUserDeclarationInvoicePdf,
 } from "../../functions/indDeclare";
 import { StatusTag } from "../statusBadge";
+import InvoiceModal from "../InvoiceModal";
 import { formatCount } from "../../functions/format";
 
 const MENU_GAP = 6;
@@ -34,6 +36,11 @@ const IndividualDeclarations = ({ archived = false }) => {
   const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
   const [menuAnchorRect, setMenuAnchorRect] = useState(null);
   const menuRef = useRef(null);
+  const [invoiceModalOpen, setInvoiceModalOpen] = useState(false);
+  const [invoiceDeclaration, setInvoiceDeclaration] = useState(null);
+  const [invoiceData, setInvoiceData] = useState(null);
+  const [invoiceLoading, setInvoiceLoading] = useState(false);
+  const [invoiceError, setInvoiceError] = useState("");
 
   useEffect(() => {
     const timerId = window.setTimeout(() => {
@@ -133,14 +140,51 @@ const IndividualDeclarations = ({ archived = false }) => {
     navigate(`/profile/role_user/DeclareDevices/${declarationId}`);
   };
 
-  const handleViewInvoice = async (declaration) => {
-    const ok = await viewUserDeclarationInvoicePdf(
-      declaration.id,
-      `${declaration.declarationNumber || "invoice"}.pdf`
+  const loadInvoice = useCallback(async (declarationId) => {
+    setInvoiceLoading(true);
+    setInvoiceError("");
+    const response = await fetchUserDeclarationInvoice(declarationId);
+    if (!response) {
+      setInvoiceData(null);
+      setInvoiceError(t("Failed to load invoice. Please try again."));
+    } else {
+      setInvoiceData(response);
+    }
+    setInvoiceLoading(false);
+  }, [t]);
+
+  const handleViewInvoice = (declaration) => {
+    setInvoiceDeclaration(declaration);
+    setInvoiceData(null);
+    setInvoiceModalOpen(true);
+    loadInvoice(declaration.id);
+  };
+
+  const closeInvoiceModal = () => {
+    setInvoiceModalOpen(false);
+    setInvoiceDeclaration(null);
+    setInvoiceData(null);
+    setInvoiceError("");
+  };
+
+  const handleDownloadInvoice = async () => {
+    if (!invoiceDeclaration) return;
+    const ok = await downloadUserDeclarationInvoicePdf(
+      invoiceDeclaration.id,
+      `${invoiceData?.invoiceNumber || invoiceDeclaration.declarationNumber || "invoice"}.pdf`
     );
     if (!ok) {
-      global.alert2?.(t("Failed to load invoice. Please try again."));
+      global.alert2?.(t("Failed to download invoice. Please try again."));
     }
+  };
+
+  const handleProceedToPayment = () => {
+    if (!invoiceDeclaration) return;
+    const id = invoiceDeclaration.id;
+    closeInvoiceModal();
+    navigate(`/profile/role_user/DeclareDevices/${id}`, {
+      state: { openPayment: true },
+    });
   };
 
   if (!loading && totalElements === 0 && !appliedSearch) {
@@ -368,6 +412,24 @@ const IndividualDeclarations = ({ archived = false }) => {
           </TableWrapper>
         )}
       </Card>
+
+      {invoiceModalOpen && (
+        <InvoiceModal
+          invoice={invoiceData}
+          loading={invoiceLoading}
+          error={invoiceError}
+          onClose={closeInvoiceModal}
+          onBack={closeInvoiceModal}
+          onDownload={handleDownloadInvoice}
+          onProceed={handleProceedToPayment}
+          showProceed={invoiceDeclaration?.status === "AWAITING_PAYMENT"}
+          onRetry={
+            invoiceDeclaration
+              ? () => loadInvoice(invoiceDeclaration.id)
+              : undefined
+          }
+        />
+      )}
     </Container>
   );
 };

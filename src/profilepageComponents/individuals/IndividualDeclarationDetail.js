@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import styled from "styled-components";
 import { useTranslation } from "react-i18next";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useLocation } from "react-router-dom";
 import PaymentSummary from "../paymentSummary";
 import { StatusTag } from "../statusBadge";
 import {
@@ -15,6 +15,7 @@ const TRACKER_COMPLETE_COLOR = "#1c9d4b";
 const IndividualDeclarationDetail = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const location = useLocation();
   const { declarationId } = useParams();
   const [declaration, setDeclaration] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -34,6 +35,14 @@ const IndividualDeclarationDetail = () => {
   useEffect(() => {
     loadDeclaration();
   }, [loadDeclaration]);
+
+  // When navigated here via "Proceed to Payment" (from the invoice popup),
+  // open the payment summary directly for awaiting-payment declarations.
+  useEffect(() => {
+    if (location.state?.openPayment && declaration?.status === "AWAITING_PAYMENT") {
+      setShowPaymentSummary(true);
+    }
+  }, [location.state, declaration]);
 
   const handleBack = () => {
     navigate("/profile/role_user/DeclareDevices");

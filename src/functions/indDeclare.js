@@ -141,9 +141,36 @@ const extractFilename = (response, fallbackFileName) => {
   return match?.[1] || fallbackFileName;
 };
 
-// Fetches the invoice PDF (same document customs downloads) and opens it in a
-// new tab so the user can view it. Returns false on failure.
-export const viewUserDeclarationInvoicePdf = async (
+// Fetches the invoice details (same invoice customs generates on approval).
+export const fetchUserDeclarationInvoice = async (declarationId) => {
+  const token = getToken();
+
+  try {
+    const response = await makeAuthenticatedRequest(
+      `${DECLARATIONS_URL}/${declarationId}/invoice`,
+      {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    if (!response?.ok) {
+      const errorData = response ? await response.json() : null;
+      throw new Error(errorData?.message || "Failed to load invoice");
+    }
+
+    return response.json();
+  } catch (error) {
+    console.error("Error fetching user declaration invoice:", error);
+    return null;
+  }
+};
+
+// Downloads the invoice PDF (same document customs downloads). Returns false on
+// failure.
+export const downloadUserDeclarationInvoicePdf = async (
   declarationId,
   fallbackFileName = "invoice.pdf"
 ) => {
@@ -162,25 +189,21 @@ export const viewUserDeclarationInvoicePdf = async (
 
     if (!response?.ok) {
       const errorData = response ? await response.json() : null;
-      throw new Error(errorData?.message || "Failed to load invoice");
+      throw new Error(errorData?.message || "Failed to download invoice");
     }
 
     const blob = await response.blob();
     const url = window.URL.createObjectURL(blob);
-    const opened = window.open(url, "_blank", "noopener,noreferrer");
-    if (!opened) {
-      // Popup blocked: fall back to a download so the user still gets the file.
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = extractFilename(response, fallbackFileName);
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    }
-    window.setTimeout(() => window.URL.revokeObjectURL(url), 60000);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = extractFilename(response, fallbackFileName);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.setTimeout(() => window.URL.revokeObjectURL(url), 1000);
     return true;
   } catch (error) {
-    console.error("Error loading user declaration invoice PDF:", error);
+    console.error("Error downloading user declaration invoice PDF:", error);
     return false;
   }
 };
