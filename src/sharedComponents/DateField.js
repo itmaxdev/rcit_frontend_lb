@@ -76,7 +76,7 @@ const DateField = ({ fieldName, value = "", changeValue = () => {} }) => {
   }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const typed = parseDate(text);
-  const isPastDate = typed && typed < today;
+  const isPastDate = typed && typed <= today;
   // Neutral while empty or incomplete; red only once a full date is invalid.
   const inputValidity =
     text.length === 0 ? null : text.length < 10 ? null : isPastDate ? true : false;
@@ -85,7 +85,7 @@ const DateField = ({ fieldName, value = "", changeValue = () => {} }) => {
     const masked = maskDate(e.target.value);
     setText(masked);
     const parsed = parseDate(masked);
-    if (masked.length === 10 && parsed && parsed < today) {
+    if (masked.length === 10 && parsed && parsed <= today) {
       setViewDate(parsed);
       emit(masked);
     } else {
@@ -129,8 +129,8 @@ const DateField = ({ fieldName, value = "", changeValue = () => {} }) => {
     );
 
   // The import date must be strictly in the past (backend @Past constraint),
-  // so today and any future day are not selectable.
-  const isDisabledDay = (date) => date >= today;
+  // so future days are not selectable (today is allowed).
+  const isDisabledDay = (date) => date > today;
   const isNextDisabled =
     viewDate.getFullYear() === today.getFullYear() &&
     viewDate.getMonth() === today.getMonth();

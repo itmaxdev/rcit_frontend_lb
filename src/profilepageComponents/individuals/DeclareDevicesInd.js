@@ -19,11 +19,17 @@ const MAX_DEVICES = 4;
 const IMEI_REGEX = /^\d{15}$/;
 const DECLARED_VALUE_REGEX = /^[1-9]\d*$/;
 
+const pad2 = (n) => String(n).padStart(2, "0");
+const todayDate = () => {
+  const d = new Date();
+  return `${pad2(d.getDate())}/${pad2(d.getMonth() + 1)}/${d.getFullYear()}`;
+};
+
 const createEmptyDevice = () => ({
   brand: "",
   brandId: "",
   model: "",
-  date: "",
+  date: todayDate(),
   declaredValue: "",
   imei: "",
 });

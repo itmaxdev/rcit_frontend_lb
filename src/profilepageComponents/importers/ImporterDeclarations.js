@@ -448,17 +448,6 @@ const ImporterDeclarations = ({ archived = false }) => {
               <thead>
                 <tr>
                   <Th style={{ width: "32px", padding: "0" }} />
-                  <Th>
-                    <StyledCheckbox
-                      type="checkbox"
-                      aria-label="select all"
-                      checked={allSelected}
-                      ref={(el) => {
-                        if (el) el.indeterminate = someSelected && !allSelected;
-                      }}
-                      onChange={handleSelectAll}
-                    />
-                  </Th>
                   <Th>{t("Declaration Number")}</Th>
                   <Th>{t("Declaration Date")}</Th>
                   <Th>{t("Nbr of declared devices")}</Th>
@@ -470,7 +459,7 @@ const ImporterDeclarations = ({ archived = false }) => {
               <tbody>
                 {visibleDeclarations.length === 0 ? (
                   <tr>
-                    <EmptyTableCell colSpan="8">
+                    <EmptyTableCell colSpan="7">
                       {t("ImporterDeclarations_NoSearchResults")}
                     </EmptyTableCell>
                   </tr>
@@ -498,14 +487,6 @@ const ImporterDeclarations = ({ archived = false }) => {
                               <path d="M4 6L8 10L12 6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
                             </svg>
                           </ExpandChevron>
-                        </Td>
-                        <Td onClick={(event) => event.stopPropagation()}>
-                          <StyledCheckbox
-                            type="checkbox"
-                            aria-label={`select ${formatDeclarationNumber(declaration.id)}`}
-                            checked={selectedRows.has(declaration.id)}
-                            onChange={() => handleSelectRow(declaration.id)}
-                          />
                         </Td>
                         <DeclarationNumberCell>
                           {formatDeclarationNumber(declaration.id)}
@@ -642,7 +623,7 @@ const ImporterDeclarations = ({ archived = false }) => {
                       </TableRow>
                       {isExpanded && (
                         <tr>
-                          <ExpandedTd colSpan="8">
+                          <ExpandedTd colSpan="7">
                             {expandedDetailLoading ? (
                               <ExpandedLoading>{t("Loading")}</ExpandedLoading>
                             ) : expandedDetail?.items?.length > 0 ? (
