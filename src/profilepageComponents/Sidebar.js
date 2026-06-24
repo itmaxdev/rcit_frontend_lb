@@ -77,6 +77,7 @@ const Sidebar = ({ basePath }) => {
           {
             icon: declareDevicesSvg,
             label: "DeclareDevices",
+            translationKey: "DeclarationsList",
             disabled: false,
             children: [
               {
@@ -94,7 +95,7 @@ const Sidebar = ({ basePath }) => {
           {
             icon: registerDevicesSvg,
             label: "RegisterDevices",
-            disabled: true,
+            disabled: false,
           },
           { icon: digitalWalletSvg, label: "DigitalWallet", disabled: true },
           { icon: reportsSvg, label: "Reports", disabled: true },
@@ -106,6 +107,7 @@ const Sidebar = ({ basePath }) => {
           {
             icon: declareDevicesSvg,
             label: "DeclareDevices",
+            translationKey: "DeclarationsList",
             disabled: false,
             children: [
               {
