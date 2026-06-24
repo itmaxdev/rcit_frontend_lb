@@ -311,7 +311,7 @@ const CustomsWorkspace = () => {
                       <th>Declaration date</th>
                       <th>Devices</th>
                       <th>Declared total (USD)</th>
-                      <th>Estimated total (USD)</th>
+                      <th>Fixed total (USD)</th>
                       <th>Variance</th>
                       <th>Status</th>
                       <th aria-label="action" />
@@ -512,7 +512,7 @@ const CustomsWorkspace = () => {
 
           <Card $danger>
             <CardTitle>Revenue at risk</CardTitle>
-            <CardDesc>Largest gaps between declared and estimated value</CardDesc>
+            <CardDesc>Largest gaps between declared and fixed total</CardDesc>
             {highVariance.length === 0 ? (
               <EmptyBlock>No flagged declarations.</EmptyBlock>
             ) : (

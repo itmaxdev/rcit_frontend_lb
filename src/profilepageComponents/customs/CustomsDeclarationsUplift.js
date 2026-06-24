@@ -755,7 +755,7 @@ const CustomsDeclarationsUplift = () => {
                         <FactValue>{formatMoney(d.declaredTotalUsd)}</FactValue>
                       </Fact>
                       <Fact>
-                        <FactLabel>Estimated (reference)</FactLabel>
+                        <FactLabel>Fixed Total</FactLabel>
                         <FactValue>
                           {d.estimatedValueUsd != null
                             ? formatMoney(d.estimatedValueUsd)
