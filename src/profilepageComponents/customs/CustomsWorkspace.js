@@ -231,7 +231,12 @@ const CustomsWorkspace = () => {
               <InboxIcon />
             </KpiIcon>
           </KpiTop>
-          <KpiValue>{formatInteger(dashboard.actionRequiredCount)}</KpiValue>
+          <KpiValue>
+            {formatInteger(
+              Number(dashboard.submittedCount || 0) +
+                Number(dashboard.underReviewCount || 0)
+            )}
+          </KpiValue>
           <KpiHint>new + under review</KpiHint>
         </Kpi>
         <Kpi $accent="#e24b4a">
