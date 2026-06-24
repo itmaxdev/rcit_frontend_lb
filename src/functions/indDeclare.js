@@ -134,3 +134,53 @@ export const initiateUserDeclarationPayment = async (declarationId) => {
     return null;
   }
 };
+
+const extractFilename = (response, fallbackFileName) => {
+  const disposition = response.headers.get("Content-Disposition") || "";
+  const match = disposition.match(/filename="([^"]+)"/i);
+  return match?.[1] || fallbackFileName;
+};
+
+// Fetches the invoice PDF (same document customs downloads) and opens it in a
+// new tab so the user can view it. Returns false on failure.
+export const viewUserDeclarationInvoicePdf = async (
+  declarationId,
+  fallbackFileName = "invoice.pdf"
+) => {
+  const token = getToken();
+
+  try {
+    const response = await makeAuthenticatedRequest(
+      `${DECLARATIONS_URL}/${declarationId}/invoice/pdf`,
+      {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    if (!response?.ok) {
+      const errorData = response ? await response.json() : null;
+      throw new Error(errorData?.message || "Failed to load invoice");
+    }
+
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const opened = window.open(url, "_blank", "noopener,noreferrer");
+    if (!opened) {
+      // Popup blocked: fall back to a download so the user still gets the file.
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = extractFilename(response, fallbackFileName);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+    window.setTimeout(() => window.URL.revokeObjectURL(url), 60000);
+    return true;
+  } catch (error) {
+    console.error("Error loading user declaration invoice PDF:", error);
+    return false;
+  }
+};

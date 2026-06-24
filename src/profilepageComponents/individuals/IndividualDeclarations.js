@@ -1,13 +1,23 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import styled from "styled-components";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import emptySVG from "../../assets/noRegistered.svg";
 import plusSVG from "../../assets/plus.svg";
 import searchSVG from "../../assets/search3.svg";
-import { fetchUserDeclarations } from "../../functions/indDeclare";
+import eyeSVG from "../../assets/eye.svg";
+import {
+  fetchUserDeclarations,
+  viewUserDeclarationInvoicePdf,
+} from "../../functions/indDeclare";
 import { StatusTag } from "../statusBadge";
 import { formatCount } from "../../functions/format";
+
+const MENU_GAP = 6;
+const MENU_VIEWPORT_MARGIN = 8;
+
+// Statuses for which customs has already generated the invoice (post-approval).
+const INVOICE_STATUSES = ["AWAITING_PAYMENT", "PAID", "CLOSED"];
 
 const IndividualDeclarations = ({ archived = false }) => {
   const { t } = useTranslation();
@@ -20,6 +30,10 @@ const IndividualDeclarations = ({ archived = false }) => {
   const [currentPage, setCurrentPage] = useState(0);
   const [pageSize, setPageSize] = useState(10);
   const [totalElements, setTotalElements] = useState(0);
+  const [openMenuId, setOpenMenuId] = useState(null);
+  const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
+  const [menuAnchorRect, setMenuAnchorRect] = useState(null);
+  const menuRef = useRef(null);
 
   useEffect(() => {
     const timerId = window.setTimeout(() => {
@@ -29,6 +43,54 @@ const IndividualDeclarations = ({ archived = false }) => {
 
     return () => window.clearTimeout(timerId);
   }, [searchQuery]);
+
+  useEffect(() => {
+    if (!openMenuId) return undefined;
+    const handleOutside = (e) => {
+      if (menuRef.current && !menuRef.current.contains(e.target)) {
+        setOpenMenuId(null);
+      }
+    };
+    const handleScroll = () => setOpenMenuId(null);
+    const handleResize = () => setOpenMenuId(null);
+    document.addEventListener("mousedown", handleOutside);
+    window.addEventListener("scroll", handleScroll, true);
+    window.addEventListener("resize", handleResize);
+    return () => {
+      document.removeEventListener("mousedown", handleOutside);
+      window.removeEventListener("scroll", handleScroll, true);
+      window.removeEventListener("resize", handleResize);
+    };
+  }, [openMenuId]);
+
+  useEffect(() => {
+    if (!openMenuId || !menuAnchorRect || !menuRef.current) {
+      return;
+    }
+
+    const menuRect = menuRef.current.getBoundingClientRect();
+    let nextTop = menuAnchorRect.bottom + MENU_GAP;
+    if (nextTop + menuRect.height > window.innerHeight - MENU_VIEWPORT_MARGIN) {
+      nextTop = Math.max(
+        MENU_VIEWPORT_MARGIN,
+        menuAnchorRect.top - menuRect.height - MENU_GAP
+      );
+    }
+
+    let nextLeft = menuAnchorRect.right - menuRect.width;
+    if (nextLeft + menuRect.width > window.innerWidth - MENU_VIEWPORT_MARGIN) {
+      nextLeft = window.innerWidth - MENU_VIEWPORT_MARGIN - menuRect.width;
+    }
+    if (nextLeft < MENU_VIEWPORT_MARGIN) {
+      nextLeft = MENU_VIEWPORT_MARGIN;
+    }
+
+    setMenuPosition((previous) =>
+      previous.top === nextTop && previous.left === nextLeft
+        ? previous
+        : { top: nextTop, left: nextLeft }
+    );
+  }, [openMenuId, menuAnchorRect]);
 
   const loadDeclarations = useCallback(async () => {
     setLoading(true);
@@ -69,6 +131,16 @@ const IndividualDeclarations = ({ archived = false }) => {
 
   const handleViewDetails = (declarationId) => {
     navigate(`/profile/role_user/DeclareDevices/${declarationId}`);
+  };
+
+  const handleViewInvoice = async (declaration) => {
+    const ok = await viewUserDeclarationInvoicePdf(
+      declaration.id,
+      `${declaration.declarationNumber || "invoice"}.pdf`
+    );
+    if (!ok) {
+      global.alert2?.(t("Failed to load invoice. Please try again."));
+    }
   };
 
   if (!loading && totalElements === 0 && !appliedSearch) {
@@ -201,13 +273,93 @@ const IndividualDeclarations = ({ archived = false }) => {
                         {formatStatusLabel(t, declaration.status)}
                       </StatusTag>
                     </TableCell>
-                    <TableCell>
-                      <ActionButton
-                        type="button"
-                        onClick={() => handleViewDetails(declaration.id)}
-                      >
-                        {t("View Details")}
-                      </ActionButton>
+                    <TableCell onClick={(event) => event.stopPropagation()}>
+                      <ActionCell>
+                        <ActionButton
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (openMenuId === declaration.id) {
+                              setOpenMenuId(null);
+                              return;
+                            }
+                            const rect = e.currentTarget.getBoundingClientRect();
+                            setMenuAnchorRect(rect);
+                            setMenuPosition({
+                              top: rect.bottom + MENU_GAP,
+                              left: Math.max(
+                                MENU_VIEWPORT_MARGIN,
+                                rect.right - 220
+                              ),
+                            });
+                            setOpenMenuId(declaration.id);
+                          }}
+                        >
+                          &#8942;
+                        </ActionButton>
+                        {openMenuId === declaration.id && (
+                          <ActionMenu
+                            ref={menuRef}
+                            $top={menuPosition.top}
+                            $left={menuPosition.left}
+                          >
+                            <ActionMenuButton
+                              type="button"
+                              onClick={() => {
+                                setOpenMenuId(null);
+                                handleViewDetails(declaration.id);
+                              }}
+                            >
+                              <ActionLabel>
+                                <ActionIcon src={eyeSVG} alt="" aria-hidden="true" />
+                                <span>{t("View Details")}</span>
+                              </ActionLabel>
+                            </ActionMenuButton>
+                            {INVOICE_STATUSES.includes(declaration.status) && (
+                              <ActionMenuButton
+                                type="button"
+                                onClick={() => {
+                                  setOpenMenuId(null);
+                                  handleViewInvoice(declaration);
+                                }}
+                              >
+                                <ActionLabel>
+                                  <ActionSvg
+                                    viewBox="0 0 20 20"
+                                    fill="none"
+                                    aria-hidden="true"
+                                  >
+                                    <rect
+                                      x="2.5"
+                                      y="5"
+                                      width="15"
+                                      height="11"
+                                      rx="2"
+                                      stroke="#1D2025"
+                                      strokeWidth="1.5"
+                                    />
+                                    <path
+                                      d="M2.5 8.5H17.5"
+                                      stroke="#1D2025"
+                                      strokeWidth="1.5"
+                                      strokeLinecap="round"
+                                    />
+                                    <rect
+                                      x="5"
+                                      y="11.5"
+                                      width="3"
+                                      height="1.5"
+                                      rx="0.5"
+                                      fill="#1D2025"
+                                    />
+                                  </ActionSvg>
+                                  <span>{t("View Invoice")}</span>
+                                </ActionLabel>
+                              </ActionMenuButton>
+                            )}
+                          </ActionMenu>
+                        )}
+                      </ActionCell>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -414,17 +566,79 @@ const TableCell = styled.td`
   vertical-align: middle;
 `;
 
+const ActionCell = styled.div`
+  position: relative;
+  display: flex;
+  align-items: center;
+`;
+
 const ActionButton = styled.button`
+  border-radius: 12px;
+  border: 1px solid #e6e8f0;
+  background: #fff;
+  width: 40px;
+  height: 40px;
+  cursor: pointer;
+  font-size: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  color: #1d2025;
+`;
+
+const ActionMenu = styled.div`
+  position: fixed;
+  top: ${({ $top }) => $top}px;
+  left: ${({ $left }) => $left}px;
+  width: max-content;
+  border-radius: 12px;
+  border: 1px solid #e6e8f0;
+  background: #fff;
+  box-shadow: 0 12px 32px rgba(17, 24, 39, 0.12);
+  padding: 8px;
+  z-index: 100;
+`;
+
+const ActionMenuButton = styled.button`
+  display: block;
+  width: 100%;
   border: none;
   background: transparent;
-  color: #2671d9;
-  font-weight: 600;
+  text-align: left;
+  padding: 10px 14px;
+  border-radius: 0;
   cursor: pointer;
-  padding: 0;
+  border-bottom: 1px solid #edf0f7;
+
+  &:last-child {
+    border-bottom: none;
+  }
 
   &:hover {
-    text-decoration: underline;
+    background: #f5f7fb;
   }
+`;
+
+const ActionLabel = styled.span`
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: #1d2025;
+  font-size: 14px;
+  font-weight: 500;
+`;
+
+const ActionIcon = styled.img`
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
+`;
+
+const ActionSvg = styled.svg`
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
 `;
 
 const Button = styled.button`
