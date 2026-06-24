@@ -5,6 +5,28 @@ import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { statusColors } from "../functions/badgesColors"
 import { formatCount } from "../functions/format";
+import {
+  getPrimaryRole,
+  ROLE_ADMIN,
+  ROLE_CUSTOMS,
+  ROLE_IMPORTER,
+  ROLE_USER,
+} from "../config/roles";
+
+const getRoleLabel = (t, role) => {
+  switch (role) {
+    case ROLE_ADMIN:
+      return t("RoleBadge_Administrator");
+    case ROLE_CUSTOMS:
+      return t("RoleBadge_CustomsOfficer");
+    case ROLE_IMPORTER:
+      return t("RoleBadge_Importer");
+    case ROLE_USER:
+      return t("RoleBadge_Individual");
+    default:
+      return "-";
+  }
+};
 
 const DevicesTable = ({ data, isAdmin = false }) => {
   const { t } = useTranslation();
@@ -27,6 +49,7 @@ const DevicesTable = ({ data, isAdmin = false }) => {
             <TableHeader>{t("Country of Origin")}</TableHeader>
             <TableHeader>{t("Declaration Date")}</TableHeader>
             {isAdmin && <TableHeader>{t("Input_FullName")}</TableHeader>}
+            {isAdmin && <TableHeader>{t("Role")}</TableHeader>}
             <TableHeader>{t("Device Status")}</TableHeader>
           </TableRow>
         </thead>
@@ -54,6 +77,13 @@ const DevicesTable = ({ data, isAdmin = false }) => {
                     </NameButton>
                   </TableCell>
                 )}
+                {isAdmin && (
+                  <TableCell>
+                    <RolePill $role={getPrimaryRole(device.role)}>
+                      {getRoleLabel(t, getPrimaryRole(device.role))}
+                    </RolePill>
+                  </TableCell>
+                )}
                 <TableCell>
                   <StatusBadge status={device.status || "Registered"}>
                     {t(device.status || "Registered")}
@@ -63,7 +93,7 @@ const DevicesTable = ({ data, isAdmin = false }) => {
             ))
           ) : (
             <TableRow>
-              <TableCell colSpan={isAdmin ? "8" : "7"}>
+              <TableCell colSpan={isAdmin ? "9" : "7"}>
                 {t("No data available")}
               </TableCell>
             </TableRow>
@@ -114,6 +144,24 @@ const TableCell = styled.td`
   border-bottom: 1px solid #eaebef;
   text-align: left;
   font-size: 14px;
+`;
+
+const ROLE_PILL = {
+  [ROLE_ADMIN]: { bg: "#efedfe", fg: "#5b21b6" },
+  [ROLE_CUSTOMS]: { bg: "#e1f5ee", fg: "#0f6e56" },
+  [ROLE_IMPORTER]: { bg: "#e8f1fe", fg: "#1d4ed8" },
+  [ROLE_USER]: { bg: "#f1f2f5", fg: "#5f5e5a" },
+};
+
+const RolePill = styled.span`
+  display: inline-flex;
+  align-items: center;
+  font-size: 12px;
+  padding: 4px 11px;
+  border-radius: 999px;
+  white-space: nowrap;
+  background: ${(p) => (ROLE_PILL[p.$role] || ROLE_PILL[ROLE_USER]).bg};
+  color: ${(p) => (ROLE_PILL[p.$role] || ROLE_PILL[ROLE_USER]).fg};
 `;
 
 const NameButton = styled.button`
