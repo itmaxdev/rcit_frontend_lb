@@ -114,8 +114,8 @@ const Sidebar = ({ basePath }) => {
                 disabled: false,
               },
               {
-                label: "RegisteredDevices",
-                translationKey: "RegisteredDevices",
+                label: "DeclareDevices/Archived",
+                translationKey: "Archived",
                 disabled: false,
               },
             ],

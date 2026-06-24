@@ -65,6 +65,10 @@ const ProfilePage = () => {
               <Route path="VerifyIMEI" element={<IMEIVerify />} />
               <Route path="DeclareDevices" element={<IndividualDeclarations />} />
               <Route
+                path="DeclareDevices/Archived"
+                element={<IndividualDeclarations archived />}
+              />
+              <Route
                 path="DeclareDevices/:declarationId"
                 element={<IndividualDeclarationDetail />}
               />

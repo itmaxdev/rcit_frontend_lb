@@ -9,7 +9,7 @@ import { fetchUserDeclarations } from "../../functions/indDeclare";
 import { StatusTag } from "../statusBadge";
 import { formatCount } from "../../functions/format";
 
-const IndividualDeclarations = () => {
+const IndividualDeclarations = ({ archived = false }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [declarations, setDeclarations] = useState([]);
@@ -36,7 +36,8 @@ const IndividualDeclarations = () => {
     const response = await fetchUserDeclarations(
       currentPage + 1,
       pageSize,
-      appliedSearch
+      appliedSearch,
+      archived
     );
 
     if (!response) {
@@ -50,7 +51,7 @@ const IndividualDeclarations = () => {
     setDeclarations(response.data || []);
     setTotalElements(response.totalElements || 0);
     setLoading(false);
-  }, [appliedSearch, currentPage, pageSize]);
+  }, [appliedSearch, currentPage, pageSize, archived]);
 
   useEffect(() => {
     loadDeclarations();
@@ -74,11 +75,19 @@ const IndividualDeclarations = () => {
     return (
       <EmptyStateContainer>
         <EmptyStateSVG src={emptySVG} alt="No declarations" />
-        <EmptyStateTitle>{t("IndividualDeclarations_EmptyTitle")}</EmptyStateTitle>
-        <EmptyStateSubtext>{t("IndividualDeclarations_EmptySubtitle")}</EmptyStateSubtext>
-        <Button type="button" onClick={handleRegisterDevices}>
-          {t("RegisteredDevices_AddButton")}
-        </Button>
+        <EmptyStateTitle>
+          {archived
+            ? t("IndividualDeclarations_NoArchived")
+            : t("IndividualDeclarations_EmptyTitle")}
+        </EmptyStateTitle>
+        {!archived && (
+          <>
+            <EmptyStateSubtext>{t("IndividualDeclarations_EmptySubtitle")}</EmptyStateSubtext>
+            <Button type="button" onClick={handleRegisterDevices}>
+              {t("RegisteredDevices_AddButton")}
+            </Button>
+          </>
+        )}
       </EmptyStateContainer>
     );
   }
@@ -87,13 +96,23 @@ const IndividualDeclarations = () => {
     <Container>
       <Header>
         <TextContainer>
-          <Title>{t("IndividualDeclarations_Title")}</Title>
-          <Subtext>{t("IndividualDeclarations_Subtitle")}</Subtext>
+          <Title>
+            {archived
+              ? t("IndividualDeclarations_ArchivedTitle")
+              : t("IndividualDeclarations_Title")}
+          </Title>
+          <Subtext>
+            {archived
+              ? t("IndividualDeclarations_ArchivedSubtitle")
+              : t("IndividualDeclarations_Subtitle")}
+          </Subtext>
         </TextContainer>
-        <Button type="button" onClick={handleRegisterDevices}>
-          <img src={plusSVG} alt="" />
-          {t("RegisteredDevices_AddButton")}
-        </Button>
+        {!archived && (
+          <Button type="button" onClick={handleRegisterDevices}>
+            <img src={plusSVG} alt="" />
+            {t("RegisteredDevices_AddButton")}
+          </Button>
+        )}
       </Header>
 
       <Card>

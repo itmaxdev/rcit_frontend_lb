@@ -49,10 +49,11 @@ export const handleIMEI = async (data, declare = false) => {
 export const fetchUserDeclarations = async (
   page = 1,
   pageSize = 10,
-  search = ""
+  search = "",
+  archived = false
 ) => {
   const token = getToken();
-  const params = new URLSearchParams({ page, pageSize });
+  const params = new URLSearchParams({ page, pageSize, archived });
   if (search) {
     params.append("search", search);
   }
