@@ -8,9 +8,8 @@ import {
   rejectDeclaration,
   closeDeclaration,
 } from "../../functions/customs";
+import { VARIANCE_WARN_AT, VARIANCE_HIGH_AT } from "./riskThresholds";
 
-const VARIANCE_WARN_AT = 10;
-const VARIANCE_HIGH_AT = 20;
 const PAGE_SIZE = 10;
 
 const STATUS_PALETTE = {
@@ -44,8 +43,8 @@ const TABS = [
 
 const RISK_OPTIONS = [
   { value: "Any", label: "Any" },
-  { value: "flagged", label: "Under-valued (≥10%)" },
-  { value: "high", label: "High risk (≥20%)" },
+  { value: "flagged", label: `Under-valued (≥${VARIANCE_WARN_AT}%)` },
+  { value: "high", label: `High risk (≥${VARIANCE_HIGH_AT}%)` },
   { value: "within", label: "Within tolerance" },
 ];
 const RISK_LABEL = {

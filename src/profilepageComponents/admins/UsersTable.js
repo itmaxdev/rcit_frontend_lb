@@ -34,8 +34,8 @@ const UsersTable = ({ data }) => {
         <thead>
           <TableRow>
             <TableHeader>{t("Input_FullName")}</TableHeader>
-            <TableHeader>{t("Email")}</TableHeader>
             <TableHeader>{t("Role")}</TableHeader>
+            <TableHeader>{t("Email")}</TableHeader>
             <TableHeader>{t("Phone Number")}</TableHeader>
             <TableHeader>{t("Account Status")}</TableHeader>
           </TableRow>
@@ -52,8 +52,12 @@ const UsersTable = ({ data }) => {
                     {[user.firstName, user.lastName].filter(Boolean).join(" ") || "-"}
                   </NameButton>
                 </TableCell>
+                <TableCell>
+                  <RolePill $role={getPrimaryRole(user.authorities)}>
+                    {getRoleLabel(t, user.authorities)}
+                  </RolePill>
+                </TableCell>
                 <TableCell>{user.email}</TableCell>
-                <TableCell>{getRoleLabel(t, user.authorities)}</TableCell>
                 <TableCell>{user.phoneNumber}</TableCell>
                 <TableCell>
                   <StatusBadge status={user.status}>
@@ -117,6 +121,24 @@ const TableCell = styled.td`
   text-align: left;
   font-size: 14px;
   vertical-align: middle;
+`;
+
+const ROLE_PILL = {
+  [ROLE_ADMIN]: { bg: "#efedfe", fg: "#5b21b6" },
+  [ROLE_CUSTOMS]: { bg: "#e1f5ee", fg: "#0f6e56" },
+  [ROLE_IMPORTER]: { bg: "#e8f1fe", fg: "#1d4ed8" },
+  [ROLE_USER]: { bg: "#f1f2f5", fg: "#5f5e5a" },
+};
+
+const RolePill = styled.span`
+  display: inline-flex;
+  align-items: center;
+  font-size: 12px;
+  padding: 4px 11px;
+  border-radius: 999px;
+  white-space: nowrap;
+  background: ${(p) => (ROLE_PILL[p.$role] || ROLE_PILL[ROLE_USER]).bg};
+  color: ${(p) => (ROLE_PILL[p.$role] || ROLE_PILL[ROLE_USER]).fg};
 `;
 
 const NameButton = styled.button`

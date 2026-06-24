@@ -11,6 +11,7 @@ import {
 const DEFAULT_FORM = {
   customsDutyPercentage: "5.00",
   vatPercentage: "11.00",
+  usdToLbpRate: "89500.00",
   priceAdjustmentEnabled: false,
   declarationDeletionEnabled: false,
 };
@@ -50,6 +51,7 @@ const Configuration = () => {
     const nextForm = {
       customsDutyPercentage: formatPercentInput(response.customsDutyPercentage),
       vatPercentage: formatPercentInput(response.vatPercentage),
+      usdToLbpRate: formatRateInput(response.usdToLbpRate),
       priceAdjustmentEnabled: Boolean(response.priceAdjustmentEnabled),
       declarationDeletionEnabled: Boolean(response.declarationDeletionEnabled),
     };
@@ -67,6 +69,17 @@ const Configuration = () => {
     setDeleteError("");
     setDeleteSuccess(false);
     setForm((previous) => ({ ...previous, [field]: value }));
+  };
+
+  const handleRateChange = (value) => {
+    if (!/^\d{0,9}(\.\d{0,2})?$/.test(value)) {
+      return;
+    }
+    setSaveError("");
+    setSaveSuccess(false);
+    setDeleteError("");
+    setDeleteSuccess(false);
+    setForm((previous) => ({ ...previous, usdToLbpRate: value }));
   };
 
   const handleToggleChange = (field) => {
@@ -98,6 +111,7 @@ const Configuration = () => {
     const response = await updateInvoiceConfiguration({
       customsDutyPercentage: Number(initialForm.customsDutyPercentage),
       vatPercentage: Number(initialForm.vatPercentage),
+      usdToLbpRate: Number(initialForm.usdToLbpRate),
       priceAdjustmentEnabled: initialForm.priceAdjustmentEnabled,
       declarationDeletionEnabled: nextValue,
     });
@@ -124,8 +138,10 @@ const Configuration = () => {
     return (
       isValidPercent(form.customsDutyPercentage) &&
       isValidPercent(form.vatPercentage) &&
+      isValidRate(form.usdToLbpRate) &&
       (form.customsDutyPercentage !== initialForm.customsDutyPercentage ||
         form.vatPercentage !== initialForm.vatPercentage ||
+        form.usdToLbpRate !== initialForm.usdToLbpRate ||
         form.priceAdjustmentEnabled !== initialForm.priceAdjustmentEnabled ||
         loadError)
     );
@@ -145,6 +161,7 @@ const Configuration = () => {
     const response = await updateInvoiceConfiguration({
       customsDutyPercentage: Number(form.customsDutyPercentage),
       vatPercentage: Number(form.vatPercentage),
+      usdToLbpRate: Number(form.usdToLbpRate),
       priceAdjustmentEnabled: form.priceAdjustmentEnabled,
       declarationDeletionEnabled: form.declarationDeletionEnabled,
     });
@@ -159,6 +176,7 @@ const Configuration = () => {
     const nextForm = {
       customsDutyPercentage: formatPercentInput(response.customsDutyPercentage),
       vatPercentage: formatPercentInput(response.vatPercentage),
+      usdToLbpRate: formatRateInput(response.usdToLbpRate),
       priceAdjustmentEnabled: Boolean(response.priceAdjustmentEnabled),
       declarationDeletionEnabled: Boolean(response.declarationDeletionEnabled),
     };
@@ -218,46 +236,16 @@ const Configuration = () => {
         </Card>
       ) : (
         <>
-          <Card>
-            <CardHeader>
-              <CardTitle>{t("Configuration_PriceAdjustmentTitle")}</CardTitle>
-              <CardDescription>
-                {t("Configuration_PriceAdjustmentDescription")}
-              </CardDescription>
-            </CardHeader>
-
-            {loadError ? (
+          {loadError ? (
+            <Card>
               <StateStack>
                 <ErrorText>{t("Configuration_LoadError")}</ErrorText>
                 <RetryButton type="button" onClick={loadConfiguration}>
                   {t("Retry")}
                 </RetryButton>
               </StateStack>
-            ) : null}
-
-            <ToggleCard>
-              <ToggleTextStack>
-                <FieldLabel>{t("Adjust")}</FieldLabel>
-              </ToggleTextStack>
-
-              <ToggleAction>
-                <ToggleStatus $enabled={form.priceAdjustmentEnabled}>
-                  {form.priceAdjustmentEnabled
-                    ? t("Configuration_Enabled")
-                    : t("Configuration_Disabled")}
-                </ToggleStatus>
-                <ToggleButton
-                  type="button"
-                  role="switch"
-                  aria-checked={form.priceAdjustmentEnabled}
-                  onClick={() => handleToggleChange("priceAdjustmentEnabled")}
-                  $enabled={form.priceAdjustmentEnabled}
-                >
-                  <ToggleThumb $enabled={form.priceAdjustmentEnabled} />
-                </ToggleButton>
-              </ToggleAction>
-            </ToggleCard>
-          </Card>
+            </Card>
+          ) : null}
 
           <Card>
             <CardHeader>
@@ -315,9 +303,61 @@ const Configuration = () => {
                   <FieldSuffix>%</FieldSuffix>
                 </FieldInputRow>
               </FieldCard>
+
+              <FieldCard>
+                <FieldLabel>{t("Configuration_ExchangeRate")}</FieldLabel>
+                <FieldInputRow>
+                  <FieldInput
+                    type="text"
+                    inputMode="decimal"
+                    value={form.usdToLbpRate}
+                    onChange={(event) => handleRateChange(event.target.value)}
+                    onBlur={() =>
+                      setForm((previous) => ({
+                        ...previous,
+                        usdToLbpRate: normalizeRateInput(previous.usdToLbpRate),
+                      }))
+                    }
+                    placeholder="89500.00"
+                  />
+                  <FieldSuffix>LBP / $1</FieldSuffix>
+                </FieldInputRow>
+              </FieldCard>
             </FieldsGrid>
 
             <HelperText>{t("Configuration_AutoRefreshNote")}</HelperText>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>{t("Configuration_PriceAdjustmentTitle")}</CardTitle>
+              <CardDescription>
+                {t("Configuration_PriceAdjustmentDescription")}
+              </CardDescription>
+            </CardHeader>
+
+            <ToggleCard>
+              <ToggleTextStack>
+                <FieldLabel>{t("Adjust")}</FieldLabel>
+              </ToggleTextStack>
+
+              <ToggleAction>
+                <ToggleStatus $enabled={form.priceAdjustmentEnabled}>
+                  {form.priceAdjustmentEnabled
+                    ? t("Configuration_Enabled")
+                    : t("Configuration_Disabled")}
+                </ToggleStatus>
+                <ToggleButton
+                  type="button"
+                  role="switch"
+                  aria-checked={form.priceAdjustmentEnabled}
+                  onClick={() => handleToggleChange("priceAdjustmentEnabled")}
+                  $enabled={form.priceAdjustmentEnabled}
+                >
+                  <ToggleThumb $enabled={form.priceAdjustmentEnabled} />
+                </ToggleButton>
+              </ToggleAction>
+            </ToggleCard>
           </Card>
 
           <FooterActions>
@@ -418,6 +458,30 @@ const normalizePercentInput = (value) => {
     return value;
   }
   return formatPercentInput(value);
+};
+
+const isValidRate = (value) => {
+  if (value === "") {
+    return false;
+  }
+  const numericValue = Number(value);
+  return (
+    Number.isFinite(numericValue) &&
+    numericValue > 0 &&
+    numericValue <= 100000000
+  );
+};
+
+const formatRateInput = (value) => {
+  const numericValue = Number(value);
+  return Number.isFinite(numericValue) ? numericValue.toFixed(2) : "";
+};
+
+const normalizeRateInput = (value) => {
+  if (value === "" || !isValidRate(value)) {
+    return value;
+  }
+  return formatRateInput(value);
 };
 
 export default Configuration;

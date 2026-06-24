@@ -22,6 +22,7 @@ import {
   startCustomsDeclarationReview,
 } from "../../functions/customs";
 import { StatusBadge } from "../statusBadge";
+import { VARIANCE_WARN_AT, VARIANCE_HIGH_AT } from "./riskThresholds";
 import { formatCount } from "../../functions/format";
 
 const DECLARATION_TYPES = {
@@ -1973,8 +1974,8 @@ const VARIANCE_TONES = {
 };
 
 const varianceTone = (value) => {
-  if (value >= 20) return "danger";
-  if (value >= 10) return "warning";
+  if (value >= VARIANCE_HIGH_AT) return "danger";
+  if (value >= VARIANCE_WARN_AT) return "warning";
   return "ok";
 };
 

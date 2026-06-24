@@ -587,6 +587,7 @@
   "Configuration_DeleteSuccess": "Toutes les déclarations ont été supprimées avec succès.",
   "Configuration_CustomsDuty": "Droits de douane",
   "Configuration_VAT": "TVA",
+  "Configuration_ExchangeRate": "Taux de change USD vers LBP",
   "Configuration_Enabled": "Activé",
   "Configuration_Disabled": "Désactivé",
   "Configuration_AutoRefreshNote": "Toute modification met automatiquement à jour les totaux enregistrés des factures, les pourcentages et les PDF téléchargeables.",

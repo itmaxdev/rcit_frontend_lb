@@ -587,6 +587,7 @@
   "Configuration_DeleteSuccess": "All declarations were deleted successfully.",
   "Configuration_CustomsDuty": "Customs Duty",
   "Configuration_VAT": "VAT",
+  "Configuration_ExchangeRate": "USD to LBP exchange rate",
   "Configuration_Enabled": "Enabled",
   "Configuration_Disabled": "Disabled",
   "Configuration_AutoRefreshNote": "Any change here updates the stored invoice totals, percentages, and downloadable PDFs automatically.",

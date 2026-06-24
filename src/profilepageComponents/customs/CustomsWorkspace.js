@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import styled from "styled-components";
 import { useNavigate } from "react-router-dom";
 import { fetchCustomsDashboard } from "../../functions/customs";
+import { VARIANCE_WARN_AT, VARIANCE_HIGH_AT } from "./riskThresholds";
 
 // Severity thresholds (in days) used purely for the at-a-glance SLA pill in the
 // queue. The authoritative "overdue" set still comes from the backend
@@ -12,8 +13,7 @@ const DUE_SOON_AT_DAYS = 2;
 // A POSITIVE variance means the declared value sits below the system's
 // estimated/reference value — i.e. potential under-valuation, which is the
 // customs revenue risk. Negative variance (over-declaration) is not a risk.
-const VARIANCE_WARN_AT = 10;
-const VARIANCE_HIGH_AT = 20;
+// Thresholds live in one shared module to avoid drift across customs screens.
 
 const STATUS_PALETTE = {
   SUBMITTED: "#85B7EB",
@@ -141,13 +141,19 @@ const CustomsWorkspace = () => {
     return counts;
   }, [rows]);
 
-  const visibleRows = useMemo(
-    () =>
+  const visibleRows = useMemo(() => {
+    const filtered =
       queueFilter === "ALL"
         ? rows
-        : rows.filter((row) => workflowKey(row) === queueFilter),
-    [rows, queueFilter]
-  );
+        : rows.filter((row) => workflowKey(row) === queueFilter);
+    // Most recent declaration date first; undated rows go last.
+    const byMostRecent = (a, b) => {
+      const da = a.declarationDate ? new Date(a.declarationDate).getTime() : -Infinity;
+      const db = b.declarationDate ? new Date(b.declarationDate).getTime() : -Infinity;
+      return db - da;
+    };
+    return [...filtered].sort(byMostRecent);
+  }, [rows, queueFilter]);
 
   const riskRows = useMemo(
     () => rows.filter((row) => Number(row.variancePercent) >= VARIANCE_WARN_AT),
@@ -266,7 +272,7 @@ const CustomsWorkspace = () => {
             <CardHead>
               <div>
                 <CardTitle>Review queue</CardTitle>
-                <CardDesc>Sorted by priority — risk, then age</CardDesc>
+                <CardDesc>Sorted by most recent</CardDesc>
               </div>
               <GhostButton
                 onClick={() => navigate("/profile/role_customs/Declaration")}
@@ -297,9 +303,10 @@ const CustomsWorkspace = () => {
                     <tr>
                       <th>Submitter</th>
                       <th>Role</th>
-                      <th>Age</th>
+                      <th>Declaration date</th>
                       <th>Devices</th>
-                      <th>Declared</th>
+                      <th>Declared total (USD)</th>
+                      <th>Estimated total (USD)</th>
                       <th>Variance</th>
                       <th>Status</th>
                       <th aria-label="action" />
@@ -309,8 +316,6 @@ const CustomsWorkspace = () => {
                     {visibleRows.map((row) => {
                       const key = workflowKey(row);
                       const dStatus = declarationDisplayStatus(row);
-                      const ageDays = getDeclarationAgeDays(row.declarationDate);
-                      const isOverdue = overdueIds.has(row.id);
                       const isIndividual = row.declarationType === "INDIVIDUAL";
                       const variance =
                         row.variancePercent == null
@@ -327,13 +332,14 @@ const CustomsWorkspace = () => {
                               {isIndividual ? "Individual" : "Importer"}
                             </RoleBadge>
                           </td>
-                          <td>
-                            <Pill $tone={ageTone(ageDays, isOverdue)}>
-                              {formatAge(ageDays)}
-                            </Pill>
-                          </td>
+                          <td>{formatShortDate(row.declarationDate)}</td>
                           <td>{formatInteger(row.devicesCount)}</td>
-                          <td>{formatMoney(row.declaredTotalUsd)}</td>
+                          <td>{formatAmount(row.declaredTotalUsd)}</td>
+                          <td>
+                            {row.estimatedValueUsd != null
+                              ? formatAmount(row.estimatedValueUsd)
+                              : "—"}
+                          </td>
                           <td>
                             {variance == null ? (
                               <Pill $tone="neutral">—</Pill>
@@ -648,6 +654,12 @@ const formatMoney = (value) =>
     maximumFractionDigits: 2,
   })}`;
 
+const formatAmount = (value) =>
+  Number(value || 0).toLocaleString(undefined, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+
 const formatMoneyCompact = (value) => {
   const numeric = Number(value || 0);
   if (Math.abs(numeric) >= 1000) {
@@ -668,6 +680,17 @@ const formatDays = (days) => {
 const formatAge = (days) => {
   if (days <= 0) return "Today";
   return `${days}d`;
+};
+
+const formatShortDate = (value) => {
+  if (!value) return "-";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleDateString(undefined, {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
 };
 
 const formatVariance = (value) => {
