@@ -6,6 +6,7 @@ import { fetchUsers } from "../../functions/admin";
 import {
   ROLE_ADMIN,
   ROLE_CUSTOMS,
+  ROLE_TELECOM,
   ROLE_IMPORTER,
   ROLE_USER,
 } from "../../config/roles";
@@ -20,6 +21,7 @@ const USER_ROLE_FILTERS = [
   { key: "ALL", labelKey: "All Users", value: "" },
   { key: ROLE_ADMIN, labelKey: "RoleBadge_Administrator", value: ROLE_ADMIN },
   { key: ROLE_CUSTOMS, labelKey: "RoleBadge_CustomsOfficer", value: ROLE_CUSTOMS },
+  { key: ROLE_TELECOM, labelKey: "RoleBadge_TelecomOfficer", value: ROLE_TELECOM },
   { key: ROLE_IMPORTER, labelKey: "RoleBadge_Importer", value: ROLE_IMPORTER },
   { key: ROLE_USER, labelKey: "RoleBadge_Individual", value: ROLE_USER },
 ];

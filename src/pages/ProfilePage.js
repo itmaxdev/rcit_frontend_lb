@@ -27,8 +27,10 @@ import CustomsDeclarationsUplift from "../profilepageComponents/customs/CustomsD
 import {
   ROLE_ADMIN,
   ROLE_CUSTOMS,
+  ROLE_TELECOM,
   ROLE_IMPORTER,
   ROLE_USER,
+  isCustomsWorkspaceRole,
 } from "../config/roles";
 
 const ProfilePage = () => {
@@ -45,7 +47,10 @@ const ProfilePage = () => {
     return null;
   }
 
-  const basePath = `/profile/${accountType.toLowerCase()}/`;
+  // Telecom officers share the customs workspace screens and URL prefix.
+  const workspacePrefix =
+    accountType === ROLE_TELECOM ? "role_customs" : accountType.toLowerCase();
+  const basePath = `/profile/${workspacePrefix}/`;
 
   return (
     <ProfilePageContainer>
@@ -133,7 +138,7 @@ const ProfilePage = () => {
             </Route>
           )}
 
-          {accountType === ROLE_CUSTOMS && (
+          {isCustomsWorkspaceRole(accountType) && (
             <Route path="role_customs/*">
               <Route path="" element={<Navigate to="Dashboard" />} />
               <Route path="Dashboard" element={<CustomsWorkspace />} />

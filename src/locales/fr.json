@@ -181,6 +181,7 @@
   "Header_MyDevices": "Mes appareils",
   "Header_Workspace": "Espace {{role}}",
   "RoleBadge_CustomsOfficer": "Agent des douanes",
+  "RoleBadge_TelecomOfficer": "Agent télécom",
   "RoleBadge_Importer": "Importateur",
   "RoleBadge_Individual": "Individuel",
   "RoleBadge_Administrator": "Administrateur",

@@ -21,6 +21,7 @@ import {
   ROLE_ADMIN,
   ROLE_CUSTOMS,
   ROLE_IMPORTER,
+  isCustomsWorkspaceRole,
 } from "../config/roles";
 
 const Sidebar = ({ basePath }) => {
@@ -47,7 +48,7 @@ const Sidebar = ({ basePath }) => {
           { icon: permissionSvg, label: "PermissionsAndRoles", disabled: true },
           { icon: helpSvg, label: "Help", disabled: false },
         ]
-      : accountType === ROLE_CUSTOMS
+      : isCustomsWorkspaceRole(accountType)
       ? [
           { icon: dashboardSvg, label: "Dashboard", disabled: false },
           {
@@ -68,7 +69,10 @@ const Sidebar = ({ basePath }) => {
               },
             ],
           },
-          { icon: permissionSvg, label: "TACInfo", disabled: false },
+          // TAC management stays with Customs; Telecom only reviews declarations.
+          ...(accountType === ROLE_CUSTOMS
+            ? [{ icon: permissionSvg, label: "TACInfo", disabled: false }]
+            : []),
         ]
       : accountType === ROLE_IMPORTER
       ? [

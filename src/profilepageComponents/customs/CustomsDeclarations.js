@@ -1,7 +1,9 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import styled from "styled-components";
 import { useTranslation } from "react-i18next";
 import { useLocation, useNavigate } from "react-router-dom";
+import { Context } from "../../Context";
+import { ROLE_TELECOM } from "../../config/roles";
 import chevronSVG from "../../assets/chevron-down.svg";
 import noDeclarations from "../../assets/noDeclarations.png";
 import searchSVG from "../../assets/search3.svg";
@@ -122,6 +124,9 @@ const CustomsDeclarations = ({ archived = false }) => {
   const { t } = useTranslation();
   const location = useLocation();
   const navigate = useNavigate();
+  const { accountType } = useContext(Context);
+  // Only the Telecom Officer can act on declarations; Customs is view-only.
+  const canAct = accountType === ROLE_TELECOM;
   const [activeTab, setActiveTab] = useState(DECLARATION_TYPES.ALL);
   const [searchInput, setSearchInput] = useState("");
   const [appliedSearch, setAppliedSearch] = useState("");
@@ -587,7 +592,7 @@ const CustomsDeclarations = ({ archived = false }) => {
 
     const rect = e.currentTarget.getBoundingClientRect();
 
-    if (row.status === "SUBMITTED") {
+    if (canAct && row.status === "SUBMITTED") {
       const updatedRow = await startCustomsDeclarationReview(
         row.declarationType,
         row.id
@@ -1094,7 +1099,7 @@ const CustomsDeclarations = ({ archived = false }) => {
                                     <span>{t("View Details")}</span>
                                   </ActionLabel>
                                 </ActionMenuButton>
-                                {canAdjustDeclaration(row, isPriceAdjustmentEnabled) && (
+                                {canAct && canAdjustDeclaration(row, isPriceAdjustmentEnabled) && (
                                   <ActionMenuButton
                                     type="button"
                                     onClick={() => openAdjustPanel(row)}
@@ -1124,7 +1129,7 @@ const CustomsDeclarations = ({ archived = false }) => {
                                     </ActionLabel>
                                   </ActionMenuButton>
                                 )}
-                                {canApproveDeclaration(row) && (
+                                {canAct && canApproveDeclaration(row) && (
                                   <ActionMenuButton
                                     type="button"
                                     onClick={() => openApproveModal(row)}
@@ -1177,7 +1182,7 @@ const CustomsDeclarations = ({ archived = false }) => {
                                     </ActionLabel>
                                   </ActionMenuButton>
                                 )}
-                                {canCloseDeclaration(row) && (
+                                {canAct && canCloseDeclaration(row) && (
                                   <ActionMenuButton
                                     type="button"
                                     onClick={async () => {
@@ -1234,7 +1239,7 @@ const CustomsDeclarations = ({ archived = false }) => {
                                     </ActionLabel>
                                   </ActionMenuButton>
                                 )}
-                                {canRejectDeclaration(row) && (
+                                {canAct && canRejectDeclaration(row) && (
                                   <ActionMenuButton
                                     type="button"
                                     onClick={() => openRejectModal(row)}

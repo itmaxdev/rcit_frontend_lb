@@ -9,6 +9,7 @@ import {
   getPrimaryRole,
   ROLE_ADMIN,
   ROLE_CUSTOMS,
+  ROLE_TELECOM,
   ROLE_IMPORTER,
   ROLE_USER,
 } from "../config/roles";
@@ -19,6 +20,8 @@ const getRoleLabel = (t, role) => {
       return t("RoleBadge_Administrator");
     case ROLE_CUSTOMS:
       return t("RoleBadge_CustomsOfficer");
+    case ROLE_TELECOM:
+      return t("RoleBadge_TelecomOfficer");
     case ROLE_IMPORTER:
       return t("RoleBadge_Importer");
     case ROLE_USER:
@@ -149,6 +152,7 @@ const TableCell = styled.td`
 const ROLE_PILL = {
   [ROLE_ADMIN]: { bg: "#efedfe", fg: "#5b21b6" },
   [ROLE_CUSTOMS]: { bg: "#e1f5ee", fg: "#0f6e56" },
+  [ROLE_TELECOM]: { bg: "#e6f4f9", fg: "#0f6e8c" },
   [ROLE_IMPORTER]: { bg: "#e8f1fe", fg: "#1d4ed8" },
   [ROLE_USER]: { bg: "#f1f2f5", fg: "#5f5e5a" },
 };

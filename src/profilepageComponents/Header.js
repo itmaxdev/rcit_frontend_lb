@@ -13,6 +13,7 @@ import {
 import {
   ROLE_ADMIN,
   ROLE_CUSTOMS,
+  ROLE_TELECOM,
   ROLE_IMPORTER,
   ROLE_USER,
 } from "../config/roles";
@@ -325,7 +326,10 @@ const getHeaderTitle = (t, segments, accountType) => {
     return t("Header_MyDeclarations");
   }
 
-  if (accountType === ROLE_CUSTOMS && lastSegment === "Declaration") {
+  if (
+    (accountType === ROLE_CUSTOMS || accountType === ROLE_TELECOM) &&
+    lastSegment === "Declaration"
+  ) {
     return t("Sidebar_Declarations");
   }
 
@@ -348,6 +352,8 @@ const getRoleLabel = (t, accountType) => {
   switch (accountType) {
     case ROLE_CUSTOMS:
       return t("RoleBadge_CustomsOfficer");
+    case ROLE_TELECOM:
+      return t("RoleBadge_TelecomOfficer");
     case ROLE_IMPORTER:
       return t("RoleBadge_Importer");
     case ROLE_USER:
@@ -408,6 +414,15 @@ const getHeaderTheme = (accountType) => {
         pillColor: "#365f40",
         chipBackground: "#1f2a23",
       };
+    case ROLE_TELECOM:
+      return {
+        accent: "#0f6e8c",
+        background: "linear-gradient(135deg, #e9f6fb 0%, #f5f6fa 72%)",
+        border: "#cfe7f0",
+        pillBackground: "rgba(15, 110, 140, 0.14)",
+        pillColor: "#0f6e8c",
+        chipBackground: "#16313a",
+      };
     case ROLE_IMPORTER:
       return {
         accent: "#225fb8",
@@ -436,6 +451,7 @@ const getSupportPath = (accountType) => {
     case ROLE_ADMIN:
       return "/profile/role_admin/Help";
     case ROLE_CUSTOMS:
+    case ROLE_TELECOM:
       return "/profile/role_customs/Help";
     case ROLE_IMPORTER:
     case ROLE_USER:
@@ -451,6 +467,8 @@ const getAccountChipPath = (accountType) => {
     case ROLE_IMPORTER:
     case ROLE_CUSTOMS:
       return `/profile/${accountType.toLowerCase()}/Profile`;
+    case ROLE_TELECOM:
+      return "/profile/role_customs/Profile";
     default:
       return null;
   }

@@ -181,6 +181,7 @@
   "Header_MyDevices": "My Devices",
   "Header_Workspace": "{{role}} Workspace",
   "RoleBadge_CustomsOfficer": "Customs Officer",
+  "RoleBadge_TelecomOfficer": "Telecom Officer",
   "RoleBadge_Importer": "Importer",
   "RoleBadge_Individual": "Individual",
   "RoleBadge_Administrator": "Administrator",
